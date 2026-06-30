@@ -155,6 +155,23 @@ func (e *CallExpr) String() string {
 	return fmt.Sprintf("%s(%s)", e.Func.String(), joinComma(parts))
 }
 
+type StructLiteralExpr struct {
+	NodePos  Pos
+	TypeName string
+	Fields   map[string]Expression
+}
+
+func (e *StructLiteralExpr) Pos() Pos    { return e.NodePos }
+func (e *StructLiteralExpr) exprMarker() {}
+func (e *StructLiteralExpr) nodeMarker() {}
+func (e *StructLiteralExpr) String() string {
+	parts := make([]string, 0, len(e.Fields))
+	for k, v := range e.Fields {
+		parts = append(parts, fmt.Sprintf("%s: %s", k, v.String()))
+	}
+	return fmt.Sprintf("%s(%s)", e.TypeName, joinComma(parts))
+}
+
 type FStringExpr struct {
 	NodePos Pos
 	Raw     string
