@@ -72,3 +72,31 @@ func TestLexer_LoneBang_Placeholder(t *testing.T) {
 	tok := l.Next()
 	assert.Equal(t, EOF, tok.Kind)
 }
+
+func TestLexer_Int(t *testing.T) {
+	l := New("42 0 -7", "")
+	assert.Equal(t, INT, l.Next().Kind)
+	assert.Equal(t, INT, l.Next().Kind)
+}
+
+func TestLexer_Hex(t *testing.T) {
+	l := New("0x1F", "")
+	tok := l.Next()
+	assert.Equal(t, INT, tok.Kind)
+	assert.Equal(t, "0x1F", tok.Data)
+}
+
+func TestLexer_Float(t *testing.T) {
+	l := New("3.14 1e-3 2.5E+2", "")
+	assert.Equal(t, FLOAT, l.Next().Kind)
+	assert.Equal(t, FLOAT, l.Next().Kind)
+	assert.Equal(t, FLOAT, l.Next().Kind)
+}
+
+func TestLexer_IntVsFloat(t *testing.T) {
+	l := New("1 1.0", "")
+	a := l.Next()
+	b := l.Next()
+	assert.Equal(t, INT, a.Kind)
+	assert.Equal(t, FLOAT, b.Kind)
+}

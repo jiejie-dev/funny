@@ -150,6 +150,44 @@ func (l *Lexer) Next() Token {
 		return l.emit(AT, "@")
 	}
 
+	if isDigit(ch) {
+		start := l.pos
+		if ch == '0' && (l.peek(1) == 'x' || l.peek(1) == 'X') {
+			l.advance()
+			l.advance()
+			for l.pos < len(l.src) && isHexDigit(l.src[l.pos]) {
+				l.advance()
+			}
+			return l.emit(INT, l.src[start:l.pos])
+		}
+		for l.pos < len(l.src) && isDigit(l.src[l.pos]) {
+			l.advance()
+		}
+		isFloat := false
+		if l.pos < len(l.src) && l.src[l.pos] == '.' && l.pos+1 < len(l.src) && isDigit(l.src[l.pos+1]) {
+			isFloat = true
+			l.advance()
+			for l.pos < len(l.src) && isDigit(l.src[l.pos]) {
+				l.advance()
+			}
+		}
+		if l.pos < len(l.src) && (l.src[l.pos] == 'e' || l.src[l.pos] == 'E') {
+			isFloat = true
+			l.advance()
+			if l.pos < len(l.src) && (l.src[l.pos] == '+' || l.src[l.pos] == '-') {
+				l.advance()
+			}
+			for l.pos < len(l.src) && isDigit(l.src[l.pos]) {
+				l.advance()
+			}
+		}
+		kind := INT
+		if isFloat {
+			kind = FLOAT
+		}
+		return l.emit(kind, l.src[start:l.pos])
+	}
+
 	if isLetter(ch) {
 		start := l.pos
 		for l.pos < len(l.src) && (isLetter(l.src[l.pos]) || isDigit(l.src[l.pos])) {
@@ -172,4 +210,8 @@ func isLetter(b byte) bool {
 
 func isDigit(b byte) bool {
 	return b >= '0' && b <= '9'
+}
+
+func isHexDigit(b byte) bool {
+	return isDigit(b) || (b >= 'a' && b <= 'f') || (b >= 'A' && b <= 'F')
 }
