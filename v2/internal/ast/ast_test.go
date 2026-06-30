@@ -8,6 +8,10 @@ import (
 
 func TestPos_String(t *testing.T) {
 	p := Pos{File: "a.fn", Line: 2, Col: 3}
-	s := p.String()
-	assert.Contains(t, s, "a.fn")
+	assert.Equal(t, "a.fn:3:4", p.String())
+}
+
+func TestPos_String_ZeroIndex(t *testing.T) {
+	p := Pos{File: "a.fn"}
+	assert.Equal(t, "a.fn:1:1", p.String())
 }
