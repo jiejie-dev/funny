@@ -29,6 +29,8 @@ func CheckExpr(expr ast.Expression, env *Env) (Type, error) {
 		return checkFieldExpr(n, env)
 	case *ast.ListExpr:
 		return checkListLiteral(n, env)
+	case *ast.StructLiteralExpr:
+		return checkStructLiteral(n, env)
 	case *ast.SubExpr:
 		return CheckExpr(n.Inner, env)
 	case *ast.FStringExpr:
@@ -193,6 +195,27 @@ func checkListLiteral(n *ast.ListExpr, env *Env) (Type, error) {
 		}
 	}
 	return List{Elem: first}, nil
+}
+
+func checkStructLiteral(n *ast.StructLiteralExpr, env *Env) (Type, error) {
+	s, ok := env.LookupStruct(n.TypeName)
+	if !ok {
+		return nil, New("E2053", fmt.Sprintf("undefined struct type: %s", n.TypeName), n.NodePos)
+	}
+	for fname, expr := range n.Fields {
+		expected, ok := s.Field(fname)
+		if !ok {
+			return nil, New("E2054", fmt.Sprintf("struct %s has no field %q", n.TypeName, fname), n.NodePos)
+		}
+		actual, err := CheckExpr(expr, env)
+		if err != nil {
+			return nil, err
+		}
+		if !Equal(actual, expected) {
+			return nil, NewMismatch(expr.Pos(), expected, actual)
+		}
+	}
+	return s, nil
 }
 
 // Check type-checks a full program.

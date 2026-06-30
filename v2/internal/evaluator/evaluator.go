@@ -103,6 +103,16 @@ func (e *Evaluator) Eval(node ast.Expression) (any, error) {
 		return e.evalCall(n)
 	case *ast.FStringExpr:
 		return n.Raw, nil
+	case *ast.StructLiteralExpr:
+		fields := map[string]any{}
+		for k, v := range n.Fields {
+			val, err := e.Eval(v)
+			if err != nil {
+				return nil, err
+			}
+			fields[k] = val
+		}
+		return fields, nil
 	}
 	return nil, errs.New("E2002", fmt.Sprintf("cannot eval %T", node), toErrPos(node.Pos()), "")
 }
