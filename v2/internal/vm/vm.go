@@ -76,6 +76,30 @@ func (v *VM) execute() (bytecode.Value, error) {
 				return nil, fmt.Errorf("vm: STORE_LOCAL %d out of range", instr.Arg)
 			}
 			frame.locals[instr.Arg] = v.stack[len(v.stack)-1]
+		case bytecode.ADD_INT, bytecode.SUB_INT, bytecode.MUL_INT, bytecode.DIV_INT, bytecode.MOD_INT,
+			bytecode.ADD_FLOAT, bytecode.SUB_FLOAT, bytecode.MUL_FLOAT, bytecode.DIV_FLOAT,
+			bytecode.ADD_STR:
+			a, b := v.pop2()
+			res, err := v.execArith(instr.Op, a, b)
+			if err != nil {
+				return nil, err
+			}
+			v.stack = append(v.stack, res)
+		case bytecode.EQ_INT, bytecode.EQ_STR, bytecode.EQ_BOOL, bytecode.EQ_NIL,
+			bytecode.LT_INT, bytecode.GT_INT, bytecode.LTE_INT, bytecode.GTE_INT:
+			a, b := v.pop2()
+			res, err := v.execCmp(instr.Op, a, b)
+			if err != nil {
+				return nil, err
+			}
+			v.stack = append(v.stack, res)
+		case bytecode.NEG_INT, bytecode.NEG_FLOAT, bytecode.NOT_BOOL:
+			a := v.pop()
+			res, err := v.execUnary(instr.Op, a)
+			if err != nil {
+				return nil, err
+			}
+			v.stack = append(v.stack, res)
 		case bytecode.HALT:
 			if len(v.stack) > 0 {
 				return v.stack[len(v.stack)-1], nil
