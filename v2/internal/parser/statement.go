@@ -67,7 +67,29 @@ func isExpressionStart(k lexer.Kind) bool {
 	return false
 }
 
-func (p *Parser) parseLet() (ast.Statement, error) { return nil, fmt.Errorf("parseLet stub (Task 16)") }
+func (p *Parser) parseLet() (ast.Statement, error) {
+	pos := astPos(p.cur.Pos)
+	p.advance()
+	if p.cur.Kind != lexer.NAME {
+		return nil, errs.New("E1005", "expected variable name after `let`", errPos(p.cur.Pos), "")
+	}
+	name := p.cur.Data
+	p.advance()
+	var typeAnn string
+	if p.cur.Kind == lexer.COLON {
+		p.advance()
+		typeAnn = p.cur.Data
+		p.advance()
+	}
+	if _, err := p.expect(lexer.EQ); err != nil {
+		return nil, err
+	}
+	val, err := p.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.LetStmt{NodePos: pos, Name: name, TypeAnn: typeAnn, Value: val}, nil
+}
 func (p *Parser) parseIf() (ast.Statement, error)  { return nil, fmt.Errorf("parseIf stub (Task 17)") }
 func (p *Parser) parseFor() (ast.Statement, error) { return nil, fmt.Errorf("parseFor stub (Task 17)") }
 func (p *Parser) parseWhile() (ast.Statement, error) {
@@ -96,5 +118,18 @@ func (p *Parser) parseImport() (ast.Statement, error) {
 }
 func (p *Parser) parsePub() (ast.Statement, error) { return nil, fmt.Errorf("parsePub stub (Task 18)") }
 func (p *Parser) parseAssignOrExpr() (ast.Statement, error) {
-	return nil, fmt.Errorf("parseAssignOrExpr stub (Task 16)")
+	left, err := p.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+	if p.cur.Kind == lexer.EQ {
+		pos := astPos(p.cur.Pos)
+		p.advance()
+		val, err := p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		return &ast.AssignStmt{NodePos: pos, Target: left, Value: val}, nil
+	}
+	return &ast.ExprStmt{NodePos: left.Pos(), X: left}, nil
 }
