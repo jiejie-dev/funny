@@ -105,6 +105,26 @@ func (v *VM) execute() (bytecode.Value, error) {
 				return v.stack[len(v.stack)-1], nil
 			}
 			return nil, nil
+		case bytecode.JUMP:
+			frame.ip = instr.Arg
+		case bytecode.JUMP_IF_FALSE:
+			if len(v.stack) == 0 {
+				return nil, fmt.Errorf("vm: JUMP_IF_FALSE on empty stack")
+			}
+			cond := v.stack[len(v.stack)-1]
+			b, isBool := cond.(bool)
+			if isBool && !b {
+				frame.ip = instr.Arg
+			}
+		case bytecode.JUMP_IF_TRUE:
+			if len(v.stack) == 0 {
+				return nil, fmt.Errorf("vm: JUMP_IF_TRUE on empty stack")
+			}
+			cond := v.stack[len(v.stack)-1]
+			b, isBool := cond.(bool)
+			if isBool && b {
+				frame.ip = instr.Arg
+			}
 		default:
 			return nil, fmt.Errorf("vm: unsupported op %s at ip=%d (not yet implemented in this task)", instr.Op, frame.ip-1)
 		}

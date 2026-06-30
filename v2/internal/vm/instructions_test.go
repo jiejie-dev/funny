@@ -113,3 +113,53 @@ func TestVM_EQStr(t *testing.T) {
 	fn.Emit(bytecode.HALT, 0)
 	assert.Equal(t, true, runVM(t, fn, "hello"))
 }
+
+func TestVM_JumpIfFalse_Taken(t *testing.T) {
+	fn := &bytecode.Function{Name: "main", Arity: 0}
+	fn.Emit(bytecode.PUSH_BOOL, 0)     // push false
+	fn.Emit(bytecode.JUMP_IF_FALSE, 3) // ip=1, jump to ip=3 (HALT) if false
+	fn.Emit(bytecode.PUSH_INT, 1)      // ip=2, skipped
+	fn.Emit(bytecode.HALT, 0)          // ip=3, returns false
+	v := runVM(t, fn, false)
+	assert.Equal(t, false, v) // bool still on stack from PUSH_BOOL
+}
+
+func TestVM_JumpIfFalse_FallThrough(t *testing.T) {
+	fn := &bytecode.Function{Name: "main", Arity: 0}
+	fn.Emit(bytecode.PUSH_BOOL, 0)      // push true
+	fn.Emit(bytecode.JUMP_IF_FALSE, 100) // won't jump (condition is true)
+	fn.Emit(bytecode.PUSH_INT, 1)       // ip=2, push 42
+	fn.Emit(bytecode.HALT, 0)
+	v := runVM(t, fn, true, 42)
+	assert.Equal(t, 42, v)
+}
+
+func TestVM_JumpIfTrue_Taken(t *testing.T) {
+	fn := &bytecode.Function{Name: "main", Arity: 0}
+	fn.Emit(bytecode.PUSH_BOOL, 0)    // push true
+	fn.Emit(bytecode.JUMP_IF_TRUE, 3) // ip=1, jump to ip=3 (HALT)
+	fn.Emit(bytecode.PUSH_INT, 1)     // ip=2, skipped
+	fn.Emit(bytecode.HALT, 0)         // ip=3
+	v := runVM(t, fn, true)
+	assert.Equal(t, true, v)
+}
+
+func TestVM_JumpIfTrue_FallThrough(t *testing.T) {
+	fn := &bytecode.Function{Name: "main", Arity: 0}
+	fn.Emit(bytecode.PUSH_BOOL, 0)      // push false
+	fn.Emit(bytecode.JUMP_IF_TRUE, 100) // won't jump
+	fn.Emit(bytecode.PUSH_INT, 1)       // ip=2
+	fn.Emit(bytecode.HALT, 0)
+	v := runVM(t, fn, false, 99)
+	assert.Equal(t, 99, v)
+}
+
+func TestVM_JumpUnconditional(t *testing.T) {
+	fn := &bytecode.Function{Name: "main", Arity: 0}
+	fn.Emit(bytecode.PUSH_INT, 0) // ip=0, push 1
+	fn.Emit(bytecode.JUMP, 3)     // ip=1, jump to ip=3
+	fn.Emit(bytecode.PUSH_INT, 1) // ip=2, skipped
+	fn.Emit(bytecode.HALT, 0)     // ip=3, returns 1 (from PUSH_INT 0)
+	v := runVM(t, fn, 1, 2)
+	assert.Equal(t, 1, v)
+}
