@@ -196,6 +196,23 @@ func (l *Lexer) Next() Token {
 		return l.lexFString()
 	}
 
+	if ch == '#' {
+		isDoc := l.peek(1) == '#'
+		l.advance()
+		if isDoc {
+			l.advance()
+		}
+		start := l.pos
+		for l.pos < len(l.src) && l.src[l.pos] != '\n' {
+			l.advance()
+		}
+		kind := COMMENT
+		if isDoc {
+			kind = DOC_COMMENT
+		}
+		return l.emit(kind, l.src[start:l.pos])
+	}
+
 	if isLetter(ch) {
 		start := l.pos
 		for l.pos < len(l.src) && (isLetter(l.src[l.pos]) || isDigit(l.src[l.pos])) {

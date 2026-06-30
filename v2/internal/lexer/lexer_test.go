@@ -125,3 +125,19 @@ func TestLexer_FString(t *testing.T) {
 	assert.Equal(t, FSTR, tok.Kind)
 	assert.Equal(t, "hello {name}", tok.Data)
 }
+
+func TestLexer_LineComment(t *testing.T) {
+	l := New("# hello\na", "")
+	c := l.Next()
+	assert.Equal(t, COMMENT, c.Kind)
+	assert.Equal(t, " hello", c.Data)
+	a := l.Next()
+	assert.Equal(t, NAME, a.Kind)
+}
+
+func TestLexer_DocComment(t *testing.T) {
+	l := New("## doc\na", "")
+	c := l.Next()
+	assert.Equal(t, DOC_COMMENT, c.Kind)
+	assert.Equal(t, " doc", c.Data)
+}
