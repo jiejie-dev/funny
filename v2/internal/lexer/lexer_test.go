@@ -28,3 +28,41 @@ func TestLexer_TracksLineAndCol(t *testing.T) {
 	assert.Equal(t, 1, bTok.Pos.Line)
 	assert.Equal(t, 0, bTok.Pos.Col)
 }
+
+func TestLexer_Operators(t *testing.T) {
+	cases := []struct {
+		src  string
+		kind Kind
+		data string
+	}{
+		{"+", PLUS, "+"},
+		{"-", MINUS, "-"},
+		{"*", STAR, "*"},
+		{"/", SLASH, "/"},
+		{"%", PERCENT, "%"},
+		{"=", EQ, "="},
+		{"==", EQEQ, "=="},
+		{"!=", NEQ, "!="},
+		{"<", LT, "<"},
+		{">", GT, ">"},
+		{"<=", LTE, "<="},
+		{">=", GTE, ">="},
+		{"(", LPAREN, "("},
+		{")", RPAREN, ")"},
+		{"[", LBRACK, "["},
+		{"]", RBRACK, "]"},
+		{",", COMMA, ","},
+		{".", DOT, "."},
+		{":", COLON, ":"},
+		{"->", ARROW, "->"},
+		{"=>", FATARROW, "=>"},
+		{"?", QUESTION, "?"},
+		{"@", AT, "@"},
+	}
+	for _, c := range cases {
+		l := New(c.src, "")
+		tok := l.Next()
+		assert.Equal(t, c.kind, tok.Kind, "src=%q", c.src)
+		assert.Equal(t, c.data, tok.Data, "src=%q", c.src)
+	}
+}

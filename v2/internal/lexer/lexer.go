@@ -69,6 +69,87 @@ func (l *Lexer) Next() Token {
 
 	l.save()
 
+	switch ch {
+	case '+':
+		l.advance()
+		return l.emit(PLUS, "+")
+	case '-':
+		l.advance()
+		if l.peek(0) == '>' {
+			l.advance()
+			return l.emit(ARROW, "->")
+		}
+		return l.emit(MINUS, "-")
+	case '*':
+		l.advance()
+		return l.emit(STAR, "*")
+	case '/':
+		l.advance()
+		return l.emit(SLASH, "/")
+	case '%':
+		l.advance()
+		return l.emit(PERCENT, "%")
+	case '=':
+		l.advance()
+		if l.peek(0) == '=' {
+			l.advance()
+			return l.emit(EQEQ, "==")
+		}
+		if l.peek(0) == '>' {
+			l.advance()
+			return l.emit(FATARROW, "=>")
+		}
+		return l.emit(EQ, "=")
+	case '!':
+		l.advance()
+		if l.peek(0) == '=' {
+			l.advance()
+			return l.emit(NEQ, "!=")
+		}
+		return Token{Kind: EOF}
+	case '<':
+		l.advance()
+		if l.peek(0) == '=' {
+			l.advance()
+			return l.emit(LTE, "<=")
+		}
+		return l.emit(LT, "<")
+	case '>':
+		l.advance()
+		if l.peek(0) == '=' {
+			l.advance()
+			return l.emit(GTE, ">=")
+		}
+		return l.emit(GT, ">")
+	case '(':
+		l.advance()
+		return l.emit(LPAREN, "(")
+	case ')':
+		l.advance()
+		return l.emit(RPAREN, ")")
+	case '[':
+		l.advance()
+		return l.emit(LBRACK, "[")
+	case ']':
+		l.advance()
+		return l.emit(RBRACK, "]")
+	case ',':
+		l.advance()
+		return l.emit(COMMA, ",")
+	case '.':
+		l.advance()
+		return l.emit(DOT, ".")
+	case ':':
+		l.advance()
+		return l.emit(COLON, ":")
+	case '?':
+		l.advance()
+		return l.emit(QUESTION, "?")
+	case '@':
+		l.advance()
+		return l.emit(AT, "@")
+	}
+
 	if isLetter(ch) {
 		start := l.pos
 		for l.pos < len(l.src) && (isLetter(l.src[l.pos]) || isDigit(l.src[l.pos])) {
