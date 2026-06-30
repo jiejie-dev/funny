@@ -2,11 +2,62 @@ package parser
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/jerloo/funny/v2/internal/ast"
 	"github.com/jerloo/funny/v2/internal/errs"
 	"github.com/jerloo/funny/v2/internal/lexer"
 )
+
+// tokenLiteral returns the source-level text representation of a token,
+// reconstructing punctuation that the lexer leaves as empty Data.
+func tokenLiteral(k lexer.Kind, data string) string {
+	switch k {
+	case lexer.LBRACK:
+		return "["
+	case lexer.RBRACK:
+		return "]"
+	case lexer.LPAREN:
+		return "("
+	case lexer.RPAREN:
+		return ")"
+	case lexer.COMMA:
+		return ","
+	case lexer.QUESTION:
+		return "?"
+	case lexer.ARROW:
+		return "->"
+	}
+	return data
+}
+
+// consumeTypeAnn consumes tokens until it hits one of the stop kinds (or EOF)
+// and builds a type annotation string suitable for types.ParseType.
+func (p *Parser) consumeTypeAnn(stopKinds ...lexer.Kind) string {
+	var parts []string
+	for {
+		stop := false
+		for _, k := range stopKinds {
+			if p.cur.Kind == k {
+				stop = true
+				break
+			}
+		}
+		if stop || p.cur.Kind == lexer.EOF {
+			break
+		}
+		parts = append(parts, tokenLiteral(p.cur.Kind, p.cur.Data))
+		p.advance()
+	}
+	var b strings.Builder
+	for i, part := range parts {
+		if i > 0 && parts[i-1] == "," {
+			b.WriteString(" ")
+		}
+		b.WriteString(part)
+	}
+	return b.String()
+}
 
 func (p *Parser) parseStatement() (ast.Statement, error) {
 	switch p.cur.Kind {
@@ -78,8 +129,7 @@ func (p *Parser) parseLet() (ast.Statement, error) {
 	var typeAnn string
 	if p.cur.Kind == lexer.COLON {
 		p.advance()
-		typeAnn = p.cur.Data
-		p.advance()
+		typeAnn = p.consumeTypeAnn(lexer.EQ, lexer.NEWLINE)
 	}
 	if _, err := p.expect(lexer.EQ); err != nil {
 		return nil, err
@@ -299,8 +349,7 @@ func (p *Parser) parseFnDecl() (ast.Statement, error) {
 		var ptype string
 		if p.cur.Kind == lexer.COLON {
 			p.advance()
-			ptype = p.cur.Data
-			p.advance()
+			ptype = p.consumeTypeAnn(lexer.COMMA, lexer.RPAREN)
 		}
 		params = append(params, ast.Param{Name: pname, TypeAnn: ptype})
 		if p.cur.Kind == lexer.COMMA {
@@ -313,8 +362,7 @@ func (p *Parser) parseFnDecl() (ast.Statement, error) {
 	var retType string
 	if p.cur.Kind == lexer.ARROW {
 		p.advance()
-		retType = p.cur.Data
-		p.advance()
+		retType = p.consumeTypeAnn(lexer.COLON)
 	}
 	if _, err := p.expect(lexer.COLON); err != nil {
 		return nil, err
@@ -356,14 +404,11 @@ func (p *Parser) parseStructDecl() (ast.Statement, error) {
 		}
 		fname := p.cur.Data
 		p.advance()
-		if _, err := p.expect(lexer.COLON); err != nil {
-			return nil, err
+		var ftype string
+		if p.cur.Kind == lexer.COLON {
+			p.advance()
+			ftype = p.consumeTypeAnn(lexer.NEWLINE)
 		}
-		if p.cur.Kind != lexer.NAME {
-			return nil, errs.New("E1035", "expected field type in struct", errPos(p.cur.Pos), "")
-		}
-		ftype := p.cur.Data
-		p.advance()
 		fields = append(fields, ast.Param{Name: fname, TypeAnn: ftype})
 	}
 	if p.cur.Kind == lexer.DEDENT {
