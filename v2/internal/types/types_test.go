@@ -51,3 +51,52 @@ func TestType_Map_Equal(t *testing.T) {
 	assert.True(t, a.Equal(b))
 	assert.False(t, a.Equal(c))
 }
+
+func TestType_Struct_String(t *testing.T) {
+	s := Struct{
+		Name: "User",
+		Fields: map[string]Type{
+			"name": Primitive("str"),
+			"age":  Primitive("int"),
+		},
+	}
+	out := s.String()
+	assert.Contains(t, out, "User")
+	assert.Contains(t, out, "name: str")
+	assert.Contains(t, out, "age: int")
+}
+
+func TestType_Struct_Equal(t *testing.T) {
+	a := Struct{
+		Name: "User",
+		Fields: map[string]Type{
+			"name": Primitive("str"),
+			"age":  Primitive("int"),
+		},
+	}
+	b := Struct{
+		Name: "User",
+		Fields: map[string]Type{
+			"name": Primitive("str"),
+			"age":  Primitive("int"),
+		},
+	}
+	c := Struct{
+		Name:   "User",
+		Fields: map[string]Type{"name": Primitive("str")},
+	}
+	assert.True(t, a.Equal(b))
+	assert.False(t, a.Equal(c))
+}
+
+func TestType_Struct_Field(t *testing.T) {
+	s := Struct{
+		Name:   "User",
+		Fields: map[string]Type{"name": Primitive("str")},
+	}
+	f, ok := s.Field("name")
+	assert.True(t, ok)
+	assert.Equal(t, Primitive("str"), f)
+	_, ok = s.Field("missing")
+	assert.False(t, ok)
+}

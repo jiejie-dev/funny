@@ -55,3 +55,47 @@ func (m Map) Equal(other Type) bool {
 	return ok && Equal(m.Key, o.Key) && Equal(m.Value, o.Value)
 }
 func (m Map) typeMarker() {}
+
+// Struct is a user-defined struct type with named fields.
+type Struct struct {
+	Name   string
+	Fields map[string]Type
+}
+
+func (s Struct) String() string {
+	out := s.Name + ":\n"
+	for k, v := range s.Fields {
+		out += "    " + k + ": " + v.String() + "\n"
+	}
+	return out
+}
+
+func (s Struct) Equal(other Type) bool {
+	o, ok := other.(Struct)
+	if !ok || s.Name != o.Name || len(s.Fields) != len(o.Fields) {
+		return false
+	}
+	for k, v := range s.Fields {
+		ov, ok := o.Fields[k]
+		if !ok || !Equal(v, ov) {
+			return false
+		}
+	}
+	return true
+}
+
+func (s Struct) typeMarker() {}
+
+// Field looks up a field by name. Returns (nil, false) if not found.
+func (s Struct) Field(name string) (Type, bool) {
+	t, ok := s.Fields[name]
+	return t, ok
+}
+
+func (s Struct) FieldNames() []string {
+	out := make([]string, 0, len(s.Fields))
+	for k := range s.Fields {
+		out = append(out, k)
+	}
+	return out
+}
