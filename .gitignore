@@ -12,3 +12,6 @@
 *.out
 .idea
 mysql.funny
+
+# Worktrees (created by subagent-driven-development)
+.worktrees/
