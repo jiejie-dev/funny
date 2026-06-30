@@ -43,3 +43,56 @@ func TestEval_Variable(t *testing.T) {
 	v, _ := e.Eval(prog.Stmts[0].(*ast.ExprStmt).X)
 	assert.Equal(t, 15, v)
 }
+
+func TestEval_LetAndAssign(t *testing.T) {
+	src := `let x = 1
+x = 2
+`
+	p := parser.New(src, "")
+	prog, _ := p.Parse()
+	e := New(nil)
+	require.NoError(t, e.Exec(prog))
+	v, _ := e.scope.Get("x")
+	assert.Equal(t, 2, v)
+}
+
+func TestEval_If(t *testing.T) {
+	src := `let x = 10
+if x > 5:
+    x = 1
+else:
+    x = 2
+`
+	p := parser.New(src, "")
+	prog, _ := p.Parse()
+	e := New(nil)
+	require.NoError(t, e.Exec(prog))
+	v, _ := e.scope.Get("x")
+	assert.Equal(t, 1, v)
+}
+
+func TestEval_For(t *testing.T) {
+	src := `let sum = 0
+for i in [1, 2, 3, 4, 5]:
+    sum = sum + i
+`
+	p := parser.New(src, "")
+	prog, _ := p.Parse()
+	e := New(nil)
+	require.NoError(t, e.Exec(prog))
+	v, _ := e.scope.Get("sum")
+	assert.Equal(t, 15, v)
+}
+
+func TestEval_While(t *testing.T) {
+	src := `let x = 0
+while x < 5:
+    x = x + 1
+`
+	p := parser.New(src, "")
+	prog, _ := p.Parse()
+	e := New(nil)
+	require.NoError(t, e.Exec(prog))
+	v, _ := e.scope.Get("x")
+	assert.Equal(t, 5, v)
+}

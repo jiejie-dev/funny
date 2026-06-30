@@ -276,7 +276,143 @@ func (e *Evaluator) evalCall(n *ast.CallExpr) (any, error) {
 }
 
 func (e *Evaluator) execBlock(b *ast.Block) (any, bool, error) {
+	for _, s := range b.Statements {
+		v, has, err := e.execStmt(s)
+		if err != nil {
+			return nil, false, err
+		}
+		if has {
+			return v, true, nil
+		}
+	}
 	return nil, false, nil
+}
+
+// Exec runs a Program.
+func (e *Evaluator) Exec(prog *ast.Program) error {
+	for _, s := range prog.Stmts {
+		if _, _, err := e.execStmt(s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (e *Evaluator) execStmt(s ast.Statement) (any, bool, error) {
+	switch n := s.(type) {
+	case *ast.LetStmt:
+		v, err := e.Eval(n.Value)
+		if err != nil {
+			return nil, false, err
+		}
+		e.scope.Set(n.Name, v)
+		return nil, false, nil
+	case *ast.AssignStmt:
+		v, err := e.Eval(n.Value)
+		if err != nil {
+			return nil, false, err
+		}
+		if !e.scope.Assign(n.Target.String(), v) {
+			switch t := n.Target.(type) {
+			case *ast.VariableExpr:
+				e.scope.Set(t.Name, v)
+			default:
+				return nil, false, errs.New("E2010",
+					fmt.Sprintf("cannot assign to %s", n.Target.String()),
+					toErrPos(n.NodePos), "")
+			}
+		}
+		return nil, false, nil
+	case *ast.IfStmt:
+		cond, err := e.Eval(n.Cond)
+		if err != nil {
+			return nil, false, err
+		}
+		if truthy(cond) {
+			return e.execBlock(n.Then)
+		}
+		if n.ElseIf != nil {
+			return e.execStmt(n.ElseIf)
+		}
+		if n.ElseBlock != nil {
+			return e.execBlock(n.ElseBlock)
+		}
+		return nil, false, nil
+	case *ast.ForStmt:
+		iterable, err := e.Eval(n.Iterable)
+		if err != nil {
+			return nil, false, err
+		}
+		list, ok := iterable.([]any)
+		if !ok {
+			return nil, false, errs.New("E2011", "for-in requires list", toErrPos(n.NodePos), "")
+		}
+		for _, item := range list {
+			saved := e.scope
+			iterScope := NewScope(e.scope)
+			iterScope.Set(n.Name, item)
+			e.scope = iterScope
+			_, has, err := e.execBlock(n.Body)
+			e.scope = saved
+			if err != nil {
+				return nil, false, err
+			}
+			if has {
+				return nil, true, nil
+			}
+		}
+		return nil, false, nil
+	case *ast.WhileStmt:
+		for {
+			cond, err := e.Eval(n.Cond)
+			if err != nil {
+				return nil, false, err
+			}
+			if !truthy(cond) {
+				break
+			}
+			_, has, err := e.execBlock(n.Body)
+			if err != nil {
+				return nil, false, err
+			}
+			if has {
+				return nil, true, nil
+			}
+		}
+		return nil, false, nil
+	case *ast.ReturnStmt:
+		if n.Value == nil {
+			return nil, true, nil
+		}
+		v, err := e.Eval(n.Value)
+		if err != nil {
+			return nil, false, err
+		}
+		return v, true, nil
+	case *ast.ExprStmt:
+		_, err := e.Eval(n.X)
+		if err != nil {
+			return nil, false, err
+		}
+		return nil, false, nil
+	case *ast.BreakStmt:
+		return nil, false, errs.New("E2012", "break outside for/while", toErrPos(n.NodePos), "")
+	case *ast.ContinueStmt:
+		return nil, false, errs.New("E2013", "continue outside for/while", toErrPos(n.NodePos), "")
+	case *ast.FnDecl:
+		e.scope.Set(n.Name, n)
+		return nil, false, nil
+	case *ast.StructDecl:
+		e.scope.Set(n.Name, n)
+		return nil, false, nil
+	case *ast.MetaBlock:
+		return nil, false, nil
+	case *ast.PlanBlock:
+		return nil, false, nil
+	case *ast.ImportDecl:
+		return nil, false, nil
+	}
+	return nil, false, errs.New("E2014", fmt.Sprintf("cannot exec %T", s), toErrPos(s.Pos()), "")
 }
 
 func toErrPos(p ast.Pos) errs.Position {
