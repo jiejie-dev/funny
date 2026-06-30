@@ -111,6 +111,15 @@ func (l *Lexer) Next() Token {
 			l.save()
 		}
 
+		// EOF check (covers EOF reached with col != 0, e.g., trailing spaces or no newline)
+		if l.pos >= len(l.src) {
+			if len(l.indentStack) > 1 {
+				l.indentStack = l.indentStack[:len(l.indentStack)-1]
+				return l.emit(DEDENT, "")
+			}
+			return l.emit(EOF, "")
+		}
+
 		ch := l.src[l.pos]
 
 		// Comments
