@@ -1,5 +1,7 @@
 package lexer
 
+import "fmt"
+
 type Lexer struct {
 	src         string
 	file        string
@@ -10,6 +12,7 @@ type Lexer struct {
 	saveLine    int
 	saveCol     int
 	indentStack []int
+	hasEmitted  bool
 }
 
 func New(src, file string) *Lexer {
@@ -53,180 +56,268 @@ func (l *Lexer) emit(kind Kind, data string) Token {
 }
 
 func (l *Lexer) Next() Token {
-	l.save()
-	if l.pos >= len(l.src) {
-		return l.emit(EOF, "")
-	}
-	ch := l.src[l.pos]
+	for {
+		// At start of line (col == 0): compute indent, handle blank lines and EOF
+		if l.col == 0 {
+			// Tab is forbidden at any position
+			if l.pos < len(l.src) && l.src[l.pos] == '\t' {
+				panic(fmt.Sprintf("tab character not allowed at %s:%d:%d (use 4 spaces)", l.file, l.line+1, l.col+1))
+			}
 
-	for ch == ' ' || ch == '\t' {
-		l.advance()
-		if l.pos >= len(l.src) {
-			return l.emit(EOF, "")
-		}
-		ch = l.src[l.pos]
-	}
+			// Skip leading spaces, counting indent
+			indent := 0
+			for l.pos < len(l.src) && l.src[l.pos] == ' ' {
+				indent++
+				l.pos++
+				l.col++
+			}
 
-	l.save()
+			// EOF at line start: emit DEDENTs until stack is [0], then EOF
+			if l.pos >= len(l.src) {
+				if len(l.indentStack) > 1 {
+					l.indentStack = l.indentStack[:len(l.indentStack)-1]
+					return l.emit(DEDENT, "")
+				}
+				return l.emit(EOF, "")
+			}
 
-	switch ch {
-	case '+':
-		l.advance()
-		return l.emit(PLUS, "+")
-	case '-':
-		l.advance()
-		if l.peek(0) == '>' {
-			l.advance()
-			return l.emit(ARROW, "->")
-		}
-		return l.emit(MINUS, "-")
-	case '*':
-		l.advance()
-		return l.emit(STAR, "*")
-	case '/':
-		l.advance()
-		return l.emit(SLASH, "/")
-	case '%':
-		l.advance()
-		return l.emit(PERCENT, "%")
-	case '=':
-		l.advance()
-		if l.peek(0) == '=' {
-			l.advance()
-			return l.emit(EQEQ, "==")
-		}
-		if l.peek(0) == '>' {
-			l.advance()
-			return l.emit(FATARROW, "=>")
-		}
-		return l.emit(EQ, "=")
-	case '!':
-		l.advance()
-		if l.peek(0) == '=' {
-			l.advance()
-			return l.emit(NEQ, "!=")
-		}
-		return Token{Kind: EOF}
-	case '<':
-		l.advance()
-		if l.peek(0) == '=' {
-			l.advance()
-			return l.emit(LTE, "<=")
-		}
-		return l.emit(LT, "<")
-	case '>':
-		l.advance()
-		if l.peek(0) == '=' {
-			l.advance()
-			return l.emit(GTE, ">=")
-		}
-		return l.emit(GT, ">")
-	case '(':
-		l.advance()
-		return l.emit(LPAREN, "(")
-	case ')':
-		l.advance()
-		return l.emit(RPAREN, ")")
-	case '[':
-		l.advance()
-		return l.emit(LBRACK, "[")
-	case ']':
-		l.advance()
-		return l.emit(RBRACK, "]")
-	case ',':
-		l.advance()
-		return l.emit(COMMA, ",")
-	case '.':
-		l.advance()
-		return l.emit(DOT, ".")
-	case ':':
-		l.advance()
-		return l.emit(COLON, ":")
-	case '?':
-		l.advance()
-		return l.emit(QUESTION, "?")
-	case '@':
-		l.advance()
-		return l.emit(AT, "@")
-	}
+			// Blank line: just whitespace + newline, skip
+			if l.src[l.pos] == '\n' {
+				l.line++
+				l.col = 0
+				l.pos++
+				continue
+			}
 
-	if isDigit(ch) {
-		start := l.pos
-		if ch == '0' && (l.peek(1) == 'x' || l.peek(1) == 'X') {
+			// Only do indent check if we've already emitted at least one real token
+			// (first line's leading spaces are silently skipped — no INDENT for the first line)
+			if l.hasEmitted {
+				top := l.indentStack[len(l.indentStack)-1]
+				if indent > top {
+					l.indentStack = append(l.indentStack, indent)
+					return l.emit(INDENT, "")
+				}
+				if indent < top {
+					for len(l.indentStack) > 1 && l.indentStack[len(l.indentStack)-1] > indent {
+						l.indentStack = l.indentStack[:len(l.indentStack)-1]
+						return l.emit(DEDENT, "")
+					}
+					if indent != l.indentStack[len(l.indentStack)-1] {
+						panic(fmt.Sprintf("inconsistent dedent at %s:%d:%d", l.file, l.line+1, indent+1))
+					}
+				}
+			}
+
+			l.save()
+		}
+
+		ch := l.src[l.pos]
+
+		// Comments
+		if ch == '#' {
+			isDoc := l.peek(1) == '#'
 			l.advance()
-			l.advance()
-			for l.pos < len(l.src) && isHexDigit(l.src[l.pos]) {
+			if isDoc {
 				l.advance()
 			}
-			return l.emit(INT, l.src[start:l.pos])
-		}
-		for l.pos < len(l.src) && isDigit(l.src[l.pos]) {
-			l.advance()
-		}
-		isFloat := false
-		if l.pos < len(l.src) && l.src[l.pos] == '.' && l.pos+1 < len(l.src) && isDigit(l.src[l.pos+1]) {
-			isFloat = true
-			l.advance()
-			for l.pos < len(l.src) && isDigit(l.src[l.pos]) {
+			start := l.pos
+			for l.pos < len(l.src) && l.src[l.pos] != '\n' {
 				l.advance()
 			}
+			kind := COMMENT
+			if isDoc {
+				kind = DOC_COMMENT
+			}
+			l.hasEmitted = true
+			return l.emit(kind, l.src[start:l.pos])
 		}
-		if l.pos < len(l.src) && (l.src[l.pos] == 'e' || l.src[l.pos] == 'E') {
-			isFloat = true
+
+		// Newline as token
+		if ch == '\n' {
+			l.line++
+			l.col = 0
+			l.pos++
+			l.hasEmitted = true
+			return l.emit(NEWLINE, "\n")
+		}
+
+		// Strings
+		if ch == '"' || ch == '\'' {
+			tok := l.lexString(ch == '\'')
+			l.hasEmitted = true
+			return tok
+		}
+		if ch == 'f' && l.peek(1) == '"' {
 			l.advance()
-			if l.pos < len(l.src) && (l.src[l.pos] == '+' || l.src[l.pos] == '-') {
+			tok := l.lexFString()
+			l.hasEmitted = true
+			return tok
+		}
+
+		// Numbers
+		if isDigit(ch) {
+			start := l.pos
+			if ch == '0' && (l.peek(1) == 'x' || l.peek(1) == 'X') {
 				l.advance()
+				l.advance()
+				for l.pos < len(l.src) && isHexDigit(l.src[l.pos]) {
+					l.advance()
+				}
+				l.hasEmitted = true
+				return l.emit(INT, l.src[start:l.pos])
 			}
 			for l.pos < len(l.src) && isDigit(l.src[l.pos]) {
 				l.advance()
 			}
+			isFloat := false
+			if l.pos < len(l.src) && l.src[l.pos] == '.' && l.pos+1 < len(l.src) && isDigit(l.src[l.pos+1]) {
+				isFloat = true
+				l.advance()
+				for l.pos < len(l.src) && isDigit(l.src[l.pos]) {
+					l.advance()
+				}
+			}
+			if l.pos < len(l.src) && (l.src[l.pos] == 'e' || l.src[l.pos] == 'E') {
+				isFloat = true
+				l.advance()
+				if l.pos < len(l.src) && (l.src[l.pos] == '+' || l.src[l.pos] == '-') {
+					l.advance()
+				}
+				for l.pos < len(l.src) && isDigit(l.src[l.pos]) {
+					l.advance()
+				}
+			}
+			kind := INT
+			if isFloat {
+				kind = FLOAT
+			}
+			l.hasEmitted = true
+			return l.emit(kind, l.src[start:l.pos])
 		}
-		kind := INT
-		if isFloat {
-			kind = FLOAT
-		}
-		return l.emit(kind, l.src[start:l.pos])
-	}
 
-	if ch == '"' || ch == '\'' {
-		return l.lexString(ch == '\'')
-	}
-	if ch == 'f' && l.peek(1) == '"' {
+		// Identifiers / Keywords
+		if isLetter(ch) {
+			start := l.pos
+			for l.pos < len(l.src) && (isLetter(l.src[l.pos]) || isDigit(l.src[l.pos])) {
+				l.advance()
+			}
+			data := l.src[start:l.pos]
+			if k, ok := keywordSet[data]; ok {
+				l.hasEmitted = true
+				return l.emit(k, data)
+			}
+			l.hasEmitted = true
+			return l.emit(NAME, data)
+		}
+
+		// Operators
+		switch ch {
+		case '+':
+			l.advance()
+			l.hasEmitted = true
+			return l.emit(PLUS, "+")
+		case '-':
+			l.advance()
+			if l.peek(0) == '>' {
+				l.advance()
+				l.hasEmitted = true
+				return l.emit(ARROW, "->")
+			}
+			l.hasEmitted = true
+			return l.emit(MINUS, "-")
+		case '*':
+			l.advance()
+			l.hasEmitted = true
+			return l.emit(STAR, "*")
+		case '/':
+			l.advance()
+			l.hasEmitted = true
+			return l.emit(SLASH, "/")
+		case '%':
+			l.advance()
+			l.hasEmitted = true
+			return l.emit(PERCENT, "%")
+		case '=':
+			l.advance()
+			if l.peek(0) == '=' {
+				l.advance()
+				l.hasEmitted = true
+				return l.emit(EQEQ, "==")
+			}
+			if l.peek(0) == '>' {
+				l.advance()
+				l.hasEmitted = true
+				return l.emit(FATARROW, "=>")
+			}
+			l.hasEmitted = true
+			return l.emit(EQ, "=")
+		case '!':
+			l.advance()
+			if l.peek(0) == '=' {
+				l.advance()
+				l.hasEmitted = true
+				return l.emit(NEQ, "!=")
+			}
+			return Token{Kind: EOF}
+		case '<':
+			l.advance()
+			if l.peek(0) == '=' {
+				l.advance()
+				l.hasEmitted = true
+				return l.emit(LTE, "<=")
+			}
+			l.hasEmitted = true
+			return l.emit(LT, "<")
+		case '>':
+			l.advance()
+			if l.peek(0) == '=' {
+				l.advance()
+				l.hasEmitted = true
+				return l.emit(GTE, ">=")
+			}
+			l.hasEmitted = true
+			return l.emit(GT, ">")
+		case '(':
+			l.advance()
+			l.hasEmitted = true
+			return l.emit(LPAREN, "(")
+		case ')':
+			l.advance()
+			l.hasEmitted = true
+			return l.emit(RPAREN, ")")
+		case '[':
+			l.advance()
+			l.hasEmitted = true
+			return l.emit(LBRACK, "[")
+		case ']':
+			l.advance()
+			l.hasEmitted = true
+			return l.emit(RBRACK, "]")
+		case ',':
+			l.advance()
+			l.hasEmitted = true
+			return l.emit(COMMA, ",")
+		case '.':
+			l.advance()
+			l.hasEmitted = true
+			return l.emit(DOT, ".")
+		case ':':
+			l.advance()
+			l.hasEmitted = true
+			return l.emit(COLON, ":")
+		case '?':
+			l.advance()
+			l.hasEmitted = true
+			return l.emit(QUESTION, "?")
+		case '@':
+			l.advance()
+			l.hasEmitted = true
+			return l.emit(AT, "@")
+		}
+
+		// Unknown: skip one byte and continue
 		l.advance()
-		return l.lexFString()
 	}
-
-	if ch == '#' {
-		isDoc := l.peek(1) == '#'
-		l.advance()
-		if isDoc {
-			l.advance()
-		}
-		start := l.pos
-		for l.pos < len(l.src) && l.src[l.pos] != '\n' {
-			l.advance()
-		}
-		kind := COMMENT
-		if isDoc {
-			kind = DOC_COMMENT
-		}
-		return l.emit(kind, l.src[start:l.pos])
-	}
-
-	if isLetter(ch) {
-		start := l.pos
-		for l.pos < len(l.src) && (isLetter(l.src[l.pos]) || isDigit(l.src[l.pos])) {
-			l.advance()
-		}
-		data := l.src[start:l.pos]
-		if k, ok := keywordSet[data]; ok {
-			return l.emit(k, data)
-		}
-		return l.emit(NAME, data)
-	}
-
-	l.advance()
-	return l.Next()
 }
 
 func isLetter(b byte) bool {
