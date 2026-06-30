@@ -128,3 +128,29 @@ func TestType_Func_Arity(t *testing.T) {
 	f := Func{Params: []Type{Primitive("int"), Primitive("str")}, Return: Primitive("bool")}
 	assert.Equal(t, 2, f.Arity())
 }
+
+func TestType_Result_String(t *testing.T) {
+	r := Result{Ok: Primitive("int"), Err: Primitive("str")}
+	assert.Equal(t, "Result[int, str]", r.String())
+}
+
+func TestType_Result_Equal(t *testing.T) {
+	a := Result{Ok: Primitive("int"), Err: Primitive("str")}
+	b := Result{Ok: Primitive("int"), Err: Primitive("str")}
+	c := Result{Ok: Primitive("str"), Err: Primitive("str")}
+	assert.True(t, a.Equal(b))
+	assert.False(t, a.Equal(c))
+}
+
+func TestType_Optional_String(t *testing.T) {
+	o := Optional{Primitive("int")}
+	assert.Equal(t, "int?", o.String())
+}
+
+func TestType_Optional_Equal(t *testing.T) {
+	a := Optional{Primitive("int")}
+	b := Optional{Primitive("int")}
+	c := Optional{Primitive("str")}
+	assert.True(t, a.Equal(b))
+	assert.False(t, a.Equal(c))
+}

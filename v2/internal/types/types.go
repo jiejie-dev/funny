@@ -135,3 +135,36 @@ func (f Func) typeMarker() {}
 
 // Arity returns the number of parameters.
 func (f Func) Arity() int { return len(f.Params) }
+
+// Result is a fallible operation result: Result[T, E].
+type Result struct {
+	Ok  Type
+	Err Type
+}
+
+func (r Result) String() string {
+	return "Result[" + r.Ok.String() + ", " + r.Err.String() + "]"
+}
+
+func (r Result) Equal(other Type) bool {
+	o, ok := other.(Result)
+	return ok && Equal(r.Ok, o.Ok) && Equal(r.Err, o.Err)
+}
+
+func (r Result) typeMarker() {}
+
+// Optional is a nullable type: T?.
+type Optional struct {
+	Inner Type
+}
+
+func (o Optional) String() string {
+	return o.Inner.String() + "?"
+}
+
+func (o Optional) Equal(other Type) bool {
+	inner, ok := other.(Optional)
+	return ok && Equal(o.Inner, inner.Inner)
+}
+
+func (o Optional) typeMarker() {}
