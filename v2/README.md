@@ -1,20 +1,18 @@
-# Funny v2 (M2-A)
+# Funny v2 (M2-B)
 
 AI-native scripting language. See `../docs/superpowers/specs/2026-07-01-funny-v2-ai-native-language-design.md` for the full design.
 
-**Status: M2-A (Strong Typing Foundation) — RELEASED**
+**Status: M2-B (Bytecode VM) — RELEASED**
 
-- ✅ Lexer (indent-sensitive, all operators, strings, f-strings)
-- ✅ Parser (Pratt expressions, control flow, fn/struct/meta/plan)
-- ✅ Tree-walking evaluator (no type checking at runtime — types are compile-time only)
-- ✅ **Type system** (M2-A): primitive types, list, map, struct, func, Result, optional
-- ✅ **Type checker**: validates expressions, statements, function calls, returns
-- ✅ **Compile-time error reporting**: E2xxx with unified format
-- ⏳ Bytecode VM → M2-B
-- ⏳ Result + `?` operator runtime → M2-C
+- ✅ Lexer, Parser, Type checker (M1, M2-A)
+- ✅ Tree-walking evaluator (fallback via `FUNNY_INTERPRET=1`)
+- ✅ **Bytecode compiler**: typed instructions per spec §5.4
+- ✅ **Stack-based VM**: operand stack + frame stack
+- ✅ **VM instructions**: arithmetic, comparison, logical, control flow
+- ⏳ Function calls (CALL/RETURN) → M2-B.5 follow-up
+- ⏳ Data structure ops (BUILD_LIST, GET_FIELD, NEW_STRUCT) → M2-B.5 follow-up
+- ⏳ Result + `?` operator → M2-C
 - ⏳ stdlib (json/time/math/str) → M2-C
-- ⏳ Plan engine → M3
-- ⏳ MCP server → M4
 
 ## Build
 
@@ -71,13 +69,28 @@ v2/
 - **`meta` and `plan` blocks parsed but not executed** (M3)
 - **Limited stdlib**: `print`, `println`, `len`, `to_str`, `to_int`, `type_of`
 
+## M2-B Performance
+
+```
+BenchmarkFib_VM-12           5287 ns/op
+BenchmarkFib_Interpreter-12  6408 ns/op
+```
+
+VM is currently ~1.2× faster than the tree-walking interpreter on iterative workloads. Recursive performance benefits will materialize with M2-B.5 (function calls). Target ≥ 5× will be re-evaluated once CALL/RETURN land.
+
+Run benchmarks locally:
+```bash
+go test -bench=BenchmarkFib -benchtime=2s -run=^$ ./internal/vm/
+```
+
 ## Roadmap
 
 | Version | Status | Highlights |
 |---|---|---|
 | v2.0.0-alpha (M1) | ✅ Done | Lexer + Parser + Evaluator (no types) |
 | v2.0.0-beta (M2-A) | ✅ Done | Type system + type checker |
-| v2.0.0-beta (M2-B) | Planned | Bytecode VM (5×+ perf) |
+| v2.0.0-beta (M2-B) | ✅ Done | Bytecode VM (~1.2× interpreter; recursion deferred) |
+| v2.0.0-beta (M2-B.5) | Planned | VM function calls + data ops |
 | v2.0.0-beta (M2-C) | Planned | Result + `?` + stdlib |
 | v2.0.0-rc (M3) | Planned | meta/plan engine + LSP |
 | v2.0.0 (M4) | Planned | MCP server + full stdlib |
