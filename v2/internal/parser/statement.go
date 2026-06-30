@@ -90,16 +90,172 @@ func (p *Parser) parseLet() (ast.Statement, error) {
 	}
 	return &ast.LetStmt{NodePos: pos, Name: name, TypeAnn: typeAnn, Value: val}, nil
 }
-func (p *Parser) parseIf() (ast.Statement, error)  { return nil, fmt.Errorf("parseIf stub (Task 17)") }
-func (p *Parser) parseFor() (ast.Statement, error) { return nil, fmt.Errorf("parseFor stub (Task 17)") }
+func (p *Parser) parseBlock() (*ast.Block, error) {
+	pos := astPos(p.cur.Pos)
+	if p.cur.Kind == lexer.NEWLINE {
+		p.advance()
+	}
+	if p.cur.Kind != lexer.INDENT {
+		return nil, errs.New("E1003",
+			fmt.Sprintf("expected INDENT for block, got %s", p.cur.Kind),
+			errPos(p.cur.Pos), "blocks must be on a new line with indented content")
+	}
+	p.advance()
+	block := &ast.Block{NodePos: pos}
+	for p.cur.Kind != lexer.DEDENT && p.cur.Kind != lexer.EOF {
+		for p.cur.Kind == lexer.NEWLINE {
+			p.advance()
+		}
+		if p.cur.Kind == lexer.DEDENT || p.cur.Kind == lexer.EOF {
+			break
+		}
+		s, err := p.parseStatement()
+		if err != nil {
+			return nil, err
+		}
+		if s != nil {
+			block.Statements = append(block.Statements, s)
+		}
+	}
+	if p.cur.Kind == lexer.DEDENT {
+		p.advance()
+	}
+	return block, nil
+}
+
+func (p *Parser) parseIf() (ast.Statement, error) {
+	pos := astPos(p.cur.Pos)
+	p.advance()
+	cond, err := p.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := p.expect(lexer.COLON); err != nil {
+		return nil, err
+	}
+	thenBlock, err := p.parseBlock()
+	if err != nil {
+		return nil, err
+	}
+	ifStmt := &ast.IfStmt{NodePos: pos, Cond: cond, Then: thenBlock}
+	if p.cur.Kind == lexer.ELIF {
+		elif, err := p.parseIf()
+		if err != nil {
+			return nil, err
+		}
+		inner := elif.(*ast.IfStmt)
+		ifStmt.ElseIf = inner
+		if inner.ElseBlock != nil {
+			ifStmt.ElseBlock = inner.ElseBlock
+			inner.ElseBlock = nil
+		}
+	} else if p.cur.Kind == lexer.ELSE {
+		p.advance()
+		if _, err := p.expect(lexer.COLON); err != nil {
+			return nil, err
+		}
+		elseBlock, err := p.parseBlock()
+		if err != nil {
+			return nil, err
+		}
+		ifStmt.ElseBlock = elseBlock
+	}
+	return ifStmt, nil
+}
+
+func (p *Parser) parseFor() (ast.Statement, error) {
+	pos := astPos(p.cur.Pos)
+	p.advance()
+	if p.cur.Kind != lexer.NAME {
+		return nil, errs.New("E1020", "expected loop variable after `for`", errPos(p.cur.Pos), "")
+	}
+	name := p.cur.Data
+	p.advance()
+	if _, err := p.expect(lexer.IN); err != nil {
+		return nil, err
+	}
+	iterable, err := p.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := p.expect(lexer.COLON); err != nil {
+		return nil, err
+	}
+	body, err := p.parseBlock()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.ForStmt{NodePos: pos, Name: name, Iterable: iterable, Body: body}, nil
+}
+
 func (p *Parser) parseWhile() (ast.Statement, error) {
-	return nil, fmt.Errorf("parseWhile stub (Task 17)")
+	pos := astPos(p.cur.Pos)
+	p.advance()
+	cond, err := p.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := p.expect(lexer.COLON); err != nil {
+		return nil, err
+	}
+	body, err := p.parseBlock()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.WhileStmt{NodePos: pos, Cond: cond, Body: body}, nil
 }
+
 func (p *Parser) parseMatch() (ast.Statement, error) {
-	return nil, fmt.Errorf("parseMatch stub (Task 17)")
+	pos := astPos(p.cur.Pos)
+	p.advance()
+	expr, err := p.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := p.expect(lexer.COLON); err != nil {
+		return nil, err
+	}
+	if _, err := p.expect(lexer.INDENT); err != nil {
+		return nil, err
+	}
+	var arms []ast.MatchArm
+	for p.cur.Kind != lexer.DEDENT && p.cur.Kind != lexer.EOF {
+		for p.cur.Kind == lexer.NEWLINE {
+			p.advance()
+		}
+		if p.cur.Kind == lexer.DEDENT {
+			break
+		}
+		pattern, err := p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		if _, err := p.expect(lexer.FATARROW); err != nil {
+			return nil, err
+		}
+		body, err := p.parseBlock()
+		if err != nil {
+			return nil, err
+		}
+		arms = append(arms, ast.MatchArm{Pattern: pattern, Body: body})
+	}
+	if p.cur.Kind == lexer.DEDENT {
+		p.advance()
+	}
+	return &ast.MatchStmt{NodePos: pos, Expr: expr, Arms: arms}, nil
 }
+
 func (p *Parser) parseReturn() (ast.Statement, error) {
-	return nil, fmt.Errorf("parseReturn stub (Task 17)")
+	pos := astPos(p.cur.Pos)
+	p.advance()
+	if p.cur.Kind == lexer.NEWLINE || p.cur.Kind == lexer.EOF || p.cur.Kind == lexer.DEDENT {
+		return &ast.ReturnStmt{NodePos: pos, Value: nil}, nil
+	}
+	val, err := p.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.ReturnStmt{NodePos: pos, Value: val}, nil
 }
 func (p *Parser) parseFnDecl() (ast.Statement, error) {
 	return nil, fmt.Errorf("parseFnDecl stub (Task 18)")

@@ -73,3 +73,48 @@ func TestParser_ExprStatement(t *testing.T) {
 	call := exprStmt.X.(*ast.CallExpr)
 	assert.Equal(t, "foo", call.Func.String())
 }
+
+func TestParser_If(t *testing.T) {
+	src := "if x > 0:\n    print(\"pos\")\n"
+	p := New(src, "")
+	prog, err := p.Parse()
+	assert.NoError(t, err)
+	ifs := prog.Stmts[0].(*ast.IfStmt)
+	assert.NotNil(t, ifs.Then)
+}
+
+func TestParser_IfElseIf(t *testing.T) {
+	src := "if x:\n    a\nelif y:\n    b\nelse:\n    c\n"
+	p := New(src, "")
+	prog, err := p.Parse()
+	assert.NoError(t, err)
+	ifs := prog.Stmts[0].(*ast.IfStmt)
+	assert.NotNil(t, ifs.ElseIf)
+	assert.NotNil(t, ifs.ElseBlock)
+}
+
+func TestParser_For(t *testing.T) {
+	src := "for i in items:\n    print(i)\n"
+	p := New(src, "")
+	prog, err := p.Parse()
+	assert.NoError(t, err)
+	fs := prog.Stmts[0].(*ast.ForStmt)
+	assert.Equal(t, "i", fs.Name)
+}
+
+func TestParser_While(t *testing.T) {
+	src := "while x > 0:\n    x = x - 1\n"
+	p := New(src, "")
+	prog, err := p.Parse()
+	assert.NoError(t, err)
+	ws := prog.Stmts[0].(*ast.WhileStmt)
+	assert.NotNil(t, ws.Body)
+}
+
+func TestParser_Return(t *testing.T) {
+	p := New("return 42", "")
+	prog, err := p.Parse()
+	assert.NoError(t, err)
+	ret := prog.Stmts[0].(*ast.ReturnStmt)
+	assert.Equal(t, "42", ret.Value.String())
+}
