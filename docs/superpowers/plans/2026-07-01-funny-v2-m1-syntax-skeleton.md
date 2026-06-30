@@ -100,7 +100,7 @@ func main() { fmt.Println("funny v2 (M1)") }
 
 ## Task 1: Error System
 
-**Files:** `v2/internal/errors/errors.go`, `v2/internal/errors/errors_test.go`
+**Files:** `v2/internal/errs/errors.go`, `v2/internal/errs/errors_test.go`
 
 - [ ] Write failing test `errors_test.go`:
 
@@ -124,7 +124,7 @@ func TestError_Format_WithoutHint(t *testing.T) {
 }
 ```
 
-- [ ] Run `cd /Users/j/repos/funny/v2 && go test ./internal/errors/` → FAIL
+- [ ] Run `cd /Users/j/repos/funny/v2 && go test ./internal/errs/` → FAIL
 - [ ] Write `errors.go`:
 
 ```go
@@ -152,7 +152,7 @@ func (e *Error) Format() string {
 ```
 
 - [ ] Run test → PASS
-- [ ] Commit: `git add v2/internal/errors/ && git commit -m "v2: add unified error system"`
+- [ ] Commit: `git add v2/internal/errs/ && git commit -m "v2: add unified error system"`
 
 ---
 
@@ -543,7 +543,7 @@ package parser
 import (
     "fmt"
     "github.com/jerloo/funny/v2/internal/ast"
-    "github.com/jerloo/funny/v2/internal/errors"
+    "github.com/jerloo/funny/v2/internal/errs"
     "github.com/jerloo/funny/v2/internal/lexer"
 )
 
@@ -592,7 +592,7 @@ package parser
 import (
     "fmt"
     "github.com/jerloo/funny/v2/internal/ast"
-    "github.com/jerloo/funny/v2/internal/errors"
+    "github.com/jerloo/funny/v2/internal/errs"
     "github.com/jerloo/funny/v2/internal/lexer"
 )
 
@@ -656,7 +656,7 @@ import (
     "fmt"
     "strconv"
     "github.com/jerloo/funny/v2/internal/ast"
-    "github.com/jerloo/funny/v2/internal/errors"
+    "github.com/jerloo/funny/v2/internal/errs"
     "github.com/jerloo/funny/v2/internal/lexer"
 )
 

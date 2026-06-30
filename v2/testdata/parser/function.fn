@@ -1,0 +1,11 @@
+fn fib(n: int) -> int:
+    if n < 2:
+        return n
+    return fib(n - 1) + fib(n - 2)
+
+struct User:
+    name: str
+    age: int
+
+pub fn greet(u: User) -> str:
+    return "hello " + u.name
