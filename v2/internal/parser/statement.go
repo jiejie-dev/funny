@@ -372,20 +372,77 @@ func (p *Parser) parseStructDecl() (ast.Statement, error) {
 	return &ast.StructDecl{NodePos: pos, Name: name, Fields: fields}, nil
 }
 func (p *Parser) parseMeta() (ast.Statement, error) {
-	return nil, fmt.Errorf("parseMeta stub (Task 19)")
+	pos := astPos(p.cur.Pos)
+	p.advance()
+	if _, err := p.expect(lexer.COLON); err != nil {
+		return nil, err
+	}
+	block, err := p.parseBlock()
+	if err != nil {
+		return nil, err
+	}
+	fields := map[string]string{}
+	for _, s := range block.Statements {
+		assign, ok := s.(*ast.AssignStmt)
+		if !ok {
+			continue
+		}
+		varExpr, ok := assign.Target.(*ast.VariableExpr)
+		if !ok {
+			continue
+		}
+		if lit, ok := assign.Value.(*ast.LiteralExpr); ok {
+			if s, ok := lit.Value.(string); ok {
+				fields[varExpr.Name] = s
+			}
+		}
+	}
+	return &ast.MetaBlock{NodePos: pos, Fields: fields}, nil
 }
+
 func (p *Parser) parsePlan() (ast.Statement, error) {
-	return nil, fmt.Errorf("parsePlan stub (Task 19)")
+	pos := astPos(p.cur.Pos)
+	p.advance()
+	if p.cur.Kind != lexer.STR {
+		return nil, errs.New("E1040", "expected plan name as string", errPos(p.cur.Pos), "")
+	}
+	name := p.cur.Data
+	p.advance()
+	if _, err := p.expect(lexer.COLON); err != nil {
+		return nil, err
+	}
+	body, err := p.parseBlock()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.PlanBlock{NodePos: pos, Name: name, Body: body}, nil
 }
+
 func (p *Parser) parseImport() (ast.Statement, error) {
-	return nil, fmt.Errorf("parseImport stub (Task 19)")
+	pos := astPos(p.cur.Pos)
+	p.advance()
+	if p.cur.Kind != lexer.STR {
+		return nil, errs.New("E1041", "expected import path as string", errPos(p.cur.Pos), "")
+	}
+	path := p.cur.Data
+	p.advance()
+	var alias string
+	if p.cur.Kind == lexer.AS {
+		p.advance()
+		if p.cur.Kind != lexer.NAME {
+			return nil, errs.New("E1042", "expected alias name", errPos(p.cur.Pos), "")
+		}
+		alias = p.cur.Data
+		p.advance()
+	}
+	return &ast.ImportDecl{NodePos: pos, Path: path, Alias: alias}, nil
 }
 func (p *Parser) parseAssignOrExpr() (ast.Statement, error) {
 	left, err := p.parseExpression()
 	if err != nil {
 		return nil, err
 	}
-	if p.cur.Kind == lexer.EQ {
+	if p.cur.Kind == lexer.EQ || p.cur.Kind == lexer.COLON {
 		pos := astPos(p.cur.Pos)
 		p.advance()
 		val, err := p.parseExpression()

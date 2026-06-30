@@ -148,3 +148,29 @@ func TestParser_PubFn(t *testing.T) {
 	fn := prog.Stmts[0].(*ast.FnDecl)
 	assert.True(t, fn.Pub)
 }
+
+func TestParser_Meta(t *testing.T) {
+	src := "meta:\n    name: \"demo\"\n    version: \"1.0\"\n"
+	p := New(src, "")
+	prog, err := p.Parse()
+	assert.NoError(t, err)
+	m := prog.Stmts[0].(*ast.MetaBlock)
+	assert.Equal(t, "demo", m.Fields["name"])
+}
+
+func TestParser_Plan(t *testing.T) {
+	src := "plan \"my_plan\":\n    pass\n"
+	p := New(src, "")
+	prog, err := p.Parse()
+	assert.NoError(t, err)
+	pl := prog.Stmts[0].(*ast.PlanBlock)
+	assert.Equal(t, "my_plan", pl.Name)
+}
+
+func TestParser_Import(t *testing.T) {
+	p := New("import \"std/http.fn\"", "")
+	prog, err := p.Parse()
+	assert.NoError(t, err)
+	imp := prog.Stmts[0].(*ast.ImportDecl)
+	assert.Equal(t, "std/http.fn", imp.Path)
+}
