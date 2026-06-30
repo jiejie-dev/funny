@@ -188,6 +188,14 @@ func (l *Lexer) Next() Token {
 		return l.emit(kind, l.src[start:l.pos])
 	}
 
+	if ch == '"' || ch == '\'' {
+		return l.lexString(ch == '\'')
+	}
+	if ch == 'f' && l.peek(1) == '"' {
+		l.advance()
+		return l.lexFString()
+	}
+
 	if isLetter(ch) {
 		start := l.pos
 		for l.pos < len(l.src) && (isLetter(l.src[l.pos]) || isDigit(l.src[l.pos])) {
@@ -214,4 +222,60 @@ func isDigit(b byte) bool {
 
 func isHexDigit(b byte) bool {
 	return isDigit(b) || (b >= 'a' && b <= 'f') || (b >= 'A' && b <= 'F')
+}
+
+func (l *Lexer) lexString(single bool) Token {
+	quote := byte('"')
+	if single {
+		quote = '\''
+	}
+	l.advance()
+	var buf []byte
+	for l.pos < len(l.src) && l.src[l.pos] != quote {
+		if l.src[l.pos] == '\\' && l.pos+1 < len(l.src) {
+			esc := l.src[l.pos+1]
+			switch esc {
+			case 'n':
+				buf = append(buf, '\n')
+			case 't':
+				buf = append(buf, '\t')
+			case 'r':
+				buf = append(buf, '\r')
+			case '\\':
+				buf = append(buf, '\\')
+			case '"':
+				buf = append(buf, '"')
+			case '\'':
+				buf = append(buf, '\'')
+			default:
+				buf = append(buf, '\\', esc)
+			}
+			l.advance()
+			l.advance()
+			continue
+		}
+		if l.src[l.pos] == '\n' {
+			l.advance()
+			continue
+		}
+		buf = append(buf, l.src[l.pos])
+		l.advance()
+	}
+	if l.pos < len(l.src) {
+		l.advance()
+	}
+	return l.emit(STR, string(buf))
+}
+
+func (l *Lexer) lexFString() Token {
+	l.advance()
+	var buf []byte
+	for l.pos < len(l.src) && l.src[l.pos] != '"' {
+		buf = append(buf, l.src[l.pos])
+		l.advance()
+	}
+	if l.pos < len(l.src) {
+		l.advance()
+	}
+	return l.emit(FSTR, string(buf))
 }

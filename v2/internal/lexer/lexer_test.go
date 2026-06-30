@@ -101,3 +101,27 @@ func TestLexer_IntVsFloat(t *testing.T) {
 	assert.Equal(t, INT, a.Kind)
 	assert.Equal(t, FLOAT, b.Kind)
 }
+
+func TestLexer_String(t *testing.T) {
+	l := New(`"hello" 'world'`, "")
+	a := l.Next()
+	assert.Equal(t, STR, a.Kind)
+	assert.Equal(t, "hello", a.Data)
+	b := l.Next()
+	assert.Equal(t, STR, b.Kind)
+	assert.Equal(t, "world", b.Data)
+}
+
+func TestLexer_StringEscapes(t *testing.T) {
+	l := New(`"a\nb\tc\\d"`, "")
+	tok := l.Next()
+	assert.Equal(t, STR, tok.Kind)
+	assert.Equal(t, "a\nb\tc\\d", tok.Data)
+}
+
+func TestLexer_FString(t *testing.T) {
+	l := New(`f"hello {name}"`, "")
+	tok := l.Next()
+	assert.Equal(t, FSTR, tok.Kind)
+	assert.Equal(t, "hello {name}", tok.Data)
+}
