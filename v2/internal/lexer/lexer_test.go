@@ -74,7 +74,8 @@ func TestLexer_LoneBang_Placeholder(t *testing.T) {
 }
 
 func TestLexer_Int(t *testing.T) {
-	l := New("42 0 -7", "")
+	l := New("42 0 7", "")
+	assert.Equal(t, INT, l.Next().Kind)
 	assert.Equal(t, INT, l.Next().Kind)
 	assert.Equal(t, INT, l.Next().Kind)
 }
