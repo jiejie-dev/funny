@@ -196,6 +196,11 @@ func (s *Block) String() string {
 	return out
 }
 
+// ToProgram wraps a Block in a Program (used by type checker).
+func (b *Block) ToProgram() *Program {
+	return &Program{NodePos: b.NodePos, Stmts: b.Statements}
+}
+
 type LetStmt struct {
 	NodePos Pos
 	Name    string

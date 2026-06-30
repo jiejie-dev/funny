@@ -175,3 +175,118 @@ func TestCheck_FString(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, Primitive("str"), got)
 }
+
+func TestCheck_Let(t *testing.T) {
+	src := `let x: int = 42`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.NoError(t, err)
+	t2, _ := env.LookupVar("x")
+	assert.Equal(t, Primitive("int"), t2)
+}
+
+func TestCheck_LetInfer(t *testing.T) {
+	src := `let x = 42`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.NoError(t, err)
+	t2, _ := env.LookupVar("x")
+	assert.Equal(t, Primitive("int"), t2)
+}
+
+func TestCheck_LetTypeMismatch(t *testing.T) {
+	src := `let x: int = "hello"`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.Error(t, err)
+}
+
+func TestCheck_Assign(t *testing.T) {
+	src := `let x: int = 1
+x = 2`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.NoError(t, err)
+}
+
+func TestCheck_AssignMismatch(t *testing.T) {
+	src := `let x: int = 1
+x = "hello"`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.Error(t, err)
+}
+
+func TestCheck_If_NonBool(t *testing.T) {
+	src := `if 42:
+    pass`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.Error(t, err)
+}
+
+func TestCheck_For_NonList(t *testing.T) {
+	src := `for i in 42:
+    pass`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.Error(t, err)
+}
+
+func TestCheck_ReturnType(t *testing.T) {
+	src := `fn foo() -> int:
+    return "hello"
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.Error(t, err)
+}
+
+func TestCheck_FnDecl_ParamMissingType(t *testing.T) {
+	src := `fn foo(a) -> int:
+    return a
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.Error(t, err)
+}
+
+func TestCheck_StructDecl_FieldMissingType(t *testing.T) {
+	src := `struct User:
+    name: str
+    bad
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.Error(t, err)
+}

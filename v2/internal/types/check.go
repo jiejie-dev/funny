@@ -194,3 +194,185 @@ func checkListLiteral(n *ast.ListExpr, env *Env) (Type, error) {
 	}
 	return List{Elem: first}, nil
 }
+
+// Check type-checks a full program.
+func Check(prog *ast.Program, env *Env) error {
+	for _, s := range prog.Stmts {
+		if err := checkStmt(s, env); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func checkStmt(s ast.Statement, env *Env) error {
+	switch n := s.(type) {
+	case *ast.LetStmt:
+		return checkLet(n, env)
+	case *ast.AssignStmt:
+		return checkAssign(n, env)
+	case *ast.IfStmt:
+		return checkIf(n, env)
+	case *ast.ForStmt:
+		return checkFor(n, env)
+	case *ast.WhileStmt:
+		return checkWhile(n, env)
+	case *ast.ReturnStmt:
+		return checkReturn(n, env)
+	case *ast.FnDecl:
+		return checkFnDecl(n, env)
+	case *ast.StructDecl:
+		return checkStructDecl(n, env)
+	case *ast.ExprStmt, *ast.BreakStmt, *ast.ContinueStmt, *ast.MetaBlock, *ast.PlanBlock, *ast.ImportDecl:
+		return nil // M2-A doesn't type-check these
+	}
+	return New("E2099", fmt.Sprintf("unsupported statement %T", s), s.Pos())
+}
+
+func checkLet(n *ast.LetStmt, env *Env) error {
+	valT, err := CheckExpr(n.Value, env)
+	if err != nil {
+		return err
+	}
+	var declared Type
+	if n.TypeAnn != "" {
+		declared, err = ParseType(n.TypeAnn)
+		if err != nil {
+			return New("E2012", fmt.Sprintf("invalid type annotation %q: %v", n.TypeAnn, err), n.NodePos)
+		}
+		if !Equal(valT, declared) {
+			return NewMismatch(n.NodePos, declared, valT)
+		}
+	} else {
+		declared = valT
+	}
+	env.DeclareVar(n.Name, declared)
+	return nil
+}
+
+func checkAssign(n *ast.AssignStmt, env *Env) error {
+	valT, err := CheckExpr(n.Value, env)
+	if err != nil {
+		return err
+	}
+	targetT, err := CheckExpr(n.Target, env)
+	if err != nil {
+		return err
+	}
+	if !Equal(valT, targetT) {
+		return NewMismatch(n.NodePos, targetT, valT)
+	}
+	return nil
+}
+
+func checkIf(n *ast.IfStmt, env *Env) error {
+	condT, err := CheckExpr(n.Cond, env)
+	if err != nil {
+		return err
+	}
+	if !Equal(condT, Primitive("bool")) {
+		return NewMismatch(n.NodePos, Primitive("bool"), condT)
+	}
+	if err := Check(n.Then.ToProgram(), env); err != nil {
+		return err
+	}
+	if n.ElseIf != nil {
+		return checkIf(n.ElseIf, env)
+	}
+	if n.ElseBlock != nil {
+		return Check(n.ElseBlock.ToProgram(), env)
+	}
+	return nil
+}
+
+func checkFor(n *ast.ForStmt, env *Env) error {
+	iterT, err := CheckExpr(n.Iterable, env)
+	if err != nil {
+		return err
+	}
+	listT, ok := iterT.(List)
+	if !ok {
+		return New("E2050", fmt.Sprintf("for-in requires list, got %s", iterT), n.NodePos)
+	}
+	bodyEnv := NewEnv(env)
+	bodyEnv.DeclareVar(n.Name, listT.Elem)
+	return Check(n.Body.ToProgram(), bodyEnv)
+}
+
+func checkWhile(n *ast.WhileStmt, env *Env) error {
+	condT, err := CheckExpr(n.Cond, env)
+	if err != nil {
+		return err
+	}
+	if !Equal(condT, Primitive("bool")) {
+		return NewMismatch(n.NodePos, Primitive("bool"), condT)
+	}
+	return Check(n.Body.ToProgram(), env)
+}
+
+func checkReturn(n *ast.ReturnStmt, env *Env) error {
+	if n.Value == nil {
+		return nil
+	}
+	valT, err := CheckExpr(n.Value, env)
+	if err != nil {
+		return err
+	}
+	retT, ok := env.LookupVar("__return_type__")
+	if !ok {
+		return nil
+	}
+	expected, ok := retT.(Type)
+	if !ok {
+		return nil
+	}
+	if !Equal(valT, expected) {
+		return NewMismatch(n.NodePos, expected, valT)
+	}
+	return nil
+}
+
+func checkFnDecl(n *ast.FnDecl, env *Env) error {
+	var retType Type = Primitive("nil")
+	if n.RetType != "" {
+		var err error
+		retType, err = ParseType(n.RetType)
+		if err != nil {
+			return New("E2012", fmt.Sprintf("invalid return type %q: %v", n.RetType, err), n.NodePos)
+		}
+	}
+	var paramTypes []Type
+	for _, p := range n.Params {
+		if p.TypeAnn == "" {
+			return New("E2013", fmt.Sprintf("parameter %q missing type annotation", p.Name), n.NodePos)
+		}
+		pt, err := ParseType(p.TypeAnn)
+		if err != nil {
+			return New("E2012", fmt.Sprintf("invalid type for parameter %q: %v", p.Name, err), n.NodePos)
+		}
+		paramTypes = append(paramTypes, pt)
+	}
+	env.DeclareFunc(n.Name, Func{Params: paramTypes, Return: retType})
+	bodyEnv := NewEnv(env)
+	bodyEnv.DeclareVar("__return_type__", retType)
+	for i, p := range n.Params {
+		bodyEnv.DeclareVar(p.Name, paramTypes[i])
+	}
+	return Check(n.Body.ToProgram(), bodyEnv)
+}
+
+func checkStructDecl(n *ast.StructDecl, env *Env) error {
+	fields := map[string]Type{}
+	for _, f := range n.Fields {
+		if f.TypeAnn == "" {
+			return New("E2013", fmt.Sprintf("struct field %q missing type annotation", f.Name), n.NodePos)
+		}
+		ft, err := ParseType(f.TypeAnn)
+		if err != nil {
+			return New("E2012", fmt.Sprintf("invalid type for field %q: %v", f.Name, err), n.NodePos)
+		}
+		fields[f.Name] = ft
+	}
+	env.DeclareStruct(n.Name, Struct{Name: n.Name, Fields: fields})
+	return nil
+}
