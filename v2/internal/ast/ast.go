@@ -400,3 +400,67 @@ func (s *StructDecl) String() string {
 	}
 	return out
 }
+
+// ----- Top-Level -----
+
+type ImportDecl struct {
+	NodePos Pos
+	Path    string
+	Alias   string
+}
+
+func (s *ImportDecl) Pos() Pos    { return s.NodePos }
+func (s *ImportDecl) stmtMarker() {}
+func (s *ImportDecl) nodeMarker() {}
+func (s *ImportDecl) String() string {
+	out := fmt.Sprintf("import %q", s.Path)
+	if s.Alias != "" {
+		out += " as " + s.Alias
+	}
+	return out
+}
+
+type MetaBlock struct {
+	NodePos Pos
+	Name    string
+	Fields  map[string]string
+}
+
+func (s *MetaBlock) Pos() Pos    { return s.NodePos }
+func (s *MetaBlock) stmtMarker() {}
+func (s *MetaBlock) nodeMarker() {}
+func (s *MetaBlock) String() string {
+	out := "meta:\n"
+	for k, v := range s.Fields {
+		out += fmt.Sprintf("    %s: %s\n", k, v)
+	}
+	return out
+}
+
+type PlanBlock struct {
+	NodePos Pos
+	Name    string
+	Body    *Block
+}
+
+func (s *PlanBlock) Pos() Pos    { return s.NodePos }
+func (s *PlanBlock) stmtMarker() {}
+func (s *PlanBlock) nodeMarker() {}
+func (s *PlanBlock) String() string {
+	return fmt.Sprintf("plan %q:\n%s", s.Name, s.Body.String())
+}
+
+type Program struct {
+	NodePos Pos
+	Stmts   []Statement
+}
+
+func (p *Program) Pos() Pos    { return p.NodePos }
+func (p *Program) nodeMarker() {}
+func (p *Program) String() string {
+	out := ""
+	for _, s := range p.Stmts {
+		out += s.String() + "\n"
+	}
+	return out
+}
