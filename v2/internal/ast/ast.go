@@ -335,3 +335,68 @@ func (s *ExprStmt) Pos() Pos       { return s.NodePos }
 func (s *ExprStmt) stmtMarker()    {}
 func (s *ExprStmt) nodeMarker()    {}
 func (s *ExprStmt) String() string { return s.X.String() }
+
+// ----- Declarations -----
+
+type Param struct {
+	Name    string
+	TypeAnn string
+}
+
+func (p Param) String() string {
+	if p.TypeAnn != "" {
+		return fmt.Sprintf("%s: %s", p.Name, p.TypeAnn)
+	}
+	return p.Name
+}
+
+type FnDecl struct {
+	NodePos Pos
+	Pub     bool
+	Name    string
+	Params  []Param
+	RetType string
+	Body    *Block
+}
+
+func (s *FnDecl) Pos() Pos    { return s.NodePos }
+func (s *FnDecl) stmtMarker() {}
+func (s *FnDecl) nodeMarker() {}
+func (s *FnDecl) String() string {
+	parts := make([]string, len(s.Params))
+	for i, p := range s.Params {
+		parts[i] = p.String()
+	}
+	prefix := ""
+	if s.Pub {
+		prefix = "pub "
+	}
+	out := fmt.Sprintf("%sfn %s(%s)", prefix, s.Name, joinComma(parts))
+	if s.RetType != "" {
+		out += " -> " + s.RetType
+	}
+	out += ":\n" + s.Body.String()
+	return out
+}
+
+type StructDecl struct {
+	NodePos Pos
+	Pub     bool
+	Name    string
+	Fields  []Param
+}
+
+func (s *StructDecl) Pos() Pos    { return s.NodePos }
+func (s *StructDecl) stmtMarker() {}
+func (s *StructDecl) nodeMarker() {}
+func (s *StructDecl) String() string {
+	prefix := ""
+	if s.Pub {
+		prefix = "pub "
+	}
+	out := fmt.Sprintf("%sstruct %s:\n", prefix, s.Name)
+	for _, f := range s.Fields {
+		out += fmt.Sprintf("    %s\n", f.String())
+	}
+	return out
+}
