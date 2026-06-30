@@ -88,6 +88,29 @@ func (p *Parser) parsePostfix() (ast.Expression, error) {
 		return nil, err
 	}
 	for {
+		// Struct literal: Name(field: val, ...) - detect before treating as a call.
+		if varExpr, ok := left.(*ast.VariableExpr); ok {
+			if p.cur.Kind == lexer.LPAREN {
+				state := p.save()
+				p.advance() // consume '('
+				isStructLit := false
+				if p.cur.Kind == lexer.NAME {
+					p.advance()
+					if p.cur.Kind == lexer.COLON {
+						isStructLit = true
+					}
+				}
+				p.restore(state)
+				if isStructLit {
+					lit, err := p.parseStructLiteral(varExpr.Name)
+					if err != nil {
+						return nil, err
+					}
+					left = lit
+					continue
+				}
+			}
+		}
 		switch p.cur.Kind {
 		case lexer.LPAREN:
 			pos := astPos(p.cur.Pos)
@@ -204,4 +227,36 @@ func (p *Parser) parsePrimary() (ast.Expression, error) {
 	return nil, errs.New("E1012",
 		fmt.Sprintf("unexpected token %s in expression", p.cur.Kind),
 		errPos(p.cur.Pos), "")
+}
+
+func (p *Parser) parseStructLiteral(typeName string) (ast.Expression, error) {
+	pos := astPos(p.cur.Pos)
+	p.advance() // consume '('
+	fields := map[string]ast.Expression{}
+	for p.cur.Kind != lexer.RPAREN && p.cur.Kind != lexer.EOF {
+		if p.cur.Kind != lexer.NAME {
+			return nil, errs.New("E1090", "expected field name in struct literal", errPos(p.cur.Pos), "")
+		}
+		fieldName := p.cur.Data
+		p.advance()
+		if _, err := p.expect(lexer.COLON); err != nil {
+			return nil, err
+		}
+		val, err := p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		fields[fieldName] = val
+		if p.cur.Kind == lexer.COMMA {
+			p.advance()
+		}
+	}
+	if _, err := p.expect(lexer.RPAREN); err != nil {
+		return nil, err
+	}
+	return &ast.StructLiteralExpr{
+		NodePos:  pos,
+		TypeName: typeName,
+		Fields:   fields,
+	}, nil
 }

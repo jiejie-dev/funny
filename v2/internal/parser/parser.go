@@ -23,6 +23,22 @@ func New(src, file string) *Parser {
 
 func (p *Parser) advance() { p.cur = p.peek; p.peek = p.lx.Next() }
 
+type parserState struct {
+	cur  lexer.Token
+	peek lexer.Token
+	lx   lexer.LexerState
+}
+
+func (p *Parser) save() parserState {
+	return parserState{cur: p.cur, peek: p.peek, lx: p.lx.Snapshot()}
+}
+
+func (p *Parser) restore(s parserState) {
+	p.cur = s.cur
+	p.peek = s.peek
+	p.lx.Restore(s.lx)
+}
+
 func (p *Parser) expect(k lexer.Kind) (lexer.Token, *errs.Error) {
 	if p.cur.Kind == k {
 		tok := p.cur

@@ -45,6 +45,35 @@ func (l *Lexer) save() {
 	l.saveCol = l.col
 }
 
+type LexerState struct {
+	Pos         int
+	Line        int
+	Col         int
+	IndentStack []int
+	HasEmitted  bool
+}
+
+func (l *Lexer) Snapshot() LexerState {
+	stack := make([]int, len(l.indentStack))
+	copy(stack, l.indentStack)
+	return LexerState{
+		Pos:         l.pos,
+		Line:        l.line,
+		Col:         l.col,
+		IndentStack: stack,
+		HasEmitted:  l.hasEmitted,
+	}
+}
+
+func (l *Lexer) Restore(s LexerState) {
+	l.pos = s.Pos
+	l.line = s.Line
+	l.col = s.Col
+	l.indentStack = make([]int, len(s.IndentStack))
+	copy(l.indentStack, s.IndentStack)
+	l.hasEmitted = s.HasEmitted
+}
+
 func (l *Lexer) emit(kind Kind, data string) Token {
 	return Token{
 		Kind: kind,

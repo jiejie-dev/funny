@@ -22,3 +22,17 @@ func TestAst_OutputsJSON(t *testing.T) {
 	assert.Contains(t, string(out), `"NodePos"`)
 	assert.Contains(t, string(out), `"Stmts"`)
 }
+
+func TestRun_TypeCheckPasses(t *testing.T) {
+	src := `let x: int = 42
+let y: int = x + 1
+`
+	err := Run([]byte(src), "test.fn")
+	assert.NoError(t, err)
+}
+
+func TestRun_TypeCheckFails(t *testing.T) {
+	src := `let x: int = "hello"`
+	err := Run([]byte(src), "test.fn")
+	assert.Error(t, err)
+}
