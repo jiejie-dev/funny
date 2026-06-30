@@ -290,3 +290,89 @@ func TestCheck_StructDecl_FieldMissingType(t *testing.T) {
 	err = Check(prog, env)
 	assert.Error(t, err)
 }
+
+func TestIntegration_TypeCheck_Basic(t *testing.T) {
+	src := `let x: int = 42
+let y: float = 3.14
+let name: str = "hello"
+let sum = x + 0
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.NoError(t, err)
+}
+
+func TestIntegration_TypeCheck_Lists(t *testing.T) {
+	src := `let xs: list[int] = [1, 2, 3]
+let first = xs[0]
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.NoError(t, err)
+}
+
+func TestIntegration_TypeCheck_Structs(t *testing.T) {
+	src := `struct Point:
+    x: int
+    y: int
+
+let p = Point(x: 1, y: 2)
+let px = p.x
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.NoError(t, err)
+}
+
+func TestIntegration_TypeCheck_Functions(t *testing.T) {
+	src := `fn add(a: int, b: int) -> int:
+    return a + b
+
+let r = add(1, 2)
+let s = add("x", "y")
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.Error(t, err)
+}
+
+func TestIntegration_TypeCheck_VariousErrors(t *testing.T) {
+	cases := []struct {
+		name string
+		src  string
+	}{
+		{"undefined var", "let y = undefined_xyz"},
+		{"if non-bool", `if 42:
+    pass`},
+		{"for non-list", `for i in 42:
+    pass`},
+		{"return mismatch", `fn foo() -> int:
+    return "hello"
+`},
+		{"assign mismatch", `let x: int = 1
+x = "hello"`},
+		{"param missing type", `fn foo(a) -> int:
+    return a
+`},
+	}
+	for _, c := range cases {
+		p := parser.New(c.src, "")
+		prog, err := p.Parse()
+		require.NoError(t, err, c.name)
+		env := NewEnv(nil)
+		err = Check(prog, env)
+		assert.Error(t, err, c.name+": expected type error")
+	}
+}
