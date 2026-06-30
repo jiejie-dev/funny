@@ -43,9 +43,28 @@ func (p *Parser) parseStatement() (ast.Statement, error) {
 	case lexer.NAME:
 		return p.parseAssignOrExpr()
 	}
+	if isExpressionStart(p.cur.Kind) {
+		pos := astPos(p.cur.Pos)
+		expr, err := p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		return &ast.ExprStmt{NodePos: pos, X: expr}, nil
+	}
 	return nil, errs.New("E1002",
 		fmt.Sprintf("unexpected token %s at start of statement", p.cur.Kind),
 		errPos(p.cur.Pos), "")
+}
+
+func isExpressionStart(k lexer.Kind) bool {
+	switch k {
+	case lexer.INT, lexer.FLOAT, lexer.STR, lexer.FSTR,
+		lexer.TRUE, lexer.FALSE, lexer.NIL,
+		lexer.NAME, lexer.LPAREN, lexer.LBRACK,
+		lexer.MINUS, lexer.NOT:
+		return true
+	}
+	return false
 }
 
 func (p *Parser) parseLet() (ast.Statement, error) { return nil, fmt.Errorf("parseLet stub (Task 16)") }
@@ -78,8 +97,4 @@ func (p *Parser) parseImport() (ast.Statement, error) {
 func (p *Parser) parsePub() (ast.Statement, error) { return nil, fmt.Errorf("parsePub stub (Task 18)") }
 func (p *Parser) parseAssignOrExpr() (ast.Statement, error) {
 	return nil, fmt.Errorf("parseAssignOrExpr stub (Task 16)")
-}
-
-func (p *Parser) parseExpression() (ast.Expression, error) {
-	return nil, fmt.Errorf("parseExpression stub (Task 15)")
 }
