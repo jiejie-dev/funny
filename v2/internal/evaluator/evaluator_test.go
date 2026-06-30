@@ -96,3 +96,33 @@ while x < 5:
 	v, _ := e.scope.Get("x")
 	assert.Equal(t, 5, v)
 }
+
+func TestIntegration_Fib(t *testing.T) {
+	src := `fn fib(n: int) -> int:
+    if n < 2:
+        return n
+    return fib(n - 1) + fib(n - 2)
+let r = fib(10)
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	e := New(nil)
+	require.NoError(t, e.Exec(prog))
+	v, _ := e.scope.Get("r")
+	assert.Equal(t, 55, v)
+}
+
+func TestIntegration_Sum(t *testing.T) {
+	src := `let sum = 0
+for i in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
+    sum = sum + i
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	e := New(nil)
+	require.NoError(t, e.Exec(prog))
+	v, _ := e.scope.Get("sum")
+	assert.Equal(t, 55, v)
+}
