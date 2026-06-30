@@ -66,3 +66,9 @@ func TestLexer_Operators(t *testing.T) {
 		assert.Equal(t, c.data, tok.Data, "src=%q", c.src)
 	}
 }
+
+func TestLexer_LoneBang_Placeholder(t *testing.T) {
+	l := New("!", "")
+	tok := l.Next()
+	assert.Equal(t, EOF, tok.Kind)
+}
