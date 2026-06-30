@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"os"
 	"testing"
 
 	"github.com/jerloo/funny/v2/internal/ast"
@@ -173,4 +174,18 @@ func TestParser_Import(t *testing.T) {
 	assert.NoError(t, err)
 	imp := prog.Stmts[0].(*ast.ImportDecl)
 	assert.Equal(t, "std/http.fn", imp.Path)
+}
+
+func TestParser_FromFile(t *testing.T) {
+	cases := []string{
+		"../../testdata/parser/control_flow.fn",
+		"../../testdata/parser/function.fn",
+	}
+	for _, path := range cases {
+		data, err := os.ReadFile(path)
+		assert.NoError(t, err)
+		p := New(string(data), path)
+		_, err = p.Parse()
+		assert.NoError(t, err, "file=%s", path)
+	}
 }

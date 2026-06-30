@@ -1,0 +1,14 @@
+let x = 10
+
+if x > 0:
+    print("positive")
+elif x == 0:
+    print("zero")
+else:
+    print("negative")
+
+for i in [1, 2, 3]:
+    print(i)
+
+while x > 0:
+    x = x - 1
