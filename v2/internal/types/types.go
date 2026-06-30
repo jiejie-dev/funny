@@ -26,3 +26,32 @@ func Equal(a, b Type) bool {
 	}
 	return a.Equal(b)
 }
+
+// List is a homogeneous list type: list[T].
+type List struct {
+	Elem Type
+}
+
+func (l List) String() string {
+	return "list[" + l.Elem.String() + "]"
+}
+func (l List) Equal(other Type) bool {
+	o, ok := other.(List)
+	return ok && Equal(l.Elem, o.Elem)
+}
+func (l List) typeMarker() {}
+
+// Map is a key-value map type: map[K, V].
+type Map struct {
+	Key   Type
+	Value Type
+}
+
+func (m Map) String() string {
+	return "map[" + m.Key.String() + ", " + m.Value.String() + "]"
+}
+func (m Map) Equal(other Type) bool {
+	o, ok := other.(Map)
+	return ok && Equal(m.Key, o.Key) && Equal(m.Value, o.Value)
+}
+func (m Map) typeMarker() {}
