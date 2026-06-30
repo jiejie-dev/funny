@@ -99,3 +99,39 @@ func (s Struct) FieldNames() []string {
 	}
 	return out
 }
+
+// Func is a function type: (params) -> return.
+type Func struct {
+	Params []Type
+	Return Type
+}
+
+func (f Func) String() string {
+	out := "("
+	for i, p := range f.Params {
+		if i > 0 {
+			out += ", "
+		}
+		out += p.String()
+	}
+	out += ") -> " + f.Return.String()
+	return out
+}
+
+func (f Func) Equal(other Type) bool {
+	o, ok := other.(Func)
+	if !ok || len(f.Params) != len(o.Params) {
+		return false
+	}
+	for i := range f.Params {
+		if !Equal(f.Params[i], o.Params[i]) {
+			return false
+		}
+	}
+	return Equal(f.Return, o.Return)
+}
+
+func (f Func) typeMarker() {}
+
+// Arity returns the number of parameters.
+func (f Func) Arity() int { return len(f.Params) }

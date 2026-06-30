@@ -100,3 +100,31 @@ func TestType_Struct_Field(t *testing.T) {
 	_, ok = s.Field("missing")
 	assert.False(t, ok)
 }
+
+func TestType_Func_String(t *testing.T) {
+	f := Func{
+		Params: []Type{Primitive("int"), Primitive("int")},
+		Return: Primitive("int"),
+	}
+	assert.Equal(t, "(int, int) -> int", f.String())
+}
+
+func TestType_Func_StringNoParams(t *testing.T) {
+	f := Func{Return: Primitive("str")}
+	assert.Equal(t, "() -> str", f.String())
+}
+
+func TestType_Func_Equal(t *testing.T) {
+	a := Func{Params: []Type{Primitive("int")}, Return: Primitive("str")}
+	b := Func{Params: []Type{Primitive("int")}, Return: Primitive("str")}
+	c := Func{Params: []Type{Primitive("str")}, Return: Primitive("str")}
+	d := Func{Params: []Type{Primitive("int")}, Return: Primitive("int")}
+	assert.True(t, a.Equal(b))
+	assert.False(t, a.Equal(c))
+	assert.False(t, a.Equal(d))
+}
+
+func TestType_Func_Arity(t *testing.T) {
+	f := Func{Params: []Type{Primitive("int"), Primitive("str")}, Return: Primitive("bool")}
+	assert.Equal(t, 2, f.Arity())
+}
