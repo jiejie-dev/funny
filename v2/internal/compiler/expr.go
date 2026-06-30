@@ -8,7 +8,7 @@ import (
 	"github.com/jerloo/funny/v2/internal/bytecode"
 )
 
-func (c *Compiler) compileExpr(e ast.Expression) (bytecode.OpCode, error) {
+func (c *Compiler) compileExpr(e ast.Expression) (valueType, error) {
 	switch n := e.(type) {
 	case *ast.LiteralExpr:
 		return c.compileLiteral(n)
@@ -22,42 +22,43 @@ func (c *Compiler) compileExpr(e ast.Expression) (bytecode.OpCode, error) {
 	return "", fmt.Errorf("compileExpr: unsupported expression type %T", e)
 }
 
-func (c *Compiler) compileLiteral(n *ast.LiteralExpr) (bytecode.OpCode, error) {
+func (c *Compiler) compileLiteral(n *ast.LiteralExpr) (valueType, error) {
 	switch v := n.Value.(type) {
 	case nil:
 		c.fn.Emit(bytecode.PUSH_NIL, 0)
-		return bytecode.PUSH_NIL, nil
+		return valNil, nil
 	case int:
 		idx := c.mod.AddConstant(v)
 		c.fn.Emit(bytecode.PUSH_INT, idx)
-		return bytecode.PUSH_INT, nil
+		return valInt, nil
 	case float64:
 		idx := c.mod.AddConstant(v)
 		c.fn.Emit(bytecode.PUSH_FLOAT, idx)
-		return bytecode.PUSH_FLOAT, nil
+		return valFloat, nil
 	case string:
 		idx := c.mod.AddConstant(v)
 		c.fn.Emit(bytecode.PUSH_STR, idx)
-		return bytecode.PUSH_STR, nil
+		return valStr, nil
 	case bool:
 		idx := c.mod.AddConstant(v)
 		c.fn.Emit(bytecode.PUSH_BOOL, idx)
-		return bytecode.PUSH_BOOL, nil
+		return valBool, nil
 	}
 	return "", fmt.Errorf("compileLiteral: unsupported literal type %T", n.Value)
 }
 
-func (c *Compiler) compileVariable(n *ast.VariableExpr) (bytecode.OpCode, error) {
-	if idx := c.lookupLocal(n.Name); idx >= 0 {
-		c.fn.Emit(bytecode.LOAD_LOCAL, idx)
-		return bytecode.LOAD_LOCAL, nil
+func (c *Compiler) compileVariable(n *ast.VariableExpr) (valueType, error) {
+	if slot, vt := c.lookupLocal(n.Name); slot >= 0 {
+		c.fn.Emit(bytecode.LOAD_LOCAL, slot)
+		return vt, nil
 	}
 	idx := c.mod.AddConstant(n.Name)
 	c.fn.Emit(bytecode.LOAD_GLOBAL, idx)
-	return bytecode.LOAD_GLOBAL, nil
+	// Globals have no recorded type yet (M2-B.5 follow-up).
+	return valNil, nil
 }
 
-func (c *Compiler) compileBinary(n *ast.BinaryExpr) (bytecode.OpCode, error) {
+func (c *Compiler) compileBinary(n *ast.BinaryExpr) (valueType, error) {
 	leftOp, err := c.compileExpr(n.Left)
 	if err != nil {
 		return "", err
@@ -74,77 +75,85 @@ func (c *Compiler) compileBinary(n *ast.BinaryExpr) (bytecode.OpCode, error) {
 		return "", err
 	}
 	c.fn.Emit(op, 0)
-	return op, nil
+
+	// Comparison / equality ops produce bool; arithmetic preserves operand type.
+	switch n.Op {
+	case "+", "-", "*", "/", "%":
+		return leftOp, nil
+	case "==", "<", ">", "<=", ">=":
+		return valBool, nil
+	}
+	return "", fmt.Errorf("compileBinary: unknown operator %s", n.Op)
 }
 
-func pickBinaryOp(op string, lhs bytecode.OpCode) (bytecode.OpCode, error) {
+func pickBinaryOp(op string, lhs valueType) (bytecode.OpCode, error) {
 	switch op {
 	case "+":
 		switch lhs {
-		case bytecode.PUSH_INT:
+		case valInt:
 			return bytecode.ADD_INT, nil
-		case bytecode.PUSH_FLOAT:
+		case valFloat:
 			return bytecode.ADD_FLOAT, nil
-		case bytecode.PUSH_STR:
+		case valStr:
 			return bytecode.ADD_STR, nil
 		}
 	case "-":
 		switch lhs {
-		case bytecode.PUSH_INT:
+		case valInt:
 			return bytecode.SUB_INT, nil
-		case bytecode.PUSH_FLOAT:
+		case valFloat:
 			return bytecode.SUB_FLOAT, nil
 		}
 	case "*":
 		switch lhs {
-		case bytecode.PUSH_INT:
+		case valInt:
 			return bytecode.MUL_INT, nil
-		case bytecode.PUSH_FLOAT:
+		case valFloat:
 			return bytecode.MUL_FLOAT, nil
 		}
 	case "/":
 		switch lhs {
-		case bytecode.PUSH_INT:
+		case valInt:
 			return bytecode.DIV_INT, nil
-		case bytecode.PUSH_FLOAT:
+		case valFloat:
 			return bytecode.DIV_FLOAT, nil
 		}
 	case "%":
-		if lhs == bytecode.PUSH_INT {
+		if lhs == valInt {
 			return bytecode.MOD_INT, nil
 		}
 	case "==":
 		switch lhs {
-		case bytecode.PUSH_INT:
+		case valInt:
 			return bytecode.EQ_INT, nil
-		case bytecode.PUSH_STR:
+		case valStr:
 			return bytecode.EQ_STR, nil
-		case bytecode.PUSH_BOOL:
+		case valBool:
 			return bytecode.EQ_BOOL, nil
-		case bytecode.PUSH_NIL:
+		case valNil:
 			return bytecode.EQ_NIL, nil
 		}
 	case "<":
-		if lhs == bytecode.PUSH_INT {
+		if lhs == valInt {
 			return bytecode.LT_INT, nil
 		}
 	case ">":
-		if lhs == bytecode.PUSH_INT {
+		if lhs == valInt {
 			return bytecode.GT_INT, nil
 		}
 	case "<=":
-		if lhs == bytecode.PUSH_INT {
+		if lhs == valInt {
 			return bytecode.LTE_INT, nil
 		}
 	case ">=":
-		if lhs == bytecode.PUSH_INT {
+		if lhs == valInt {
 			return bytecode.GTE_INT, nil
 		}
 	}
 	return "", fmt.Errorf("pickBinaryOp: unsupported op %s for %s", op, lhs)
 }
 
-func (c *Compiler) compileUnary(n *ast.UnaryExpr) (bytecode.OpCode, error) {
+func (c *Compiler) compileUnary(n *ast.UnaryExpr) (valueType, error) {
 	op, err := c.compileExpr(n.Expr)
 	if err != nil {
 		return "", err
@@ -152,17 +161,17 @@ func (c *Compiler) compileUnary(n *ast.UnaryExpr) (bytecode.OpCode, error) {
 	switch n.Op {
 	case "-":
 		switch op {
-		case bytecode.PUSH_INT:
+		case valInt:
 			c.fn.Emit(bytecode.NEG_INT, 0)
-			return bytecode.PUSH_INT, nil
-		case bytecode.PUSH_FLOAT:
+			return valInt, nil
+		case valFloat:
 			c.fn.Emit(bytecode.NEG_FLOAT, 0)
-			return bytecode.PUSH_FLOAT, nil
+			return valFloat, nil
 		}
 	case "not":
-		if op == bytecode.PUSH_BOOL {
+		if op == valBool {
 			c.fn.Emit(bytecode.NOT_BOOL, 0)
-			return bytecode.PUSH_BOOL, nil
+			return valBool, nil
 		}
 	}
 	return "", fmt.Errorf("compileUnary: unsupported op %s for %s", n.Op, op)

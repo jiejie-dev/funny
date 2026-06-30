@@ -8,11 +8,26 @@ import (
 	"github.com/jerloo/funny/v2/internal/bytecode"
 )
 
+// valueType is the runtime value type produced by an expression.
+// It is tracked separately from the emitted OpCode so that variables
+// (which emit LOAD_LOCAL / LOAD_GLOBAL) can participate in type-sensitive
+// operators like `+`, `<`, `==`.
+type valueType string
+
+const (
+	valInt   valueType = "int"
+	valFloat valueType = "float"
+	valStr   valueType = "str"
+	valBool  valueType = "bool"
+	valNil   valueType = "nil"
+)
+
 // Compiler translates a typed AST into bytecode.
 type Compiler struct {
-	mod    *bytecode.Module
-	fn     *bytecode.Function
-	scopes []map[string]int
+	mod      *bytecode.Module
+	fn       *bytecode.Function
+	scopes   []map[string]int
+	varTypes []valueType // indexed by local slot (parallel to NumLocals)
 }
 
 // Compile translates a typed Program into a Module.
@@ -42,24 +57,41 @@ func (c *Compiler) popScope() {
 	c.scopes = c.scopes[:len(c.scopes)-1]
 }
 
-func (c *Compiler) declareLocal(name string) int {
+// declareLocal reserves a slot for `name` and records its value type `vt`
+// so subsequent VariableExpr lookups can produce the right value type.
+func (c *Compiler) declareLocal(name string, vt valueType) int {
 	scope := c.scopes[len(c.scopes)-1]
 	if idx, ok := scope[name]; ok {
+		// Re-declaration in same scope (e.g. `let x = ...; let x = ...`)
+		// Update the recorded type to match the new binding.
+		if idx < len(c.varTypes) {
+			c.varTypes[idx] = vt
+		}
 		return idx
 	}
 	idx := c.fn.NumLocals
 	scope[name] = idx
+	for len(c.varTypes) <= idx {
+		c.varTypes = append(c.varTypes, valNil)
+	}
+	c.varTypes[idx] = vt
 	c.fn.NumLocals++
 	return idx
 }
 
-func (c *Compiler) lookupLocal(name string) int {
+// lookupLocal returns the slot index and value type for a local variable.
+// Returns (-1, "") if not found.
+func (c *Compiler) lookupLocal(name string) (int, valueType) {
 	for i := len(c.scopes) - 1; i >= 0; i-- {
 		if idx, ok := c.scopes[i][name]; ok {
-			return idx
+			var vt valueType
+			if idx < len(c.varTypes) {
+				vt = c.varTypes[idx]
+			}
+			return idx, vt
 		}
 	}
-	return -1
+	return -1, ""
 }
 
 func (c *Compiler) compileStmt(s ast.Statement, isLast bool) error {
@@ -74,15 +106,44 @@ func (c *Compiler) compileStmt(s ast.Statement, isLast bool) error {
 		return nil
 	case *ast.LetStmt:
 		return c.compileLet(n)
+	case *ast.AssignStmt:
+		return c.compileAssign(n)
+	case *ast.IfStmt:
+		return c.compileIf(n)
+	case *ast.WhileStmt:
+		return c.compileWhile(n)
+	case *ast.ForStmt:
+		return fmt.Errorf("compileStmt: for-in loop not yet implemented (M2-B.5 follow-up)")
+	case *ast.ReturnStmt:
+		c.fn.Emit(bytecode.RETURN, 0)
+		return nil
 	}
-	return fmt.Errorf("compileStmt: unsupported statement type %T (control flow not yet implemented)", s)
+	return fmt.Errorf("compileStmt: unsupported statement type %T", s)
 }
 
 func (c *Compiler) compileLet(n *ast.LetStmt) error {
+	vt, err := c.compileExpr(n.Value)
+	if err != nil {
+		return err
+	}
+	slot := c.declareLocal(n.Name, vt)
+	c.fn.Emit(bytecode.STORE_LOCAL, slot)
+	c.fn.Emit(bytecode.POP, 0)
+	return nil
+}
+
+func (c *Compiler) compileAssign(n *ast.AssignStmt) error {
 	if _, err := c.compileExpr(n.Value); err != nil {
 		return err
 	}
-	slot := c.declareLocal(n.Name)
+	v, ok := n.Target.(*ast.VariableExpr)
+	if !ok {
+		return fmt.Errorf("compileAssign: target must be a variable (got %T)", n.Target)
+	}
+	slot, _ := c.lookupLocal(v.Name)
+	if slot < 0 {
+		return fmt.Errorf("compileAssign: undefined variable %s", v.Name)
+	}
 	c.fn.Emit(bytecode.STORE_LOCAL, slot)
 	c.fn.Emit(bytecode.POP, 0)
 	return nil
