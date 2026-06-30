@@ -257,11 +257,119 @@ func (p *Parser) parseReturn() (ast.Statement, error) {
 	}
 	return &ast.ReturnStmt{NodePos: pos, Value: val}, nil
 }
-func (p *Parser) parseFnDecl() (ast.Statement, error) {
-	return nil, fmt.Errorf("parseFnDecl stub (Task 18)")
+func (p *Parser) parsePub() (ast.Statement, error) {
+	p.advance()
+	switch p.cur.Kind {
+	case lexer.FN:
+		fn, err := p.parseFnDecl()
+		if err != nil {
+			return nil, err
+		}
+		fn.(*ast.FnDecl).Pub = true
+		return fn, nil
+	case lexer.STRUCT:
+		s, err := p.parseStructDecl()
+		if err != nil {
+			return nil, err
+		}
+		s.(*ast.StructDecl).Pub = true
+		return s, nil
+	}
+	return nil, errs.New("E1030", "`pub` must precede `fn` or `struct`", errPos(p.cur.Pos), "")
 }
+
+func (p *Parser) parseFnDecl() (ast.Statement, error) {
+	pos := astPos(p.cur.Pos)
+	p.advance()
+	if p.cur.Kind != lexer.NAME {
+		return nil, errs.New("E1031", "expected function name after `fn`", errPos(p.cur.Pos), "")
+	}
+	name := p.cur.Data
+	p.advance()
+	if _, err := p.expect(lexer.LPAREN); err != nil {
+		return nil, err
+	}
+	var params []ast.Param
+	for p.cur.Kind != lexer.RPAREN && p.cur.Kind != lexer.EOF {
+		if p.cur.Kind != lexer.NAME {
+			return nil, errs.New("E1032", "expected parameter name", errPos(p.cur.Pos), "")
+		}
+		pname := p.cur.Data
+		p.advance()
+		var ptype string
+		if p.cur.Kind == lexer.COLON {
+			p.advance()
+			ptype = p.cur.Data
+			p.advance()
+		}
+		params = append(params, ast.Param{Name: pname, TypeAnn: ptype})
+		if p.cur.Kind == lexer.COMMA {
+			p.advance()
+		}
+	}
+	if _, err := p.expect(lexer.RPAREN); err != nil {
+		return nil, err
+	}
+	var retType string
+	if p.cur.Kind == lexer.ARROW {
+		p.advance()
+		retType = p.cur.Data
+		p.advance()
+	}
+	if _, err := p.expect(lexer.COLON); err != nil {
+		return nil, err
+	}
+	body, err := p.parseBlock()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.FnDecl{NodePos: pos, Name: name, Params: params, RetType: retType, Body: body}, nil
+}
+
 func (p *Parser) parseStructDecl() (ast.Statement, error) {
-	return nil, fmt.Errorf("parseStructDecl stub (Task 18)")
+	pos := astPos(p.cur.Pos)
+	p.advance()
+	if p.cur.Kind != lexer.NAME {
+		return nil, errs.New("E1033", "expected struct name", errPos(p.cur.Pos), "")
+	}
+	name := p.cur.Data
+	p.advance()
+	if _, err := p.expect(lexer.COLON); err != nil {
+		return nil, err
+	}
+	if p.cur.Kind == lexer.NEWLINE {
+		p.advance()
+	}
+	if _, err := p.expect(lexer.INDENT); err != nil {
+		return nil, err
+	}
+	var fields []ast.Param
+	for p.cur.Kind != lexer.DEDENT && p.cur.Kind != lexer.EOF {
+		for p.cur.Kind == lexer.NEWLINE {
+			p.advance()
+		}
+		if p.cur.Kind == lexer.DEDENT || p.cur.Kind == lexer.EOF {
+			break
+		}
+		if p.cur.Kind != lexer.NAME {
+			return nil, errs.New("E1034", "expected field name in struct", errPos(p.cur.Pos), "")
+		}
+		fname := p.cur.Data
+		p.advance()
+		if _, err := p.expect(lexer.COLON); err != nil {
+			return nil, err
+		}
+		if p.cur.Kind != lexer.NAME {
+			return nil, errs.New("E1035", "expected field type in struct", errPos(p.cur.Pos), "")
+		}
+		ftype := p.cur.Data
+		p.advance()
+		fields = append(fields, ast.Param{Name: fname, TypeAnn: ftype})
+	}
+	if p.cur.Kind == lexer.DEDENT {
+		p.advance()
+	}
+	return &ast.StructDecl{NodePos: pos, Name: name, Fields: fields}, nil
 }
 func (p *Parser) parseMeta() (ast.Statement, error) {
 	return nil, fmt.Errorf("parseMeta stub (Task 19)")
@@ -272,7 +380,6 @@ func (p *Parser) parsePlan() (ast.Statement, error) {
 func (p *Parser) parseImport() (ast.Statement, error) {
 	return nil, fmt.Errorf("parseImport stub (Task 19)")
 }
-func (p *Parser) parsePub() (ast.Statement, error) { return nil, fmt.Errorf("parsePub stub (Task 18)") }
 func (p *Parser) parseAssignOrExpr() (ast.Statement, error) {
 	left, err := p.parseExpression()
 	if err != nil {

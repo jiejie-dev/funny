@@ -118,3 +118,33 @@ func TestParser_Return(t *testing.T) {
 	ret := prog.Stmts[0].(*ast.ReturnStmt)
 	assert.Equal(t, "42", ret.Value.String())
 }
+
+func TestParser_FnDecl(t *testing.T) {
+	src := "fn add(a: int, b: int) -> int:\n    return a + b\n"
+	p := New(src, "")
+	prog, err := p.Parse()
+	assert.NoError(t, err)
+	fn := prog.Stmts[0].(*ast.FnDecl)
+	assert.Equal(t, "add", fn.Name)
+	assert.Equal(t, "int", fn.RetType)
+	assert.Len(t, fn.Params, 2)
+}
+
+func TestParser_StructDecl(t *testing.T) {
+	src := "struct User:\n    name: str\n    age: int\n"
+	p := New(src, "")
+	prog, err := p.Parse()
+	assert.NoError(t, err)
+	s := prog.Stmts[0].(*ast.StructDecl)
+	assert.Equal(t, "User", s.Name)
+	assert.Len(t, s.Fields, 2)
+}
+
+func TestParser_PubFn(t *testing.T) {
+	src := "pub fn hello() -> int:\n    return 1\n"
+	p := New(src, "")
+	prog, err := p.Parse()
+	assert.NoError(t, err)
+	fn := prog.Stmts[0].(*ast.FnDecl)
+	assert.True(t, fn.Pub)
+}
