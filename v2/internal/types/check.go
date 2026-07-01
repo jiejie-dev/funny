@@ -35,8 +35,14 @@ func CheckExpr(expr ast.Expression, env *Env) (Type, error) {
 		return CheckExpr(n.Inner, env)
 	case *ast.FStringExpr:
 		return Primitive("str"), nil
+	case *ast.TryExpr:
+		return checkTry(n, env)
 	}
 	return nil, New("E2099", fmt.Sprintf("type checker: unsupported expression %T", expr), expr.Pos())
+}
+
+func checkTry(n *ast.TryExpr, env *Env) (Type, error) {
+	return nil, fmt.Errorf("checkTry: not yet implemented (Task 2)")
 }
 
 // literalType infers a Type from a Go value.

@@ -184,6 +184,19 @@ func (e *FStringExpr) String() string {
 	return fmt.Sprintf("f%q", e.Raw)
 }
 
+// TryExpr is a postfix-? expression: `expr?` — propagates Err, unwraps Ok.
+type TryExpr struct {
+	NodePos Pos
+	Inner   Expression
+}
+
+func (e *TryExpr) Pos() Pos    { return e.NodePos }
+func (e *TryExpr) exprMarker() {}
+func (e *TryExpr) nodeMarker() {}
+func (e *TryExpr) String() string {
+	return e.Inner.String() + "?"
+}
+
 func joinComma(parts []string) string {
 	out := ""
 	for i, p := range parts {

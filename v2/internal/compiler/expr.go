@@ -28,8 +28,14 @@ func (c *Compiler) compileExpr(e ast.Expression) (valueType, error) {
 		return c.compileField(n)
 	case *ast.StructLiteralExpr:
 		return c.compileStructLiteral(n)
+	case *ast.TryExpr:
+		return c.compileTry(n)
 	}
 	return "", fmt.Errorf("compileExpr: unsupported expression type %T", e)
+}
+
+func (c *Compiler) compileTry(n *ast.TryExpr) (valueType, error) {
+	return "", fmt.Errorf("compileTry: not yet implemented (Task 2)")
 }
 
 func (c *Compiler) compileLiteral(n *ast.LiteralExpr) (valueType, error) {
