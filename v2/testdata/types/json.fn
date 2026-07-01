@@ -1,0 +1,6 @@
+let s = parse_json(`{"name": "alice", "age": 30}`)?
+println(s.name)
+println(s.age)
+
+let canonical = to_json(s)
+println(canonical)

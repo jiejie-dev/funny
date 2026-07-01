@@ -1,0 +1,11 @@
+fn divide(a: int, b: int) -> Result:
+    if b == 0:
+        return err("divide by zero")?
+    return ok(a / b)?
+
+let r1 = divide(10, 2)?
+println("10 / 2 =", r1.val)
+
+let r2 = divide(10, 0)?
+if r2.tag == "err":
+    println("expected error:", r2.val)
