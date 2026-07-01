@@ -3,6 +3,7 @@ package agent
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/jerloo/funny/v2/internal/ast"
 	"github.com/jerloo/funny/v2/internal/evaluator"
@@ -109,6 +110,16 @@ func (e *Engine) execReturn(n *ast.ReturnStmt) error {
 
 func (e *Engine) execStep(s *ast.Step) error {
 	e.eval.Scope().Set("__step_name", s.Name)
+	switch s.Kind {
+	case ast.StepParallel:
+		return e.execParallel(s)
+	default:
+		return e.execBlockRetry(s)
+	}
+}
+
+// execBlockRetry runs the step body with retry support.
+func (e *Engine) execBlockRetry(s *ast.Step) error {
 	maxAttempts := 1
 	if s.Retry != nil && s.Retry.Max > 0 {
 		maxAttempts = s.Retry.Max
@@ -122,6 +133,33 @@ func (e *Engine) execStep(s *ast.Step) error {
 		return nil
 	}
 	return fmt.Errorf("step %q failed after %d attempts: %w", s.Name, maxAttempts, lastErr)
+}
+
+// execParallel runs each statement in the step body concurrently using goroutines.
+func (e *Engine) execParallel(s *ast.Step) error {
+	if s.Body == nil {
+		return nil
+	}
+	var wg sync.WaitGroup
+	errCh := make(chan error, len(s.Body.Statements))
+	for _, stmt := range s.Body.Statements {
+		wg.Add(1)
+		stmt := stmt
+		go func() {
+			defer wg.Done()
+			if err := e.eval.Exec(toProgram(stmt)); err != nil {
+				errCh <- err
+			}
+		}()
+	}
+	wg.Wait()
+	close(errCh)
+	for err := range errCh {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // truthy mirrors evaluator.truthy: only nil and false are falsy.

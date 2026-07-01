@@ -49,3 +49,41 @@ func TestEngine_Retry(t *testing.T) {
 	err = e.RunPlan(plan, "test")
 	assert.NoError(t, err)
 }
+
+func TestEngine_Parallel(t *testing.T) {
+	src := `plan "demo":
+    step "p1" -> parallel:
+        let x = 1
+    step "p2" -> parallel:
+        let y = 2
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	require.Len(t, prog.Stmts, 1)
+	plan, ok := prog.Stmts[0].(*ast.PlanBlock)
+	require.True(t, ok)
+	e := New()
+	err = e.RunPlan(plan, "test")
+	assert.NoError(t, err)
+}
+
+func TestEngine_Branch(t *testing.T) {
+	src := `plan "demo":
+    let cond = true
+    step "b" -> branch:
+        if cond:
+            let a = 1
+        else:
+            let a = 2
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	require.Len(t, prog.Stmts, 1)
+	plan, ok := prog.Stmts[0].(*ast.PlanBlock)
+	require.True(t, ok)
+	e := New()
+	err = e.RunPlan(plan, "test")
+	assert.NoError(t, err)
+}
