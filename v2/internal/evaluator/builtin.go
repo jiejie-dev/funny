@@ -96,4 +96,22 @@ var builtins = map[string]builtinFn{
 			return "unknown", nil
 		},
 	},
+	"ok": {
+		name: "ok",
+		fn: func(e *Evaluator, args []any) (any, error) {
+			if len(args) != 1 {
+				return nil, fmt.Errorf("ok() takes exactly 1 argument")
+			}
+			return map[string]any{"tag": "ok", "val": args[0]}, nil
+		},
+	},
+	"err": {
+		name: "err",
+		fn: func(e *Evaluator, args []any) (any, error) {
+			if len(args) != 1 {
+				return nil, fmt.Errorf("err() takes exactly 1 argument")
+			}
+			return map[string]any{"tag": "err", "val": args[0]}, nil
+		},
+	},
 }

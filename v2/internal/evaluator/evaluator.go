@@ -19,6 +19,11 @@ func New(scope *Scope) *Evaluator {
 	return &Evaluator{scope: scope}
 }
 
+// Scope returns the current execution scope.
+func (e *Evaluator) Scope() *Scope {
+	return e.scope
+}
+
 func (e *Evaluator) Eval(node ast.Expression) (any, error) {
 	switch n := node.(type) {
 	case *ast.LiteralExpr:

@@ -2,13 +2,13 @@
 
 AI-native scripting language. See `../docs/superpowers/specs/2026-07-01-funny-v2-ai-native-language-design.md` for the full design.
 
-**Status: M2-C (Result + ? + Stdlib) — RELEASED**
+**Status: M3 (Agent Protocol) — RELEASED**
 
-- ✅ Lexer, Parser, Type checker, Bytecode VM, VM Functions + Data Ops (M1–M2-B.5)
-- ✅ **Result type runtime**: `ok()` / `err()` constructors
-- ✅ **`?` operator**: postfix try-propagation
-- ✅ **stdlib**: json, time, math, str modules
-- ⏳ meta/plan engine + LSP → M3
+- ✅ M1–M2-C (lex, parse, types, VM, Result+?, stdlib)
+- ✅ **Plan engine**: sequential/parallel/branch steps with retry
+- ✅ **meta block** type validation (name/version required)
+- ✅ **stdlib extensions**: regex, env, file
+- ✅ **CLI `describe`**: JSON visualization of plan/metadata
 - ⏳ MCP server + full stdlib → M4
 
 ## Build
@@ -66,31 +66,25 @@ v2/
 - **`meta` and `plan` blocks parsed but not executed** (M3)
 - **Limited stdlib**: `print`, `println`, `len`, `to_str`, `to_int`, `type_of`
 
-## M2-C Usage
+## M3 Usage
 
-The full M2 stack is now usable. End-to-end demos:
+Plans and metadata enable agent-driven execution. Demo:
 
 ```bash
-$ ./funny run ./testdata/types/result.fn
-10 / 2 = 5
-expected error: divide by zero
-
-$ ./funny run ./testdata/types/json.fn
-alice
-30
-{"age":30,"name":"alice"}
-
-$ ./funny run ./testdata/types/stdlib.fn
-unix: <current timestamp>
-HELLO FUNNY
-count: 3
-sqrt(16): 4
-pow(2, 10): 1024
-abs(-7): 7
-date: <formatted timestamp>
+$ ./funny describe ./testdata/agent/plan.fn
+{
+  "meta": {
+    "name": "demo_plan",
+    "version": "1.0"
+  },
+  "plan": {
+    "name": "demo_plan",
+    "steps": ["setup", "compute", "verify"]
+  }
+}
 ```
 
-The `?` operator propagates errors: `expr?` returns the Result from the enclosing function if `expr` is `Err`, or unwraps the Ok value (no automatic unwrap in M2-C — use `r.val` to access).
+The plan engine executes steps in order, with support for parallel branches, retry, and guard steps. Available stdlib includes regex, env, and file operations on top of M2-C's json/time/math/str.
 
 ## Roadmap
 
@@ -101,7 +95,7 @@ The `?` operator propagates errors: `expr?` returns the Result from the enclosin
 | v2.0.0-beta (M2-B) | ✅ Done | Bytecode VM (literals, arithmetic, control flow) |
 | v2.0.0-beta (M2-B.5) | ✅ Done | VM function calls + data structures (~3.5× interpreter) |
 | v2.0.0-beta (M2-C) | ✅ Done | Result + `?` + stdlib (json/time/math/str) |
-| v2.0.0-rc (M3) | Planned | meta/plan engine + LSP |
+| v2.0.0-rc (M3) | ✅ Done | Plan engine + agent protocol + extended stdlib |
 | v2.0.0 (M4) | Planned | MCP server + full stdlib |
 
 ## Next: M2-B (Bytecode VM)
