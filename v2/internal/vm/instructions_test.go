@@ -572,3 +572,33 @@ func TestVM_BuiltinHttpGet(t *testing.T) {
 	assert.Equal(t, "ok", m["tag"])
 	assert.Equal(t, "hello", m["val"])
 }
+
+func TestVM_BuiltinCrypto(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0) // "hello"
+	main.Emit(bytecode.CALL_BUILTIN, 1) // "md5"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "hello", bytecode.BuiltinInfo{Name: "md5", Arity: 1})
+	assert.Equal(t, "5d41402abc4b2a76b9719d911017c592", v)
+}
+
+func TestVM_BuiltinB64Encode(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0) // "hello"
+	main.Emit(bytecode.CALL_BUILTIN, 1) // "b64_encode"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "hello", bytecode.BuiltinInfo{Name: "b64_encode", Arity: 1})
+	assert.Equal(t, "aGVsbG8=", v)
+}
+
+func TestVM_BuiltinB64Decode(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0) // "aGVsbG8="
+	main.Emit(bytecode.CALL_BUILTIN, 1) // "b64_decode"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "aGVsbG8=", bytecode.BuiltinInfo{Name: "b64_decode", Arity: 1})
+	m, ok := v.(map[string]bytecode.Value)
+	require.True(t, ok)
+	assert.Equal(t, "ok", m["tag"])
+	assert.Equal(t, "hello", m["val"])
+}

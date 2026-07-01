@@ -2,6 +2,10 @@
 package vm
 
 import (
+	"crypto/md5"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -319,6 +323,41 @@ case "ok":
 		}
 		defer resp.Body.Close()
 		data, err := io.ReadAll(resp.Body)
+		if err != nil {
+			v.stack = append(v.stack, makeResult("err", err.Error()))
+			return nil
+		}
+		v.stack = append(v.stack, makeResult("ok", string(data)))
+	case "md5":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: md5() requires 1 argument")
+		}
+		s := v.stack[len(v.stack)-1].(string)
+		v.stack = v.stack[:len(v.stack)-1]
+		h := md5.Sum([]byte(s))
+		v.stack = append(v.stack, hex.EncodeToString(h[:]))
+	case "sha256":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: sha256() requires 1 argument")
+		}
+		s := v.stack[len(v.stack)-1].(string)
+		v.stack = v.stack[:len(v.stack)-1]
+		h := sha256.Sum256([]byte(s))
+		v.stack = append(v.stack, hex.EncodeToString(h[:]))
+	case "b64_encode":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: b64_encode() requires 1 argument")
+		}
+		s := v.stack[len(v.stack)-1].(string)
+		v.stack = v.stack[:len(v.stack)-1]
+		v.stack = append(v.stack, base64.StdEncoding.EncodeToString([]byte(s)))
+	case "b64_decode":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: b64_decode() requires 1 argument")
+		}
+		s := v.stack[len(v.stack)-1].(string)
+		v.stack = v.stack[:len(v.stack)-1]
+		data, err := base64.StdEncoding.DecodeString(s)
 		if err != nil {
 			v.stack = append(v.stack, makeResult("err", err.Error()))
 			return nil
