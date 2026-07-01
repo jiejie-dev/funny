@@ -193,9 +193,14 @@ func (p *Parser) parsePrimary() (ast.Expression, error) {
 		p.advance()
 		return &ast.LiteralExpr{NodePos: pos, Value: nil}, nil
 	case lexer.FSTR:
-		s := p.cur.Data
+		raw := p.cur.Data
+		tokPos := p.cur.Pos
 		p.advance()
-		return &ast.FStringExpr{NodePos: pos, Raw: s}, nil
+		parts, ferr := p.parseFStringParts(raw, tokPos)
+		if ferr != nil {
+			return nil, ferr
+		}
+		return &ast.FStringExpr{NodePos: pos, Raw: raw, Parts: parts}, nil
 	case lexer.NAME:
 		name := p.cur.Data
 		p.advance()

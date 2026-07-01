@@ -65,7 +65,11 @@ func formatTool(ctx context.Context, req *mcp.CallToolRequest, args pathArg) (*m
 	if err != nil {
 		return nil, nil, err
 	}
-	return nil, string(data), nil
+	out, err := cli.Format(data, args.Path)
+	if err != nil {
+		return nil, nil, err
+	}
+	return nil, out, nil
 }
 
 func listSkillsTool(ctx context.Context, req *mcp.CallToolRequest, args dirArg) (*mcp.CallToolResult, any, error) {

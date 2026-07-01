@@ -34,6 +34,9 @@ const (
 	NEG_FLOAT OpCode = "NEG_FLOAT"
 	ADD_STR   OpCode = "ADD_STR"
 
+	// String formatting (f-string interpolation)
+	FORMAT_VALUE OpCode = "FORMAT_VALUE"
+
 	// Comparison (typed)
 	EQ_INT  OpCode = "EQ_INT"
 	EQ_STR  OpCode = "EQ_STR"

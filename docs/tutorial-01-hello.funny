@@ -12,6 +12,7 @@ let active = true
 print("count = ")
 println(count)
 
-# String interpolation is via f-strings (deferred to v2.1); concat with +.
-let message = greeting + " The price is " + to_str(price)
+# String interpolation is via f-strings: {expr} splices a value in, and
+# {expr:spec} applies a Python-style format spec (see the language manual).
+let message = f"{greeting} The price is {price:.2f}"
 println(message)

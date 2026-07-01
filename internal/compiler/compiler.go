@@ -24,12 +24,12 @@ const (
 
 // Compiler translates a typed AST into bytecode.
 type Compiler struct {
-	mod         *bytecode.Module
-	fn          *bytecode.Function
-	scopes      []map[string]int
-	varTypes    []valueType   // indexed by local slot (parallel to NumLocals)
-	functions   map[string]int // function name → index in mod.Functions
-	fnRetTypes  map[string]valueType // function name → declared return value type
+	mod        *bytecode.Module
+	fn         *bytecode.Function
+	scopes     []map[string]int
+	varTypes   []valueType          // indexed by local slot (parallel to NumLocals)
+	functions  map[string]int       // function name → index in mod.Functions
+	fnRetTypes map[string]valueType // function name → declared return value type
 }
 
 // Compile translates a typed Program into a Module.
@@ -44,8 +44,16 @@ func Compile(prog *ast.Program, name string) (*bytecode.Module, error) {
 	c.mod.AddFunction(mainFn)
 	c.fn = mainFn
 	c.functions["main"] = 0
+	lastMeaningful := -1
+	for i := len(prog.Stmts) - 1; i >= 0; i-- {
+		if _, isComment := prog.Stmts[i].(*ast.CommentStmt); isComment {
+			continue
+		}
+		lastMeaningful = i
+		break
+	}
 	for i, s := range prog.Stmts {
-		isLast := i == len(prog.Stmts)-1
+		isLast := i == lastMeaningful
 		if err := c.compileStmt(s, isLast); err != nil {
 			return nil, err
 		}
@@ -129,6 +137,8 @@ func (c *Compiler) compileStmt(s ast.Statement, isLast bool) error {
 	case *ast.ReturnStmt:
 		return c.compileReturn(n)
 	case *ast.StructDecl:
+		return nil
+	case *ast.CommentStmt:
 		return nil
 	}
 	return fmt.Errorf("compileStmt: unsupported statement type %T", s)

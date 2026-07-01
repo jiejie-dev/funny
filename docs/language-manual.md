@@ -8,10 +8,62 @@ Complete reference for Funny v2 (M1–M3).
 - **Identifiers**: `[a-zA-Z_][a-zA-Z0-9_]*`
 - **Numbers**: `int` (decimal or `0x` hex), `float64`
 - **Strings**: `"..."` or `'...'` with `\n \t \\ \" \'` escapes
-- **F-strings**: `f"hello {name}"` (interpolation deferred to v2.1)
+- **F-strings**: `f"hello {name}"` — full `{expr}` interpolation with optional Python/Rust-flavored format specs, e.g. `f"{price:.2f}"`, `f"{n:>10}"` (see [Format Strings](#format-strings))
 - **Comments**: `#` line comment, `##` doc comment (for agent metadata)
 - **Operators**: `+ - * / % == != < > <= >= and or not in`
 - **Punctuation**: `( ) [ ] { } , : . -> ?`
+
+## Format Strings
+
+F-strings (`f"..."`) support `{expr}` interpolation: any expression may appear
+inside `{}`, and its value is converted to a string and spliced into the
+result.
+
+```
+let name = "world"
+let price = 19.5
+println(f"hello {name}! total: {price:.2f}")   # hello world! total: 19.50
+```
+
+Use `{{` and `}}` to embed a literal brace:
+
+```
+println(f"{{literal braces}}")   # {literal braces}
+```
+
+### Format spec
+
+An optional `:spec` after the expression controls how the value is rendered,
+following a Python/Rust-flavored mini-grammar:
+
+```
+{expr:[[fill]align][sign][0][width][.precision][type]}
+```
+
+| Field | Values | Meaning |
+|---|---|---|
+| `fill` | any single char | padding character (default: space); only valid with an explicit `align` |
+| `align` | `<` `>` `^` | left / right / center within `width` (default: `<` for strings, `>` for numbers) |
+| `sign` | `+` | force a leading `+` on non-negative numbers |
+| `0` | `0` | zero-pad shorthand (equivalent to fill `0`, align `>`) |
+| `width` | decimal digits | minimum field width |
+| `.precision` | `.` + decimal digits | decimal places for `f`/`%`; max length for `s`/default |
+| `type` | `d f x X o b s %` | integer, fixed-point float, hex (lower/upper), octal, binary, string, percent |
+
+Examples:
+
+```
+f"{n:5d}"      # right-aligned int in a 5-wide field:  "   42"
+f"{n:05d}"     # zero-padded:                          "00042"
+f"{pi:.2f}"    # fixed-point, 2 decimals:               "3.14"
+f"{x:>10}"     # right-align in a 10-wide field
+f"{x:^10}"     # center in a 10-wide field
+f"{255:X}"     # uppercase hex:                          "FF"
+f"{0.5:%}"     # percent:                          "50.000000%"
+```
+
+Omitting the spec (`{expr}`) falls back to the same default stringification
+used by `to_str`/`println` (`true`/`false` for bools, `nil` for nil).
 
 ## Types
 
@@ -99,8 +151,8 @@ else:
 
 ```
 meta:
-    name: "my_skill"
-    version: "1.0"
+    name = "my_skill"
+    version = "1.0"
 
 plan "my_skill":
     step "setup":
@@ -140,6 +192,8 @@ plan "my_skill":
 ```bash
 funny run script.fn         # execute
 funny ast script.fn         # JSON AST
+funny fmt script.fn         # print canonically-formatted source to stdout
+funny fmt script.fn -w      # reformat the file in place
 funny describe script.fn    # JSON plan/metadata
 funny-mcp                   # start MCP server
 ```
@@ -148,7 +202,7 @@ funny-mcp                   # start MCP server
 
 The `funny-mcp` binary exposes 6 tools over stdio:
 - `ast`: parse source, return JSON AST
-- `format`: format source (M4.5: no-op)
+- `format`: format source code (canonical 4-space indentation, preserves comments)
 - `list_skills`: list .fn files in a directory
 - `describe_skill`: meta + plan info for one file
 - `run_skill`: execute a .fn file

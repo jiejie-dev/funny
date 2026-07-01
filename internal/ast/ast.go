@@ -172,9 +172,18 @@ func (e *StructLiteralExpr) String() string {
 	return fmt.Sprintf("%s(%s)", e.TypeName, joinComma(parts))
 }
 
+// FStringPart is one segment of an f-string: either literal text (Expr == nil)
+// or an interpolated expression with an optional format spec.
+type FStringPart struct {
+	Text string     // literal text, already unescaped (used when Expr == nil)
+	Expr Expression // interpolated expression (nil for literal parts)
+	Spec string     // raw format spec after ':' (e.g. ".2f", ">10"); "" = default
+}
+
 type FStringExpr struct {
 	NodePos Pos
-	Raw     string
+	Raw     string // original raw text between the f-string quotes, as captured by the lexer
+	Parts   []FStringPart
 }
 
 func (e *FStringExpr) Pos() Pos    { return e.NodePos }
@@ -360,6 +369,25 @@ func (s *ContinueStmt) Pos() Pos       { return s.NodePos }
 func (s *ContinueStmt) stmtMarker()    {}
 func (s *ContinueStmt) nodeMarker()    {}
 func (s *ContinueStmt) String() string { return "continue" }
+
+// CommentStmt is a standalone or trailing `#`/`##` comment, kept as a
+// statement so the formatter can reproduce it. Text excludes the leading
+// `#`/`##` marker itself (i.e. for `# hello` Text is " hello").
+type CommentStmt struct {
+	NodePos Pos
+	Text    string
+	Doc     bool // true for `##` doc comments
+}
+
+func (s *CommentStmt) Pos() Pos    { return s.NodePos }
+func (s *CommentStmt) stmtMarker() {}
+func (s *CommentStmt) nodeMarker() {}
+func (s *CommentStmt) String() string {
+	if s.Doc {
+		return "##" + s.Text
+	}
+	return "#" + s.Text
+}
 
 type ExprStmt struct {
 	NodePos Pos

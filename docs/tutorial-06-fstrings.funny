@@ -1,0 +1,31 @@
+# Tutorial 6: F-String Interpolation
+#
+# f"..." strings splice expressions into the output with {expr}, and
+# optionally control how they're rendered with {expr:spec}.
+
+let name = "world"
+let count = 3
+let pi = 3.14159
+
+# Basic interpolation: any expression works inside {}.
+println(f"hello {name}!")
+println(f"you have {count} new messages")
+println(f"1 + 1 = {1 + 1}")
+
+# Format specs (after the ':') control width, alignment, and number format.
+println(f"pi rounded: {pi:.2f}")          # fixed-point, 2 decimals
+println(f"right-aligned: [{count:5d}]")   # "[    3]"
+println(f"zero-padded:   [{count:05d}]")  # "[00003]"
+println(f"percent:       {0.5:.0%}")      # "50%"
+println(f"hex:           {255:X}")        # "FF"
+
+# {{ and }} produce literal braces (they are not interpolation).
+println(f"{{not interpolated}}")
+
+# Interpolated expressions can be arbitrarily complex.
+struct Point:
+    x: int
+    y: int
+
+let p = Point(x: 1, y: 2)
+println(f"point: ({p.x}, {p.y})")

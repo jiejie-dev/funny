@@ -21,6 +21,40 @@ func evalExpr(t *testing.T, src string) any {
 	return v
 }
 
+func TestEval_FString_Interpolation(t *testing.T) {
+	e := New(nil)
+	e.Scope().Set("name", "world")
+	v, err := e.Eval(&ast.FStringExpr{Parts: []ast.FStringPart{
+		{Text: "hello "},
+		{Expr: &ast.VariableExpr{Name: "name"}},
+		{Text: "!"},
+	}})
+	require.NoError(t, err)
+	assert.Equal(t, "hello world!", v)
+}
+
+func TestEval_FString_WithSpec(t *testing.T) {
+	e := New(nil)
+	e.Scope().Set("price", 3.14159)
+	v, err := e.Eval(&ast.FStringExpr{Parts: []ast.FStringPart{
+		{Expr: &ast.VariableExpr{Name: "price"}, Spec: ".2f"},
+	}})
+	require.NoError(t, err)
+	assert.Equal(t, "3.14", v)
+}
+
+func TestEval_FString_ViaParser(t *testing.T) {
+	p := parser.New(`f"hi {name}, total {price:.2f}"`, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	e := New(nil)
+	e.Scope().Set("name", "alice")
+	e.Scope().Set("price", 9.5)
+	v, err := e.Eval(prog.Stmts[0].(*ast.ExprStmt).X)
+	require.NoError(t, err)
+	assert.Equal(t, "hi alice, total 9.50", v)
+}
+
 func TestEval_Literal(t *testing.T) {
 	assert.Equal(t, 42, evalExpr(t, "42"))
 	assert.Equal(t, 3.14, evalExpr(t, "3.14"))

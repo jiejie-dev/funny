@@ -180,6 +180,10 @@ func (v *VM) execute() (bytecode.Value, error) {
 			}
 		case bytecode.NEW_STRUCT:
 			v.execNewStruct()
+		case bytecode.FORMAT_VALUE:
+			if err := v.execFormatValue(instr.Arg); err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("vm: unsupported op %s at ip=%d (not yet implemented in this task)", instr.Op, frame.ip-1)
 		}

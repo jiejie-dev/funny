@@ -16,6 +16,42 @@ func TestParser_Empty(t *testing.T) {
 	assert.Empty(t, prog.Stmts)
 }
 
+func TestParse_StandaloneComment_DoesNotError(t *testing.T) {
+	p := New("let x = 1\n# a comment\nlet y = 2\n", "t")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	require.Len(t, prog.Stmts, 3)
+	_, ok := prog.Stmts[1].(*ast.CommentStmt)
+	assert.True(t, ok)
+}
+
+func TestParse_TrailingComment_DoesNotError(t *testing.T) {
+	p := New("let x = 1  # trailing\n", "t")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	require.Len(t, prog.Stmts, 2)
+	_, ok := prog.Stmts[0].(*ast.LetStmt)
+	assert.True(t, ok)
+	c, ok := prog.Stmts[1].(*ast.CommentStmt)
+	require.True(t, ok)
+	assert.Equal(t, c.Pos().Line, prog.Stmts[0].Pos().Line)
+}
+
+func TestParse_CommentInsideBlock(t *testing.T) {
+	p := New("if true:\n    # note\n    let x = 1\n", "t")
+	_, err := p.Parse()
+	require.NoError(t, err)
+}
+
+func TestParse_DocCommentStandalone(t *testing.T) {
+	p := New("## doc note\nlet x = 1\n", "t")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	c, ok := prog.Stmts[0].(*ast.CommentStmt)
+	require.True(t, ok)
+	assert.True(t, c.Doc)
+}
+
 func TestParser_ExprLiteral(t *testing.T) {
 	p := New("42", "")
 	prog, err := p.Parse()
@@ -93,6 +129,31 @@ func TestParser_IfElseIf(t *testing.T) {
 	ifs := prog.Stmts[0].(*ast.IfStmt)
 	assert.NotNil(t, ifs.ElseIf)
 	assert.NotNil(t, ifs.ElseBlock)
+}
+
+// TestParse_CommentAfterMultiLevelDedent_AttachesToOuterBlock guards against
+// a lexer bug where a comment line dedenting across more than one nesting
+// level (e.g. from inside a nested if/else back out to a plan's top level)
+// was incorrectly attached to the inner block instead of the outer one,
+// because only one DEDENT was emitted instead of the two required.
+func TestParse_CommentAfterMultiLevelDedent_AttachesToOuterBlock(t *testing.T) {
+	src := "plan \"p\":\n    step \"a\":\n        if true:\n            let x = 1\n        else:\n            let y = 2\n\n    # outer comment\n    step \"b\":\n        let z = 3\n"
+	p := New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	plan := prog.Stmts[0].(*ast.PlanBlock)
+	require.Len(t, plan.Body.Statements, 3)
+	_, ok := plan.Body.Statements[1].(*ast.CommentStmt)
+	assert.True(t, ok, "expected comment as a direct sibling of the plan's steps, got %T", plan.Body.Statements[1])
+}
+
+func TestParser_Match(t *testing.T) {
+	src := "match x:\n    1 =>\n        a\n    2 =>\n        b\n"
+	p := New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	ms := prog.Stmts[0].(*ast.MatchStmt)
+	assert.Len(t, ms.Arms, 2)
 }
 
 func TestParser_For(t *testing.T) {

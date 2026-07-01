@@ -32,6 +32,34 @@ func TestCompile_LiteralInt(t *testing.T) {
 	assert.Equal(t, 42, mod.Constants[0])
 }
 
+func TestCompile_FString_ProducesFormatValueAndAddStr(t *testing.T) {
+	mod := compileExpr(t, "let name = \"world\"\nf\"hi {name}!\"\n")
+	fn := mod.Functions[0]
+	var hasFormat, hasAddStr bool
+	for _, instr := range fn.Code {
+		switch instr.Op {
+		case bytecode.FORMAT_VALUE:
+			hasFormat = true
+		case bytecode.ADD_STR:
+			hasAddStr = true
+		}
+	}
+	assert.True(t, hasFormat, "expected FORMAT_VALUE in %v", fn.Code)
+	assert.True(t, hasAddStr, "expected ADD_STR in %v", fn.Code)
+}
+
+func TestCompile_FString_LiteralOnly(t *testing.T) {
+	mod := compileExpr(t, `f"just text"`)
+	fn := mod.Functions[0]
+	var hasPushStr bool
+	for _, instr := range fn.Code {
+		if instr.Op == bytecode.PUSH_STR && mod.Constants[instr.Arg] == "just text" {
+			hasPushStr = true
+		}
+	}
+	assert.True(t, hasPushStr)
+}
+
 func TestCompile_LiteralFloat(t *testing.T) {
 	mod := compileExpr(t, "3.14")
 	fn := mod.Functions[0]

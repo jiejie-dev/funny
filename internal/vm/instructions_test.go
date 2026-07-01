@@ -169,6 +169,35 @@ func TestVM_JumpUnconditional(t *testing.T) {
 }
 
 // runModule constructs a module from an entry function and helpers, plus constants.
+func TestVM_FormatValue_Default(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_INT, 0)
+	main.Emit(bytecode.FORMAT_VALUE, 1)
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, 42, "")
+	assert.Equal(t, "42", v)
+}
+
+func TestVM_FormatValue_WithSpec(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_FLOAT, 0)
+	main.Emit(bytecode.FORMAT_VALUE, 1)
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, 3.14159, ".2f")
+	assert.Equal(t, "3.14", v)
+}
+
+func TestVM_FormatValue_ThenAddStr(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0) // "hi "
+	main.Emit(bytecode.PUSH_INT, 1) // 42
+	main.Emit(bytecode.FORMAT_VALUE, 2)
+	main.Emit(bytecode.ADD_STR, 0)
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "hi ", 42, "")
+	assert.Equal(t, "hi 42", v)
+}
+
 func runModule(t *testing.T, entry *bytecode.Function, helpers []*bytecode.Function, constants ...bytecode.Value) bytecode.Value {
 	t.Helper()
 	mod := bytecode.NewModule("test")
@@ -281,7 +310,7 @@ func TestVM_IndexString(t *testing.T) {
 func TestVM_BuildMap(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
 	main.Emit(bytecode.PUSH_STR, 0) // "k"
-	main.Emit(bytecode.PUSH_INT, 1)  // 42
+	main.Emit(bytecode.PUSH_INT, 1) // 42
 	main.Emit(bytecode.BUILD_MAP, 1)
 	main.Emit(bytecode.HALT, 0)
 	v := runModule(t, main, nil, "k", 42)
@@ -293,7 +322,7 @@ func TestVM_BuildMap(t *testing.T) {
 func TestVM_GetField(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
 	main.Emit(bytecode.PUSH_STR, 0) // "k"
-	main.Emit(bytecode.PUSH_INT, 1)  // 99
+	main.Emit(bytecode.PUSH_INT, 1) // 99
 	main.Emit(bytecode.BUILD_MAP, 1)
 	main.Emit(bytecode.PUSH_STR, 0) // "k" (field name, same deduped constant)
 	main.Emit(bytecode.GET_FIELD, 0)
@@ -305,7 +334,7 @@ func TestVM_GetField(t *testing.T) {
 func TestVM_NewStruct(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
 	main.Emit(bytecode.PUSH_STR, 0) // "k"
-	main.Emit(bytecode.PUSH_INT, 1)  // 7
+	main.Emit(bytecode.PUSH_INT, 1) // 7
 	main.Emit(bytecode.BUILD_MAP, 1)
 	main.Emit(bytecode.NEW_STRUCT, 0) // type name at constant[0] = "User"
 	main.Emit(bytecode.HALT, 0)
@@ -415,8 +444,8 @@ func TestVM_BuiltinNow(t *testing.T) {
 
 func TestVM_BuiltinTimeFormat(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
-	main.Emit(bytecode.PUSH_INT, 0)  // timestamp
-	main.Emit(bytecode.PUSH_STR, 1)  // layout
+	main.Emit(bytecode.PUSH_INT, 0)     // timestamp
+	main.Emit(bytecode.PUSH_STR, 1)     // layout
 	main.Emit(bytecode.CALL_BUILTIN, 2) // "time_format"
 	main.Emit(bytecode.HALT, 0)
 	v := runModule(t, main, nil, 1700000000, "2006-01-02", bytecode.BuiltinInfo{Name: "time_format", Arity: 2})
@@ -427,7 +456,7 @@ func TestVM_BuiltinTimeFormat(t *testing.T) {
 
 func TestVM_BuiltinSqrt(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
-	main.Emit(bytecode.PUSH_INT, 0) // 16
+	main.Emit(bytecode.PUSH_INT, 0)     // 16
 	main.Emit(bytecode.CALL_BUILTIN, 1) // "sqrt"
 	main.Emit(bytecode.HALT, 0)
 	v := runModule(t, main, nil, 16, bytecode.BuiltinInfo{Name: "sqrt", Arity: 1})
@@ -438,8 +467,8 @@ func TestVM_BuiltinSqrt(t *testing.T) {
 
 func TestVM_BuiltinPow(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
-	main.Emit(bytecode.PUSH_INT, 0) // 2
-	main.Emit(bytecode.PUSH_INT, 1) // 10
+	main.Emit(bytecode.PUSH_INT, 0)     // 2
+	main.Emit(bytecode.PUSH_INT, 1)     // 10
 	main.Emit(bytecode.CALL_BUILTIN, 2) // "pow"
 	main.Emit(bytecode.HALT, 0)
 	v := runModule(t, main, nil, 2, 10, bytecode.BuiltinInfo{Name: "pow", Arity: 2})
@@ -450,7 +479,7 @@ func TestVM_BuiltinPow(t *testing.T) {
 
 func TestVM_BuiltinAbs(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
-	main.Emit(bytecode.PUSH_INT, 0) // -5
+	main.Emit(bytecode.PUSH_INT, 0)     // -5
 	main.Emit(bytecode.CALL_BUILTIN, 1) // "abs"
 	main.Emit(bytecode.HALT, 0)
 	v := runModule(t, main, nil, -5, bytecode.BuiltinInfo{Name: "abs", Arity: 1})
@@ -459,7 +488,7 @@ func TestVM_BuiltinAbs(t *testing.T) {
 
 func TestVM_BuiltinStrUpper(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
-	main.Emit(bytecode.PUSH_STR, 0) // "hello"
+	main.Emit(bytecode.PUSH_STR, 0)     // "hello"
 	main.Emit(bytecode.CALL_BUILTIN, 1) // "str_upper"
 	main.Emit(bytecode.HALT, 0)
 	v := runModule(t, main, nil, "hello", bytecode.BuiltinInfo{Name: "str_upper", Arity: 1})
@@ -468,7 +497,7 @@ func TestVM_BuiltinStrUpper(t *testing.T) {
 
 func TestVM_BuiltinStrLower(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
-	main.Emit(bytecode.PUSH_STR, 0) // "WORLD"
+	main.Emit(bytecode.PUSH_STR, 0)     // "WORLD"
 	main.Emit(bytecode.CALL_BUILTIN, 1) // "str_lower"
 	main.Emit(bytecode.HALT, 0)
 	v := runModule(t, main, nil, "WORLD", bytecode.BuiltinInfo{Name: "str_lower", Arity: 1})
@@ -477,8 +506,8 @@ func TestVM_BuiltinStrLower(t *testing.T) {
 
 func TestVM_BuiltinStrContains(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
-	main.Emit(bytecode.PUSH_STR, 0) // "hello world"
-	main.Emit(bytecode.PUSH_STR, 1) // "world"
+	main.Emit(bytecode.PUSH_STR, 0)     // "hello world"
+	main.Emit(bytecode.PUSH_STR, 1)     // "world"
 	main.Emit(bytecode.CALL_BUILTIN, 2) // "str_contains"
 	main.Emit(bytecode.HALT, 0)
 	v := runModule(t, main, nil, "hello world", "world", bytecode.BuiltinInfo{Name: "str_contains", Arity: 2})
@@ -487,8 +516,8 @@ func TestVM_BuiltinStrContains(t *testing.T) {
 
 func TestVM_BuiltinStrSplit(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
-	main.Emit(bytecode.PUSH_STR, 0)    // "a,b,c"
-	main.Emit(bytecode.PUSH_STR, 1)    // ","
+	main.Emit(bytecode.PUSH_STR, 0)     // "a,b,c"
+	main.Emit(bytecode.PUSH_STR, 1)     // ","
 	main.Emit(bytecode.CALL_BUILTIN, 2) // "str_split"
 	main.Emit(bytecode.HALT, 0)
 	v := runModule(t, main, nil, "a,b,c", ",", bytecode.BuiltinInfo{Name: "str_split", Arity: 2})
@@ -502,8 +531,8 @@ func TestVM_BuiltinStrSplit(t *testing.T) {
 
 func TestVM_BuiltinRegexMatch(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
-	main.Emit(bytecode.PUSH_STR, 0) // pattern
-	main.Emit(bytecode.PUSH_STR, 1) // text
+	main.Emit(bytecode.PUSH_STR, 0)     // pattern
+	main.Emit(bytecode.PUSH_STR, 1)     // text
 	main.Emit(bytecode.CALL_BUILTIN, 2) // "regex_match"
 	main.Emit(bytecode.HALT, 0)
 	v := runModule(t, main, nil, "[0-9]+", "abc123def", bytecode.BuiltinInfo{Name: "regex_match", Arity: 2})
@@ -512,9 +541,9 @@ func TestVM_BuiltinRegexMatch(t *testing.T) {
 
 func TestVM_BuiltinRegexReplace(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
-	main.Emit(bytecode.PUSH_STR, 0) // pattern
-	main.Emit(bytecode.PUSH_STR, 1) // text
-	main.Emit(bytecode.PUSH_STR, 2) // replacement
+	main.Emit(bytecode.PUSH_STR, 0)     // pattern
+	main.Emit(bytecode.PUSH_STR, 1)     // text
+	main.Emit(bytecode.PUSH_STR, 2)     // replacement
 	main.Emit(bytecode.CALL_BUILTIN, 3) // "regex_replace"
 	main.Emit(bytecode.HALT, 0)
 	v := runModule(t, main, nil, "[0-9]+", "abc123def", "X", bytecode.BuiltinInfo{Name: "regex_replace", Arity: 3})
@@ -563,7 +592,7 @@ func TestVM_BuiltinHttpGet(t *testing.T) {
 	defer srv.Close()
 
 	main := &bytecode.Function{Name: "main", Arity: 0}
-	main.Emit(bytecode.PUSH_STR, 0) // URL
+	main.Emit(bytecode.PUSH_STR, 0)     // URL
 	main.Emit(bytecode.CALL_BUILTIN, 1) // "http_get"
 	main.Emit(bytecode.HALT, 0)
 	v := runModule(t, main, nil, srv.URL, bytecode.BuiltinInfo{Name: "http_get", Arity: 1})
@@ -575,7 +604,7 @@ func TestVM_BuiltinHttpGet(t *testing.T) {
 
 func TestVM_BuiltinCrypto(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
-	main.Emit(bytecode.PUSH_STR, 0) // "hello"
+	main.Emit(bytecode.PUSH_STR, 0)     // "hello"
 	main.Emit(bytecode.CALL_BUILTIN, 1) // "md5"
 	main.Emit(bytecode.HALT, 0)
 	v := runModule(t, main, nil, "hello", bytecode.BuiltinInfo{Name: "md5", Arity: 1})
@@ -584,7 +613,7 @@ func TestVM_BuiltinCrypto(t *testing.T) {
 
 func TestVM_BuiltinB64Encode(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
-	main.Emit(bytecode.PUSH_STR, 0) // "hello"
+	main.Emit(bytecode.PUSH_STR, 0)     // "hello"
 	main.Emit(bytecode.CALL_BUILTIN, 1) // "b64_encode"
 	main.Emit(bytecode.HALT, 0)
 	v := runModule(t, main, nil, "hello", bytecode.BuiltinInfo{Name: "b64_encode", Arity: 1})
@@ -593,7 +622,7 @@ func TestVM_BuiltinB64Encode(t *testing.T) {
 
 func TestVM_BuiltinB64Decode(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
-	main.Emit(bytecode.PUSH_STR, 0) // "aGVsbG8="
+	main.Emit(bytecode.PUSH_STR, 0)     // "aGVsbG8="
 	main.Emit(bytecode.CALL_BUILTIN, 1) // "b64_decode"
 	main.Emit(bytecode.HALT, 0)
 	v := runModule(t, main, nil, "aGVsbG8=", bytecode.BuiltinInfo{Name: "b64_decode", Arity: 1})
@@ -605,9 +634,9 @@ func TestVM_BuiltinB64Decode(t *testing.T) {
 
 func TestVM_BuiltinJwtEncode(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
-	main.Emit(bytecode.PUSH_STR, 0) // header json
-	main.Emit(bytecode.PUSH_STR, 1) // claims json
-	main.Emit(bytecode.PUSH_STR, 2) // secret
+	main.Emit(bytecode.PUSH_STR, 0)     // header json
+	main.Emit(bytecode.PUSH_STR, 1)     // claims json
+	main.Emit(bytecode.PUSH_STR, 2)     // secret
 	main.Emit(bytecode.CALL_BUILTIN, 3) // "jwt_encode"
 	main.Emit(bytecode.HALT, 0)
 	v := runModule(t, main, nil,
@@ -622,12 +651,12 @@ func TestVM_BuiltinJwtEncode(t *testing.T) {
 
 func TestVM_BuiltinJwtRoundTrip(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
-	main.Emit(bytecode.PUSH_STR, 0)              // header json
-	main.Emit(bytecode.PUSH_STR, 1)              // claims json
-	main.Emit(bytecode.PUSH_STR, 2)              // secret (encode)
-	main.Emit(bytecode.CALL_BUILTIN, 3)          // jwt_encode (arity 3)
-	main.Emit(bytecode.PUSH_STR, 2)              // same secret (decode)
-	main.Emit(bytecode.CALL_BUILTIN, 4)          // jwt_decode (arity 2)
+	main.Emit(bytecode.PUSH_STR, 0)     // header json
+	main.Emit(bytecode.PUSH_STR, 1)     // claims json
+	main.Emit(bytecode.PUSH_STR, 2)     // secret (encode)
+	main.Emit(bytecode.CALL_BUILTIN, 3) // jwt_encode (arity 3)
+	main.Emit(bytecode.PUSH_STR, 2)     // same secret (decode)
+	main.Emit(bytecode.CALL_BUILTIN, 4) // jwt_decode (arity 2)
 	main.Emit(bytecode.HALT, 0)
 	v := runModule(t, main, nil,
 		`{"alg":"HS256","typ":"JWT"}`,

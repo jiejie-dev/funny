@@ -127,6 +127,27 @@ func TestLexer_FString(t *testing.T) {
 	assert.Equal(t, "hello {name}", tok.Data)
 }
 
+func TestLexer_FStringNestedDoubleQuote(t *testing.T) {
+	l := New(`f"got {m["k"]}"`, "")
+	tok := l.Next()
+	assert.Equal(t, FSTR, tok.Kind)
+	assert.Equal(t, `got {m["k"]}`, tok.Data)
+}
+
+func TestLexer_FStringNestedCallWithString(t *testing.T) {
+	l := New(`f"{greet('x')}"`, "")
+	tok := l.Next()
+	assert.Equal(t, FSTR, tok.Kind)
+	assert.Equal(t, `{greet('x')}`, tok.Data)
+}
+
+func TestLexer_FStringDoubleBraceEscape(t *testing.T) {
+	l := New(`f"{{literal}}"`, "")
+	tok := l.Next()
+	assert.Equal(t, FSTR, tok.Kind)
+	assert.Equal(t, `{{literal}}`, tok.Data)
+}
+
 func TestLexer_LineComment(t *testing.T) {
 	l := New("# hello\na", "")
 	c := l.Next()
@@ -158,6 +179,26 @@ func TestLexer_IndentNested(t *testing.T) {
 	l := New(src, "")
 	kinds := drain(l)
 	expected := []Kind{NAME, NEWLINE, INDENT, NAME, NEWLINE, INDENT, NAME, NEWLINE, DEDENT, NAME, NEWLINE, DEDENT, EOF}
+	assert.Equal(t, expected, kinds)
+}
+
+// TestLexer_MultiLevelDedentToNonzeroColumn guards against a bug where
+// dedenting across more than one level to a non-zero target column (e.g.
+// from column 12 straight to column 4) only emitted one DEDENT instead of
+// two, because the lexer advanced past the line's leading whitespace before
+// re-checking whether more levels needed to be popped.
+func TestLexer_MultiLevelDedentToNonzeroColumn(t *testing.T) {
+	src := "a\n    b\n        c\n            d\n    e\n"
+	l := New(src, "")
+	kinds := drain(l)
+	expected := []Kind{
+		NAME, NEWLINE, // a
+		INDENT, NAME, NEWLINE, // b
+		INDENT, NAME, NEWLINE, // c
+		INDENT, NAME, NEWLINE, // d
+		DEDENT, DEDENT, NAME, NEWLINE, // e (two levels back down to column 4)
+		DEDENT, EOF,
+	}
 	assert.Equal(t, expected, kinds)
 }
 

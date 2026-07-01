@@ -30,8 +30,37 @@ func (c *Compiler) compileExpr(e ast.Expression) (valueType, error) {
 		return c.compileStructLiteral(n)
 	case *ast.TryExpr:
 		return c.compileTry(n)
+	case *ast.FStringExpr:
+		return c.compileFString(n)
 	}
 	return "", fmt.Errorf("compileExpr: unsupported expression type %T", e)
+}
+
+// compileFString compiles an f-string into a sequence of PUSH_STR /
+// <expr>+FORMAT_VALUE pieces, folded together with ADD_STR (reusing the
+// existing string-concat opcode) — no new n-ary opcode is needed.
+func (c *Compiler) compileFString(n *ast.FStringExpr) (valueType, error) {
+	if len(n.Parts) == 0 {
+		idx := c.mod.AddConstant("")
+		c.fn.Emit(bytecode.PUSH_STR, idx)
+		return valStr, nil
+	}
+	for i, part := range n.Parts {
+		if part.Expr == nil {
+			idx := c.mod.AddConstant(part.Text)
+			c.fn.Emit(bytecode.PUSH_STR, idx)
+		} else {
+			if _, err := c.compileExpr(part.Expr); err != nil {
+				return "", err
+			}
+			specIdx := c.mod.AddConstant(part.Spec)
+			c.fn.Emit(bytecode.FORMAT_VALUE, specIdx)
+		}
+		if i > 0 {
+			c.fn.Emit(bytecode.ADD_STR, 0)
+		}
+	}
+	return valStr, nil
 }
 
 // compileTry compiles `expr?`. Emits the inner expression's code and, if

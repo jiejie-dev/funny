@@ -64,7 +64,9 @@ let v  = m["key"]
 ```
 let s = "hello"
 let n = to_str(42)
-let f = f"hello {name}"
+let f = f"hello {name}"           # basic interpolation
+let g = f"total: {price:.2f}"     # with format spec
+let h = f"{{escaped braces}}"     # literal { } via {{ }}
 ```
 
 ## Comments

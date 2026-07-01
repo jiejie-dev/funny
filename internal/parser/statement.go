@@ -96,6 +96,12 @@ func (p *Parser) parseStatement() (ast.Statement, error) {
 		return p.parsePub()
 	case lexer.NAME:
 		return p.parseAssignOrExpr()
+	case lexer.COMMENT, lexer.DOC_COMMENT:
+		text := p.cur.Data
+		isDoc := p.cur.Kind == lexer.DOC_COMMENT
+		pos := astPos(p.cur.Pos)
+		p.advance()
+		return &ast.CommentStmt{NodePos: pos, Text: text, Doc: isDoc}, nil
 	}
 	if isExpressionStart(p.cur.Kind) {
 		pos := astPos(p.cur.Pos)
@@ -267,6 +273,9 @@ func (p *Parser) parseMatch() (ast.Statement, error) {
 	}
 	if _, err := p.expect(lexer.COLON); err != nil {
 		return nil, err
+	}
+	if p.cur.Kind == lexer.NEWLINE {
+		p.advance()
 	}
 	if _, err := p.expect(lexer.INDENT); err != nil {
 		return nil, err

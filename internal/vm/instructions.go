@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jiejie-dev/funny/internal/bytecode"
+	"github.com/jiejie-dev/funny/internal/strfmt"
 )
 
 // execArith handles arithmetic operations on the top two stack values.
@@ -232,4 +233,24 @@ func (v *VM) execGetField() error {
 // The map is already on the stack; we just leave it as-is.
 func (v *VM) execNewStruct() {
 	// no-op for M2-B.5; structs are just maps.
+}
+
+// execFormatValue handles FORMAT_VALUE specIdx. Pops a value, formats it
+// using the format spec string at the given constant-pool index (used for
+// f-string interpolation), pushes the resulting string.
+func (v *VM) execFormatValue(specIdx int) error {
+	if len(v.stack) < 1 {
+		return fmt.Errorf("vm: FORMAT_VALUE on empty stack")
+	}
+	spec, ok := v.mod.Constants[specIdx].(string)
+	if !ok {
+		return fmt.Errorf("vm: FORMAT_VALUE spec is not a string")
+	}
+	val := v.stack[len(v.stack)-1]
+	s, err := strfmt.Format(val, spec)
+	if err != nil {
+		return fmt.Errorf("vm: %v", err)
+	}
+	v.stack[len(v.stack)-1] = s
+	return nil
 }

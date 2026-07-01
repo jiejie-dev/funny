@@ -9,6 +9,7 @@ import (
 	"github.com/jiejie-dev/funny/internal/ast"
 	"github.com/jiejie-dev/funny/internal/compiler"
 	"github.com/jiejie-dev/funny/internal/evaluator"
+	"github.com/jiejie-dev/funny/internal/formatter"
 	"github.com/jiejie-dev/funny/internal/parser"
 	"github.com/jiejie-dev/funny/internal/types"
 	"github.com/jiejie-dev/funny/internal/vm"
@@ -49,6 +50,12 @@ func Ast(src []byte, file string) ([]byte, error) {
 		return nil, err
 	}
 	return json.MarshalIndent(prog, "", "  ")
+}
+
+// Format returns src re-printed in canonical style. It returns an error for
+// syntactically invalid source rather than formatting a partial result.
+func Format(src []byte, file string) (string, error) {
+	return formatter.Format(src, file)
 }
 
 // Disasm compiles and returns the human-readable bytecode disassembly.

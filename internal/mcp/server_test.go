@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/jiejie-dev/funny/internal/cli"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestExtractSkill_PlanFn(t *testing.T) {
@@ -72,15 +74,15 @@ func TestAstTool_BusinessLogic(t *testing.T) {
 	}
 }
 
-func TestFormatTool_ReturnsSourceUnchanged(t *testing.T) {
-	path := filepath.Join("..", "..", "testdata", "agent", "plan.fn")
+func TestFormatTool_ReallyFormats(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "messy.fn")
+	require.NoError(t, os.WriteFile(path, []byte("let   x=1\nprintln(x)\n"), 0o644))
 	data, err := readFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(data) != string(data) {
-		t.Fatal("file content identity check failed")
-	}
+	require.NoError(t, err)
+	out, err := cli.Format(data, path)
+	require.NoError(t, err)
+	assert.Equal(t, "let x = 1\nprintln(x)\n", out)
 }
 
 func TestLintTool_Valid(t *testing.T) {

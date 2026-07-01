@@ -93,28 +93,34 @@ func (l *Lexer) Next() Token {
 				panic(fmt.Sprintf("tab character not allowed at %s:%d:%d (use 4 spaces)", l.file, l.line+1, l.col+1))
 			}
 
-			// Skip leading spaces, counting indent
+			// Peek the indent (leading spaces) without consuming it yet. Unwinding
+			// multiple nested levels (e.g. dedenting from column 12 straight to
+			// column 4) requires emitting one DEDENT per Next() call, so pos/col
+			// must stay at the line start until indentStack is fully settled —
+			// otherwise a later call would skip re-checking indentation and jump
+			// straight to lexing the line's content after only a partial unwind.
+			peekPos := l.pos
 			indent := 0
-			for l.pos < len(l.src) && l.src[l.pos] == ' ' {
+			for peekPos < len(l.src) && l.src[peekPos] == ' ' {
 				indent++
-				l.pos++
-				l.col++
+				peekPos++
 			}
 
 			// EOF at line start: emit DEDENTs until stack is [0], then EOF
-			if l.pos >= len(l.src) {
+			if peekPos >= len(l.src) {
 				if len(l.indentStack) > 1 {
 					l.indentStack = l.indentStack[:len(l.indentStack)-1]
 					return l.emit(DEDENT, "")
 				}
+				l.pos, l.col = peekPos, indent
 				return l.emit(EOF, "")
 			}
 
 			// Blank line: just whitespace + newline, skip
-			if l.src[l.pos] == '\n' {
+			if l.src[peekPos] == '\n' {
+				l.pos = peekPos + 1
 				l.line++
 				l.col = 0
-				l.pos++
 				continue
 			}
 
@@ -124,19 +130,19 @@ func (l *Lexer) Next() Token {
 				top := l.indentStack[len(l.indentStack)-1]
 				if indent > top {
 					l.indentStack = append(l.indentStack, indent)
+					l.pos, l.col = peekPos, indent
 					return l.emit(INDENT, "")
 				}
 				if indent < top {
-					for len(l.indentStack) > 1 && l.indentStack[len(l.indentStack)-1] > indent {
-						l.indentStack = l.indentStack[:len(l.indentStack)-1]
-						return l.emit(DEDENT, "")
-					}
-					if indent != l.indentStack[len(l.indentStack)-1] {
+					l.indentStack = l.indentStack[:len(l.indentStack)-1]
+					if l.indentStack[len(l.indentStack)-1] < indent {
 						panic(fmt.Sprintf("inconsistent dedent at %s:%d:%d", l.file, l.line+1, indent+1))
 					}
+					return l.emit(DEDENT, "")
 				}
 			}
 
+			l.pos, l.col = peekPos, indent
 			l.save()
 		}
 
@@ -409,15 +415,97 @@ func (l *Lexer) lexString(quote byte) Token {
 	return l.emit(STR, string(buf))
 }
 
+// lexFString scans an f-string body, tracking `{}/()/[]` nesting depth so
+// that expressions inside `{...}` may safely contain nested quoted strings
+// (e.g. `f"{m["k"]}"` or `f"{greet('x')}"`) without the scan mistaking an
+// inner quote for the f-string's own closing quote. It does not unescape or
+// collapse `{{`/`}}` — it only finds the correct boundary, preserving
+// everything else verbatim; splitting into literal/interpolation parts and
+// unescaping happens later in the parser (see internal/parser/fstring.go).
 func (l *Lexer) lexFString() Token {
-	l.advance()
+	l.advance() // consume opening quote
 	var buf []byte
-	for l.pos < len(l.src) && l.src[l.pos] != '"' {
-		buf = append(buf, l.src[l.pos])
+	depth := 0
+	for l.pos < len(l.src) {
+		ch := l.src[l.pos]
+		if depth == 0 && ch == '"' {
+			break
+		}
+		if depth == 0 && ch == '\\' {
+			buf = append(buf, ch)
+			l.advance()
+			if l.pos < len(l.src) {
+				buf = append(buf, l.src[l.pos])
+				l.advance()
+			}
+			continue
+		}
+		if depth > 0 && (ch == '"' || ch == '\'') {
+			quote := ch
+			buf = append(buf, ch)
+			l.advance()
+			for l.pos < len(l.src) && l.src[l.pos] != quote {
+				if l.src[l.pos] == '\\' && l.pos+1 < len(l.src) {
+					buf = append(buf, l.src[l.pos], l.src[l.pos+1])
+					l.advance()
+					l.advance()
+					continue
+				}
+				buf = append(buf, l.src[l.pos])
+				l.advance()
+			}
+			if l.pos < len(l.src) {
+				buf = append(buf, l.src[l.pos])
+				l.advance()
+			}
+			continue
+		}
+		if ch == '{' {
+			if depth == 0 && l.peek(1) == '{' {
+				buf = append(buf, '{', '{')
+				l.advance()
+				l.advance()
+				continue
+			}
+			depth++
+			buf = append(buf, ch)
+			l.advance()
+			continue
+		}
+		if ch == '}' {
+			if depth == 0 {
+				if l.peek(1) == '}' {
+					buf = append(buf, '}', '}')
+					l.advance()
+					l.advance()
+					continue
+				}
+				buf = append(buf, ch) // stray '}' outside {} — kept literal
+				l.advance()
+				continue
+			}
+			depth--
+			buf = append(buf, ch)
+			l.advance()
+			continue
+		}
+		if depth > 0 && (ch == '(' || ch == '[') {
+			depth++
+			buf = append(buf, ch)
+			l.advance()
+			continue
+		}
+		if depth > 0 && (ch == ')' || ch == ']') {
+			depth--
+			buf = append(buf, ch)
+			l.advance()
+			continue
+		}
+		buf = append(buf, ch)
 		l.advance()
 	}
 	if l.pos < len(l.src) {
-		l.advance()
+		l.advance() // consume closing quote
 	}
 	return l.emit(FSTR, string(buf))
 }

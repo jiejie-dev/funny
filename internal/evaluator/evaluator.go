@@ -3,9 +3,11 @@ package evaluator
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/jiejie-dev/funny/internal/ast"
 	"github.com/jiejie-dev/funny/internal/errs"
+	"github.com/jiejie-dev/funny/internal/strfmt"
 )
 
 type Evaluator struct {
@@ -107,7 +109,7 @@ func (e *Evaluator) Eval(node ast.Expression) (any, error) {
 	case *ast.CallExpr:
 		return e.evalCall(n)
 	case *ast.FStringExpr:
-		return n.Raw, nil
+		return e.evalFString(n)
 	case *ast.StructLiteralExpr:
 		fields := map[string]any{}
 		for k, v := range n.Fields {
@@ -120,6 +122,28 @@ func (e *Evaluator) Eval(node ast.Expression) (any, error) {
 		return fields, nil
 	}
 	return nil, errs.New("E2002", fmt.Sprintf("cannot eval %T", node), toErrPos(node.Pos()), "")
+}
+
+// evalFString evaluates an f-string by concatenating literal text with the
+// formatted result of each interpolated expression.
+func (e *Evaluator) evalFString(n *ast.FStringExpr) (any, error) {
+	var b strings.Builder
+	for _, part := range n.Parts {
+		if part.Expr == nil {
+			b.WriteString(part.Text)
+			continue
+		}
+		v, err := e.Eval(part.Expr)
+		if err != nil {
+			return nil, err
+		}
+		s, ferr := strfmt.Format(v, part.Spec)
+		if ferr != nil {
+			return nil, errs.New("E2090", ferr.Error(), toErrPos(n.NodePos), "")
+		}
+		b.WriteString(s)
+	}
+	return b.String(), nil
 }
 
 func applyBinary(op string, l, r any) (any, error) {
@@ -425,6 +449,8 @@ func (e *Evaluator) execStmt(s ast.Statement) (any, bool, error) {
 	case *ast.PlanBlock:
 		return nil, false, nil
 	case *ast.ImportDecl:
+		return nil, false, nil
+	case *ast.CommentStmt:
 		return nil, false, nil
 	}
 	return nil, false, errs.New("E2014", fmt.Sprintf("cannot exec %T", s), toErrPos(s.Pos()), "")

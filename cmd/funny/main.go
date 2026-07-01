@@ -52,8 +52,32 @@ var astCmd = &cobra.Command{
 	},
 }
 
+var fmtCmd = &cobra.Command{
+	Use:   "fmt <script>",
+	Short: "Format a funny script",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		data, err := os.ReadFile(args[0])
+		if err != nil {
+			return err
+		}
+		out, err := cli.Format(data, args[0])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		write, _ := cmd.Flags().GetBool("write")
+		if write {
+			return os.WriteFile(args[0], []byte(out), 0o644)
+		}
+		fmt.Print(out)
+		return nil
+	},
+}
+
 func init() {
-	rootCmd.AddCommand(runCmd, astCmd)
+	fmtCmd.Flags().BoolP("write", "w", false, "write result to the source file instead of stdout")
+	rootCmd.AddCommand(runCmd, astCmd, fmtCmd)
 }
 
 func main() {

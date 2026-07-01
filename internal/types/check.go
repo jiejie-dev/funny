@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jiejie-dev/funny/internal/ast"
+	"github.com/jiejie-dev/funny/internal/strfmt"
 )
 
 // CheckExpr type-checks an expression and returns its type.
@@ -34,7 +35,7 @@ func CheckExpr(expr ast.Expression, env *Env) (Type, error) {
 	case *ast.SubExpr:
 		return CheckExpr(n.Inner, env)
 	case *ast.FStringExpr:
-		return Primitive("str"), nil
+		return checkFString(n, env)
 	case *ast.TryExpr:
 		return checkTry(n, env)
 	}
@@ -59,6 +60,24 @@ func checkTry(n *ast.TryExpr, env *Env) (Type, error) {
 		return innerT, nil
 	}
 	return innerT, nil
+}
+
+// checkFString type-checks every interpolated expression inside an f-string
+// and validates each part's format spec syntax. The overall type is always
+// str, regardless of what's interpolated (interpolation always stringifies).
+func checkFString(n *ast.FStringExpr, env *Env) (Type, error) {
+	for _, part := range n.Parts {
+		if part.Expr == nil {
+			continue
+		}
+		if _, err := CheckExpr(part.Expr, env); err != nil {
+			return nil, err
+		}
+		if _, err := strfmt.ParseSpec(part.Spec); err != nil {
+			return nil, New("E2090", fmt.Sprintf("invalid format spec %q: %v", part.Spec, err), n.NodePos)
+		}
+	}
+	return Primitive("str"), nil
 }
 
 // literalType infers a Type from a Go value.
@@ -351,7 +370,7 @@ func checkStmt(s ast.Statement, env *Env) error {
 		return checkFnDecl(n, env)
 	case *ast.StructDecl:
 		return checkStructDecl(n, env)
-	case *ast.ExprStmt, *ast.BreakStmt, *ast.ContinueStmt, *ast.PlanBlock, *ast.ImportDecl:
+	case *ast.ExprStmt, *ast.BreakStmt, *ast.ContinueStmt, *ast.PlanBlock, *ast.ImportDecl, *ast.CommentStmt:
 		return nil // M2-A doesn't type-check these
 	case *ast.MetaBlock:
 		return checkMeta(n, env)

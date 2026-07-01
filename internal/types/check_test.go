@@ -36,6 +36,29 @@ func TestCheck_Literal(t *testing.T) {
 	}
 }
 
+func TestCheck_FString_ValidInterpolation(t *testing.T) {
+	env := NewEnv(nil)
+	env.DeclareVar("name", Primitive("str"))
+	got, err := CheckExpr(parseExpr(t, `f"hello {name}"`), env)
+	require.NoError(t, err)
+	assert.True(t, got.Equal(Primitive("str")))
+}
+
+func TestCheck_FString_UndefinedVariableErrors(t *testing.T) {
+	env := NewEnv(nil)
+	_, err := CheckExpr(parseExpr(t, `f"hello {missing}"`), env)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "E2001")
+}
+
+func TestCheck_FString_InvalidSpecErrors(t *testing.T) {
+	env := NewEnv(nil)
+	env.DeclareVar("x", Primitive("int"))
+	_, err := CheckExpr(parseExpr(t, `f"{x:zz}"`), env)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "E2090")
+}
+
 func TestCheck_Variable(t *testing.T) {
 	env := NewEnv(nil)
 	env.DeclareVar("x", Primitive("int"))

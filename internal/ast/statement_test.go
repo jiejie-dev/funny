@@ -99,3 +99,13 @@ func TestExprStmt_String(t *testing.T) {
 	s := &ExprStmt{X: &VariableExpr{Name: "x"}}
 	assert.Equal(t, "x", s.String())
 }
+
+func TestCommentStmt_String(t *testing.T) {
+	s := &CommentStmt{Text: " hello"}
+	assert.Equal(t, "# hello", s.String())
+}
+
+func TestCommentStmt_String_Doc(t *testing.T) {
+	s := &CommentStmt{Text: " doc", Doc: true}
+	assert.Equal(t, "## doc", s.String())
+}
