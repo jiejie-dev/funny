@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -276,6 +277,13 @@ case "ok":
 		}
 		v.stack = v.stack[:len(v.stack)-3]
 		v.stack = append(v.stack, re.ReplaceAllString(s, repl))
+	case "env_get":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: env_get() requires 1 argument")
+		}
+		key := v.stack[len(v.stack)-1].(string)
+		v.stack = v.stack[:len(v.stack)-1]
+		v.stack = append(v.stack, os.Getenv(key))
 	default:
 		return fmt.Errorf("vm: unknown builtin %q", name)
 	}
