@@ -100,6 +100,20 @@ func (v *VM) execCallBuiltin(nameIdx int) error {
 		default:
 			v.stack[len(v.stack)-1] = "unknown"
 		}
+	case "ok":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: ok() requires 1 argument")
+		}
+		val := v.stack[len(v.stack)-1]
+		v.stack = v.stack[:len(v.stack)-1]
+		v.stack = append(v.stack, makeResult("ok", val))
+	case "err":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: err() requires 1 argument")
+		}
+		val := v.stack[len(v.stack)-1]
+		v.stack = v.stack[:len(v.stack)-1]
+		v.stack = append(v.stack, makeResult("err", val))
 	default:
 		return fmt.Errorf("vm: unknown builtin %q", name)
 	}

@@ -311,3 +311,27 @@ func TestVM_NewStruct(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, 7, m["k"])
 }
+
+func TestVM_ResultOK(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_INT, 0)     // value 42
+	main.Emit(bytecode.CALL_BUILTIN, 1) // BuiltinInfo{"ok",1} -> wraps in Result{tag: "ok", val: 42}
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, 42, bytecode.BuiltinInfo{Name: "ok", Arity: 1})
+	m, ok := v.(map[string]bytecode.Value)
+	require.True(t, ok)
+	assert.Equal(t, "ok", m["tag"])
+	assert.Equal(t, 42, m["val"])
+}
+
+func TestVM_ResultErr(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0)     // "oops"
+	main.Emit(bytecode.CALL_BUILTIN, 1) // BuiltinInfo{"err",1}
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "oops", bytecode.BuiltinInfo{Name: "err", Arity: 1})
+	m, ok := v.(map[string]bytecode.Value)
+	require.True(t, ok)
+	assert.Equal(t, "err", m["tag"])
+	assert.Equal(t, "oops", m["val"])
+}
