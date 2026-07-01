@@ -2,11 +2,45 @@
 package vm
 
 import (
+	"encoding/json"
 	"fmt"
+	"math"
 	"reflect"
+	"strings"
+	"time"
 
 	"github.com/jerloo/funny/v2/internal/bytecode"
 )
+
+// convertJSON converts a generic Go value (from json.Unmarshal) into a funny
+// Value, using []any and map[string]any instead of []interface{} and
+// map[string]interface{}.
+func convertJSON(x any) bytecode.Value {
+	switch v := x.(type) {
+	case nil:
+		return nil
+	case bool:
+		return v
+	case float64:
+		return v
+	case string:
+		return v
+	case []any:
+		out := make([]bytecode.Value, len(v))
+		for i, e := range v {
+			out[i] = convertJSON(e)
+		}
+		return out
+	case map[string]any:
+		out := make(map[string]bytecode.Value, len(v))
+		for k, e := range v {
+			out[k] = convertJSON(e)
+		}
+		return out
+	default:
+		return fmt.Sprintf("%v", v)
+	}
+}
 
 // execCallBuiltin handles CALL_BUILTIN nameIdx.
 // The constant pool at nameIdx must be a struct{ Name string; Arity int }
@@ -100,7 +134,7 @@ func (v *VM) execCallBuiltin(nameIdx int) error {
 		default:
 			v.stack[len(v.stack)-1] = "unknown"
 		}
-	case "ok":
+case "ok":
 		if len(v.stack) < 1 {
 			return fmt.Errorf("vm: ok() requires 1 argument")
 		}
@@ -114,8 +148,127 @@ func (v *VM) execCallBuiltin(nameIdx int) error {
 		val := v.stack[len(v.stack)-1]
 		v.stack = v.stack[:len(v.stack)-1]
 		v.stack = append(v.stack, makeResult("err", val))
+	case "to_json":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: to_json() requires 1 argument")
+		}
+		s, ok := v.stack[len(v.stack)-1].(string)
+		if !ok {
+			return fmt.Errorf("vm: to_json() requires a string argument")
+		}
+		v.stack = v.stack[:len(v.stack)-1]
+		var x any
+		if err := json.Unmarshal([]byte(s), &x); err != nil {
+			return fmt.Errorf("vm: to_json: invalid JSON: %v", err)
+		}
+		v.stack = append(v.stack, convertJSON(x))
+	case "parse_json":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: parse_json() requires 1 argument")
+		}
+		s, ok := v.stack[len(v.stack)-1].(string)
+		if !ok {
+			return fmt.Errorf("vm: parse_json() requires a string argument")
+		}
+		v.stack = v.stack[:len(v.stack)-1]
+		var x any
+		if err := json.Unmarshal([]byte(s), &x); err != nil {
+			v.stack = append(v.stack, makeResult("err", fmt.Sprintf("parse_json: %v", err)))
+			return nil
+		}
+		v.stack = append(v.stack, convertJSON(x))
+	case "now":
+		v.stack = append(v.stack, int(time.Now().Unix()))
+	case "time_format":
+		if len(v.stack) < 2 {
+			return fmt.Errorf("vm: time_format() requires 2 arguments")
+		}
+		layout := v.stack[len(v.stack)-1].(string)
+		ts := v.stack[len(v.stack)-2].(int)
+		v.stack = v.stack[:len(v.stack)-2]
+		t := time.Unix(int64(ts), 0)
+		v.stack = append(v.stack, t.Format(layout))
+	case "sqrt":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: sqrt() requires 1 argument")
+		}
+		x := toFloat(v.stack[len(v.stack)-1])
+		v.stack = v.stack[:len(v.stack)-1]
+		v.stack = append(v.stack, math.Sqrt(x))
+	case "pow":
+		if len(v.stack) < 2 {
+			return fmt.Errorf("vm: pow() requires 2 arguments")
+		}
+		exp := toFloat(v.stack[len(v.stack)-1])
+		base := toFloat(v.stack[len(v.stack)-2])
+		v.stack = v.stack[:len(v.stack)-2]
+		v.stack = append(v.stack, math.Pow(base, exp))
+	case "abs":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: abs() requires 1 argument")
+		}
+		x := v.stack[len(v.stack)-1]
+		v.stack = v.stack[:len(v.stack)-1]
+		switch val := x.(type) {
+		case int:
+			if val < 0 {
+				v.stack = append(v.stack, -val)
+			} else {
+				v.stack = append(v.stack, val)
+			}
+		case float64:
+			v.stack = append(v.stack, math.Abs(val))
+		default:
+			return fmt.Errorf("vm: abs() requires a number")
+		}
+	case "str_upper":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: str_upper() requires 1 argument")
+		}
+		s, _ := v.stack[len(v.stack)-1].(string)
+		v.stack = v.stack[:len(v.stack)-1]
+		v.stack = append(v.stack, strings.ToUpper(s))
+	case "str_lower":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: str_lower() requires 1 argument")
+		}
+		s, _ := v.stack[len(v.stack)-1].(string)
+		v.stack = v.stack[:len(v.stack)-1]
+		v.stack = append(v.stack, strings.ToLower(s))
+	case "str_contains":
+		if len(v.stack) < 2 {
+			return fmt.Errorf("vm: str_contains() requires 2 arguments")
+		}
+		substr := v.stack[len(v.stack)-1].(string)
+		s := v.stack[len(v.stack)-2].(string)
+		v.stack = v.stack[:len(v.stack)-2]
+		v.stack = append(v.stack, strings.Contains(s, substr))
+	case "str_split":
+		if len(v.stack) < 2 {
+			return fmt.Errorf("vm: str_split() requires 2 arguments")
+		}
+		sep := v.stack[len(v.stack)-1].(string)
+		s := v.stack[len(v.stack)-2].(string)
+		v.stack = v.stack[:len(v.stack)-2]
+		parts := strings.Split(s, sep)
+		out := make([]bytecode.Value, len(parts))
+		for i, p := range parts {
+			out[i] = p
+		}
+		v.stack = append(v.stack, out)
 	default:
 		return fmt.Errorf("vm: unknown builtin %q", name)
 	}
 	return nil
+}
+
+// toFloat converts an int or float to float64. Other types panic.
+func toFloat(val bytecode.Value) float64 {
+	switch x := val.(type) {
+	case int:
+		return float64(x)
+	case float64:
+		return x
+	}
+	panic(fmt.Sprintf("vm: expected number, got %T", val))
 }

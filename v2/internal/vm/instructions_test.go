@@ -374,3 +374,122 @@ func TestVM_TryOrReturn_Err(t *testing.T) {
 	assert.Equal(t, "err", m["tag"])
 	assert.Equal(t, "boom", m["val"])
 }
+
+func TestVM_BuiltinToJSON(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0)
+	main.Emit(bytecode.CALL_BUILTIN, 1) // "to_json"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, `{"k": 1}`, bytecode.BuiltinInfo{Name: "to_json", Arity: 1})
+	m, ok := v.(map[string]bytecode.Value)
+	require.True(t, ok)
+	assert.Equal(t, float64(1), m["k"])
+}
+
+func TestVM_BuiltinParseJSON(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0)
+	main.Emit(bytecode.CALL_BUILTIN, 1) // "parse_json"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, `{"k": 1}`, bytecode.BuiltinInfo{Name: "parse_json", Arity: 1})
+	m, ok := v.(map[string]bytecode.Value)
+	require.True(t, ok)
+	assert.Equal(t, float64(1), m["k"])
+}
+
+func TestVM_BuiltinNow(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.CALL_BUILTIN, 0) // "now"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, bytecode.BuiltinInfo{Name: "now", Arity: 0})
+	n, ok := v.(int)
+	require.True(t, ok)
+	assert.Greater(t, n, 1700000000) // after 2023
+}
+
+func TestVM_BuiltinTimeFormat(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_INT, 0)  // timestamp
+	main.Emit(bytecode.PUSH_STR, 1)  // layout
+	main.Emit(bytecode.CALL_BUILTIN, 2) // "time_format"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, 1700000000, "2006-01-02", bytecode.BuiltinInfo{Name: "time_format", Arity: 2})
+	s, ok := v.(string)
+	require.True(t, ok)
+	assert.Contains(t, s, "2023")
+}
+
+func TestVM_BuiltinSqrt(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_INT, 0) // 16
+	main.Emit(bytecode.CALL_BUILTIN, 1) // "sqrt"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, 16, bytecode.BuiltinInfo{Name: "sqrt", Arity: 1})
+	f, ok := v.(float64)
+	require.True(t, ok)
+	assert.Equal(t, 4.0, f)
+}
+
+func TestVM_BuiltinPow(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_INT, 0) // 2
+	main.Emit(bytecode.PUSH_INT, 1) // 10
+	main.Emit(bytecode.CALL_BUILTIN, 2) // "pow"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, 2, 10, bytecode.BuiltinInfo{Name: "pow", Arity: 2})
+	f, ok := v.(float64)
+	require.True(t, ok)
+	assert.Equal(t, 1024.0, f)
+}
+
+func TestVM_BuiltinAbs(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_INT, 0) // -5
+	main.Emit(bytecode.CALL_BUILTIN, 1) // "abs"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, -5, bytecode.BuiltinInfo{Name: "abs", Arity: 1})
+	assert.Equal(t, 5, v)
+}
+
+func TestVM_BuiltinStrUpper(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0) // "hello"
+	main.Emit(bytecode.CALL_BUILTIN, 1) // "str_upper"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "hello", bytecode.BuiltinInfo{Name: "str_upper", Arity: 1})
+	assert.Equal(t, "HELLO", v)
+}
+
+func TestVM_BuiltinStrLower(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0) // "WORLD"
+	main.Emit(bytecode.CALL_BUILTIN, 1) // "str_lower"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "WORLD", bytecode.BuiltinInfo{Name: "str_lower", Arity: 1})
+	assert.Equal(t, "world", v)
+}
+
+func TestVM_BuiltinStrContains(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0) // "hello world"
+	main.Emit(bytecode.PUSH_STR, 1) // "world"
+	main.Emit(bytecode.CALL_BUILTIN, 2) // "str_contains"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "hello world", "world", bytecode.BuiltinInfo{Name: "str_contains", Arity: 2})
+	assert.Equal(t, true, v)
+}
+
+func TestVM_BuiltinStrSplit(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0)    // "a,b,c"
+	main.Emit(bytecode.PUSH_STR, 1)    // ","
+	main.Emit(bytecode.CALL_BUILTIN, 2) // "str_split"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "a,b,c", ",", bytecode.BuiltinInfo{Name: "str_split", Arity: 2})
+	list, ok := v.([]bytecode.Value)
+	require.True(t, ok)
+	assert.Equal(t, 3, len(list))
+	assert.Equal(t, "a", list[0])
+	assert.Equal(t, "b", list[1])
+	assert.Equal(t, "c", list[2])
+}
