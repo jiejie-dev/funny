@@ -1,0 +1,12 @@
+meta:
+    name: "demo_plan"
+    version: "1.0"
+
+plan "demo_plan":
+    step "setup":
+        let x = 10
+    step "compute" -> tool:
+        let r = x * 2
+    step "verify" -> guard:
+        if r > 0:
+            let z = 0
