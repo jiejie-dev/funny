@@ -165,6 +165,18 @@ func (v *VM) execIndex() error {
 	idx := v.stack[len(v.stack)-1]
 	obj := v.stack[len(v.stack)-2]
 	v.stack = v.stack[:len(v.stack)-2]
+	if m, ok := obj.(map[string]bytecode.Value); ok {
+		ks, ok := idx.(string)
+		if !ok {
+			ks = fmt.Sprintf("%v", idx)
+		}
+		val, ok := m[ks]
+		if !ok {
+			return fmt.Errorf("vm: INDEX map has no key %q", ks)
+		}
+		v.stack = append(v.stack, val)
+		return nil
+	}
 	i, ok := idx.(int)
 	if !ok {
 		return fmt.Errorf("vm: INDEX index not int")
@@ -185,6 +197,40 @@ func (v *VM) execIndex() error {
 		return fmt.Errorf("vm: INDEX on non-list/string")
 	}
 	return nil
+}
+
+// execSetIndex handles SET_INDEX for `obj[idx] = value`. Stack layout on
+// entry (bottom to top): value, object, index. Pops index and object, and
+// leaves value on top of the stack (mirroring STORE_LOCAL's peek-and-store
+// semantics), so the compiler can emit a trailing POP for the statement form.
+func (v *VM) execSetIndex() error {
+	if len(v.stack) < 3 {
+		return fmt.Errorf("vm: SET_INDEX requires 3 stack values")
+	}
+	idx := v.stack[len(v.stack)-1]
+	obj := v.stack[len(v.stack)-2]
+	val := v.stack[len(v.stack)-3]
+	v.stack = v.stack[:len(v.stack)-2]
+	switch o := obj.(type) {
+	case []bytecode.Value:
+		i, ok := idx.(int)
+		if !ok {
+			return fmt.Errorf("vm: SET_INDEX list index not int")
+		}
+		if i < 0 || i >= len(o) {
+			return fmt.Errorf("vm: SET_INDEX list out of range")
+		}
+		o[i] = val
+		return nil
+	case map[string]bytecode.Value:
+		ks, ok := idx.(string)
+		if !ok {
+			ks = fmt.Sprintf("%v", idx)
+		}
+		o[ks] = val
+		return nil
+	}
+	return fmt.Errorf("vm: SET_INDEX on non-list/map")
 }
 
 // execBuildMap handles BUILD_MAP n. Pops 2n values (alternating key, value), pushes map.

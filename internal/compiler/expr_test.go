@@ -54,6 +54,43 @@ func TestCompile_MapLiteral_MultiLine_RunsOnVM(t *testing.T) {
 	assert.Equal(t, 1, got)
 }
 
+func TestCompile_IndexExpr_MapReadOnVM(t *testing.T) {
+	src := "let m: map[str, int] = {\"a\": 1, \"b\": 2}\nm[\"a\"]\n"
+	mod := compileExpr(t, src)
+	got, err := vm.New(mod).Run()
+	require.NoError(t, err)
+	assert.Equal(t, 1, got)
+}
+
+func TestCompile_Assign_IndexIntoMap_EmitsSetIndex(t *testing.T) {
+	src := "let m: map[str, int] = {\"a\": 1}\nm[\"a\"] = 2\n"
+	mod := compileExpr(t, src)
+	fn := mod.Functions[0]
+	var found bool
+	for _, instr := range fn.Code {
+		if instr.Op == bytecode.SET_INDEX {
+			found = true
+		}
+	}
+	assert.True(t, found, "expected SET_INDEX in %v", fn.Code)
+}
+
+func TestCompile_Assign_IndexIntoMap_RunsOnVM(t *testing.T) {
+	src := "let m: map[str, int] = {\"a\": 1}\nm[\"a\"] = 100\nm[\"b\"] = 2\nm[\"a\"]\n"
+	mod := compileExpr(t, src)
+	got, err := vm.New(mod).Run()
+	require.NoError(t, err)
+	assert.Equal(t, 100, got)
+}
+
+func TestCompile_Assign_IndexIntoList_RunsOnVM(t *testing.T) {
+	src := "let xs: list[int] = [10, 20, 30]\nxs[1] = 99\nxs[1]\n"
+	mod := compileExpr(t, src)
+	got, err := vm.New(mod).Run()
+	require.NoError(t, err)
+	assert.Equal(t, 99, got)
+}
+
 func TestCompile_FString_ProducesFormatValueAndAddStr(t *testing.T) {
 	mod := compileExpr(t, "let name = \"world\"\nf\"hi {name}!\"\n")
 	fn := mod.Functions[0]

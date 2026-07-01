@@ -74,6 +74,48 @@ func TestCheck_MapLiteral_LetWithAnnotation(t *testing.T) {
 	assert.True(t, vt.Equal(Map{Key: Primitive("str"), Value: Primitive("int")}))
 }
 
+func TestCheck_IndexExpr_MapReadUsesKeyType(t *testing.T) {
+	env := NewEnv(nil)
+	env.DeclareVar("m", Map{Key: Primitive("str"), Value: Primitive("int")})
+	got, err := CheckExpr(parseExpr(t, `m["a"]`), env)
+	require.NoError(t, err)
+	assert.True(t, got.Equal(Primitive("int")))
+}
+
+func TestCheck_IndexExpr_MapWrongKeyTypeErrors(t *testing.T) {
+	env := NewEnv(nil)
+	env.DeclareVar("m", Map{Key: Primitive("str"), Value: Primitive("int")})
+	_, err := CheckExpr(parseExpr(t, `m[1]`), env)
+	require.Error(t, err)
+}
+
+func TestCheck_Assign_IndexIntoMap(t *testing.T) {
+	src := "let m: map[str, int] = {\"a\": 1}\nm[\"a\"] = 2\nm[\"b\"] = 3\n"
+	p := parser.New(src, "t")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	require.NoError(t, Check(prog, env))
+}
+
+func TestCheck_Assign_IndexIntoMap_WrongValueTypeErrors(t *testing.T) {
+	src := "let m: map[str, int] = {\"a\": 1}\nm[\"a\"] = \"oops\"\n"
+	p := parser.New(src, "t")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	require.Error(t, Check(prog, env))
+}
+
+func TestCheck_Assign_IndexIntoList(t *testing.T) {
+	src := "let xs: list[int] = [1, 2, 3]\nxs[0] = 99\n"
+	p := parser.New(src, "t")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	require.NoError(t, Check(prog, env))
+}
+
 func TestCheck_FString_ValidInterpolation(t *testing.T) {
 	env := NewEnv(nil)
 	env.DeclareVar("name", Primitive("str"))

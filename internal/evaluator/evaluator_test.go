@@ -21,6 +21,47 @@ func evalExpr(t *testing.T, src string) any {
 	return v
 }
 
+func execProgram(t *testing.T, src string) *Evaluator {
+	t.Helper()
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	e := New(nil)
+	require.NoError(t, e.Exec(prog))
+	return e
+}
+
+func TestEval_IndexExpr_MapRead(t *testing.T) {
+	v := evalExpr(t, `{"a": 1, "b": 2}["a"]`)
+	assert.Equal(t, 1, v)
+}
+
+func TestEval_IndexExpr_MapRead_MissingKeyErrors(t *testing.T) {
+	p := parser.New(`{"a": 1}["missing"]`, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	e := New(nil)
+	_, err = e.Eval(prog.Stmts[0].(*ast.ExprStmt).X)
+	require.Error(t, err)
+}
+
+func TestEval_Assign_IndexIntoMap(t *testing.T) {
+	e := execProgram(t, "let m = {\"a\": 1}\nm[\"a\"] = 100\nm[\"b\"] = 2\n")
+	v, ok := e.Scope().Get("m")
+	require.True(t, ok)
+	m := v.(map[string]any)
+	assert.Equal(t, 100, m["a"])
+	assert.Equal(t, 2, m["b"])
+}
+
+func TestEval_Assign_IndexIntoList(t *testing.T) {
+	e := execProgram(t, "let xs = [10, 20, 30]\nxs[1] = 99\n")
+	v, ok := e.Scope().Get("xs")
+	require.True(t, ok)
+	xs := v.([]any)
+	assert.Equal(t, []any{10, 99, 30}, xs)
+}
+
 func TestEval_MapLiteral(t *testing.T) {
 	v := evalExpr(t, `{"a": 1, "b": 2}`)
 	m, ok := v.(map[string]any)

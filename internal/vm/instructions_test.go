@@ -319,6 +319,82 @@ func TestVM_BuildMap(t *testing.T) {
 	assert.Equal(t, 42, m["k"])
 }
 
+func TestVM_IndexMap(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0) // "k"
+	main.Emit(bytecode.PUSH_INT, 1) // 42
+	main.Emit(bytecode.BUILD_MAP, 1)
+	main.Emit(bytecode.PUSH_STR, 0) // "k" (same deduped constant, used as index)
+	main.Emit(bytecode.INDEX, 0)
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "k", 42)
+	assert.Equal(t, 42, v)
+}
+
+func TestVM_IndexMap_MissingKeyErrors(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0) // "k"
+	main.Emit(bytecode.PUSH_INT, 1) // 42
+	main.Emit(bytecode.BUILD_MAP, 1)
+	main.Emit(bytecode.PUSH_STR, 2) // "missing"
+	main.Emit(bytecode.INDEX, 0)
+	main.Emit(bytecode.HALT, 0)
+	mod := bytecode.NewModule("test")
+	mod.AddFunction(main)
+	mod.AddConstant("k")
+	mod.AddConstant(42)
+	mod.AddConstant("missing")
+	_, err := New(mod).Run()
+	require.Error(t, err)
+}
+
+// TestVM_SetIndex_List builds [10, 20, 30], stores it in a local, sets
+// index 1 to 99 via SET_INDEX, then reads it back through the same local
+// to confirm the mutation is visible (lists are reference types).
+func TestVM_SetIndex_List(t *testing.T) {
+	fn := &bytecode.Function{Name: "main", Arity: 0, NumLocals: 1}
+	fn.Emit(bytecode.PUSH_INT, 0) // 10
+	fn.Emit(bytecode.PUSH_INT, 1) // 20
+	fn.Emit(bytecode.PUSH_INT, 2) // 30
+	fn.Emit(bytecode.BUILD_LIST, 3)
+	fn.Emit(bytecode.STORE_LOCAL, 0)
+	fn.Emit(bytecode.POP, 0)
+	fn.Emit(bytecode.PUSH_INT, 3) // value 99
+	fn.Emit(bytecode.LOAD_LOCAL, 0)
+	fn.Emit(bytecode.PUSH_INT, 4) // index 1
+	fn.Emit(bytecode.SET_INDEX, 0)
+	fn.Emit(bytecode.POP, 0)
+	fn.Emit(bytecode.LOAD_LOCAL, 0)
+	fn.Emit(bytecode.PUSH_INT, 4) // index 1 again
+	fn.Emit(bytecode.INDEX, 0)
+	fn.Emit(bytecode.HALT, 0)
+	v := runModule(t, fn, nil, 10, 20, 30, 99, 1)
+	assert.Equal(t, 99, v)
+}
+
+// TestVM_SetIndex_Map builds {"a": 1}, overwrites "a" via SET_INDEX, then
+// reads it back to confirm the mutation is visible (maps are reference
+// types).
+func TestVM_SetIndex_Map(t *testing.T) {
+	fn := &bytecode.Function{Name: "main", Arity: 0, NumLocals: 1}
+	fn.Emit(bytecode.PUSH_STR, 0) // "a"
+	fn.Emit(bytecode.PUSH_INT, 1) // 1
+	fn.Emit(bytecode.BUILD_MAP, 1)
+	fn.Emit(bytecode.STORE_LOCAL, 0)
+	fn.Emit(bytecode.POP, 0)
+	fn.Emit(bytecode.PUSH_INT, 2) // value 100
+	fn.Emit(bytecode.LOAD_LOCAL, 0)
+	fn.Emit(bytecode.PUSH_STR, 0) // "a"
+	fn.Emit(bytecode.SET_INDEX, 0)
+	fn.Emit(bytecode.POP, 0)
+	fn.Emit(bytecode.LOAD_LOCAL, 0)
+	fn.Emit(bytecode.PUSH_STR, 0) // "a"
+	fn.Emit(bytecode.INDEX, 0)
+	fn.Emit(bytecode.HALT, 0)
+	v := runModule(t, fn, nil, "a", 1, 100)
+	assert.Equal(t, 100, v)
+}
+
 func TestVM_GetField(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
 	main.Emit(bytecode.PUSH_STR, 0) // "k"

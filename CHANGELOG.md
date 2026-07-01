@@ -7,6 +7,7 @@
 - **Real formatter**: AST-based `funny fmt` / MCP `format` tool (previously a no-op), preserving comments
 - **Map literals**: `{key: value, ...}` construction, previously impossible (the type existed only as a `map[K, V]` annotation with no way to build a value)
 - **Bracket line-continuation**: any `(...)`, `[...]`, or `{...}` may now span multiple lines; a newline inside an open bracket is insignificant whitespace, enabling the conventional one-entry-per-line-with-trailing-comma style for map/list literals and call arguments
+- **`m[key]` indexing**: map values can now be read and written with bracket indexing (`m["a"]`, `m["a"] = 1`), in addition to `.field` access; index assignment also now works for lists (`xs[0] = 1`), via a new `SET_INDEX` bytecode instruction
 
 ### Fixes
 - Parser crash on standalone `#` comments (introduces `ast.CommentStmt`)

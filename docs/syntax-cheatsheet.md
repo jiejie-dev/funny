@@ -56,7 +56,11 @@ let u = User(name: "alice", age: 30)
 let xs = [1, 2, 3]
 let m  = {"key": "value"}
 let x  = xs[0]
-let v  = m.key                   # map values are read via .field, not m["key"]
+let v  = m["key"]                # bracket indexing
+let v2 = m.key                   # or .field access, like a struct
+xs[0]  = 99                      # index assignment (read + write)
+m["key"] = "new value"
+m["new"] = "added"               # adds a key if absent
 
 let big: map[str, int] = {       # any bracketed literal ([...], (...), {...})
     "a": 1,                      # may span multiple lines; one entry per

@@ -257,13 +257,16 @@ func checkIndexExpr(n *ast.IndexExpr, env *Env) (Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !Equal(idxT, Primitive("int")) {
-		return nil, NewMismatch(n.NodePos, Primitive("int"), idxT)
-	}
 	switch t := objT.(type) {
 	case List:
+		if !Equal(idxT, Primitive("int")) {
+			return nil, NewMismatch(n.NodePos, Primitive("int"), idxT)
+		}
 		return t.Elem, nil
 	case Map:
+		if !Equal(idxT, t.Key) {
+			return nil, NewMismatch(n.NodePos, t.Key, idxT)
+		}
 		return t.Value, nil
 	}
 	return nil, New("E2050", fmt.Sprintf("cannot index into %s", objT), n.NodePos)

@@ -172,6 +172,10 @@ func (v *VM) execute() (bytecode.Value, error) {
 			if err := v.execIndex(); err != nil {
 				return nil, err
 			}
+		case bytecode.SET_INDEX:
+			if err := v.execSetIndex(); err != nil {
+				return nil, err
+			}
 		case bytecode.BUILD_MAP:
 			v.execBuildMap(instr.Arg)
 		case bytecode.GET_FIELD:

@@ -83,6 +83,17 @@ func (e *Evaluator) Eval(node ast.Expression) (any, error) {
 		if err != nil {
 			return nil, err
 		}
+		if m, ok := obj.(map[string]any); ok {
+			ks, ok := idx.(string)
+			if !ok {
+				ks = fmt.Sprintf("%v", idx)
+			}
+			v, ok := m[ks]
+			if !ok {
+				return nil, errs.New("E2051", fmt.Sprintf("key not found: %q", ks), toErrPos(n.NodePos), "")
+			}
+			return v, nil
+		}
 		i, ok := idx.(int)
 		if !ok {
 			return nil, errs.New("E2050", "index must be int", toErrPos(n.NodePos), "")
@@ -124,6 +135,41 @@ func (e *Evaluator) Eval(node ast.Expression) (any, error) {
 		return e.evalMapLiteral(n)
 	}
 	return nil, errs.New("E2002", fmt.Sprintf("cannot eval %T", node), toErrPos(node.Pos()), "")
+}
+
+// assignIndex evaluates `obj[idx] = val`. Go lists ([]any) and maps
+// (map[string]any) are both reference types, so mutating the element/entry
+// after evaluating n.Object is visible through any other reference to the
+// same underlying list/map (e.g. the variable it came from).
+func (e *Evaluator) assignIndex(n *ast.IndexExpr, val any) error {
+	obj, err := e.Eval(n.Object)
+	if err != nil {
+		return err
+	}
+	idx, err := e.Eval(n.Index)
+	if err != nil {
+		return err
+	}
+	if m, ok := obj.(map[string]any); ok {
+		ks, ok := idx.(string)
+		if !ok {
+			ks = fmt.Sprintf("%v", idx)
+		}
+		m[ks] = val
+		return nil
+	}
+	if list, ok := obj.([]any); ok {
+		i, ok := idx.(int)
+		if !ok {
+			return errs.New("E2050", "index must be int", toErrPos(n.NodePos), "")
+		}
+		if i < 0 || i >= len(list) {
+			return errs.New("E2051", "index out of bounds", toErrPos(n.NodePos), "")
+		}
+		list[i] = val
+		return nil
+	}
+	return errs.New("E2050", "cannot index-assign into non-list/map", toErrPos(n.NodePos), "")
 }
 
 // evalMapLiteral evaluates a `{key: value, ...}` literal into a
@@ -375,6 +421,12 @@ func (e *Evaluator) execStmt(s ast.Statement) (any, bool, error) {
 		v, err := e.Eval(n.Value)
 		if err != nil {
 			return nil, false, err
+		}
+		if idx, ok := n.Target.(*ast.IndexExpr); ok {
+			if err := e.assignIndex(idx, v); err != nil {
+				return nil, false, err
+			}
+			return nil, false, nil
 		}
 		if !e.scope.Assign(n.Target.String(), v) {
 			switch t := n.Target.(type) {

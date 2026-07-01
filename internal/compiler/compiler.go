@@ -162,6 +162,9 @@ func (c *Compiler) compileLet(n *ast.LetStmt) error {
 }
 
 func (c *Compiler) compileAssign(n *ast.AssignStmt) error {
+	if idx, ok := n.Target.(*ast.IndexExpr); ok {
+		return c.compileIndexAssign(idx, n.Value)
+	}
 	if _, err := c.compileExpr(n.Value); err != nil {
 		return err
 	}
@@ -174,6 +177,24 @@ func (c *Compiler) compileAssign(n *ast.AssignStmt) error {
 		return fmt.Errorf("compileAssign: undefined variable %s", v.Name)
 	}
 	c.fn.Emit(bytecode.STORE_LOCAL, slot)
+	c.fn.Emit(bytecode.POP, 0)
+	return nil
+}
+
+// compileIndexAssign compiles `obj[idx] = value` into SET_INDEX. Push order
+// (value, object, index) mirrors execSetIndex's stack layout, which pops
+// index and object and leaves value on top for the trailing POP.
+func (c *Compiler) compileIndexAssign(idx *ast.IndexExpr, value ast.Expression) error {
+	if _, err := c.compileExpr(value); err != nil {
+		return err
+	}
+	if _, err := c.compileExpr(idx.Object); err != nil {
+		return err
+	}
+	if _, err := c.compileExpr(idx.Index); err != nil {
+		return err
+	}
+	c.fn.Emit(bytecode.SET_INDEX, 0)
 	c.fn.Emit(bytecode.POP, 0)
 	return nil
 }

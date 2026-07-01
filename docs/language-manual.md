@@ -106,12 +106,19 @@ let m: map[str, int] = {
 }
 ```
 
-Map values are accessed with `.field` (like a struct), not `m["key"]`
-indexing:
+Map values can be read and written either with `.field` (like a struct) or
+with `[key]` indexing; index assignment adds the key if it's absent:
 
 ```
-println(m.a)  # 1
+println(m.a)      # 1
+println(m["a"])   # 1
+m["a"] = 100
+m["c"] = 3        # adds a new key
+xs[0] = 99        # list index assignment works the same way
 ```
+
+List indices must be `int`; map indices must match the map's declared key
+type (`str` in the examples above).
 
 ### Functions
 ```
