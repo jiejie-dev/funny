@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 
@@ -252,6 +253,29 @@ case "ok":
 			out[i] = p
 		}
 		v.stack = append(v.stack, out)
+	case "regex_match":
+		if len(v.stack) < 2 {
+			return fmt.Errorf("vm: regex_match() requires 2 arguments")
+		}
+		re, err := regexp.Compile(v.stack[len(v.stack)-2].(string))
+		if err != nil {
+			return fmt.Errorf("vm: regex_match: %v", err)
+		}
+		s := v.stack[len(v.stack)-1].(string)
+		v.stack = v.stack[:len(v.stack)-2]
+		v.stack = append(v.stack, re.MatchString(s))
+	case "regex_replace":
+		if len(v.stack) < 3 {
+			return fmt.Errorf("vm: regex_replace() requires 3 arguments")
+		}
+		repl := v.stack[len(v.stack)-1].(string)
+		s := v.stack[len(v.stack)-2].(string)
+		re, err := regexp.Compile(v.stack[len(v.stack)-3].(string))
+		if err != nil {
+			return fmt.Errorf("vm: regex_replace: %v", err)
+		}
+		v.stack = v.stack[:len(v.stack)-3]
+		v.stack = append(v.stack, re.ReplaceAllString(s, repl))
 	default:
 		return fmt.Errorf("vm: unknown builtin %q", name)
 	}

@@ -2,6 +2,7 @@
 package vm
 
 import (
+	"os"
 	"testing"
 
 	"github.com/jerloo/funny/v2/internal/bytecode"
@@ -495,4 +496,60 @@ func TestVM_BuiltinStrSplit(t *testing.T) {
 	assert.Equal(t, "a", list[0])
 	assert.Equal(t, "b", list[1])
 	assert.Equal(t, "c", list[2])
+}
+
+func TestVM_BuiltinRegexMatch(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0) // pattern
+	main.Emit(bytecode.PUSH_STR, 1) // text
+	main.Emit(bytecode.CALL_BUILTIN, 2) // "regex_match"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "[0-9]+", "abc123def", bytecode.BuiltinInfo{Name: "regex_match", Arity: 2})
+	assert.Equal(t, true, v)
+}
+
+func TestVM_BuiltinRegexReplace(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0) // pattern
+	main.Emit(bytecode.PUSH_STR, 1) // text
+	main.Emit(bytecode.PUSH_STR, 2) // replacement
+	main.Emit(bytecode.CALL_BUILTIN, 3) // "regex_replace"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "[0-9]+", "abc123def", "X", bytecode.BuiltinInfo{Name: "regex_replace", Arity: 3})
+	assert.Equal(t, "abcXdef", v)
+}
+
+func TestVM_BuiltinEnvGet(t *testing.T) {
+	os.Setenv("FUNNY_TEST_ENV", "hello")
+	defer os.Unsetenv("FUNNY_TEST_ENV")
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0)
+	main.Emit(bytecode.CALL_BUILTIN, 1)
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "FUNNY_TEST_ENV", bytecode.BuiltinInfo{Name: "env_get", Arity: 1})
+	assert.Equal(t, "hello", v)
+}
+
+func TestVM_BuiltinFileRead(t *testing.T) {
+	tmpfile := "/tmp/funny_test_read.txt"
+	os.WriteFile(tmpfile, []byte("hello funny"), 0644)
+	defer os.Remove(tmpfile)
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0)
+	main.Emit(bytecode.CALL_BUILTIN, 1)
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, tmpfile, bytecode.BuiltinInfo{Name: "file_read", Arity: 1})
+	m, ok := v.(map[string]bytecode.Value)
+	require.True(t, ok, "expected Result, got %T", v)
+	assert.Equal(t, "ok", m["tag"])
+	assert.Equal(t, "hello funny", m["val"])
+}
+
+func TestVM_BuiltinFileExists(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0)
+	main.Emit(bytecode.CALL_BUILTIN, 1)
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "/tmp/funny_test_definitely_does_not_exist_12345", bytecode.BuiltinInfo{Name: "file_exists", Arity: 1})
+	assert.Equal(t, false, v)
 }
