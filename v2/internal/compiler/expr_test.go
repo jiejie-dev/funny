@@ -111,3 +111,48 @@ func TestCompile_UnaryNot(t *testing.T) {
 	fn := mod.Functions[0]
 	assert.Equal(t, bytecode.NOT_BOOL, fn.Code[1].Op)
 }
+
+func TestCompile_ListLiteral(t *testing.T) {
+	mod := compileExpr(t, "[1, 2, 3]")
+	fn := mod.Functions[0]
+	var hasBuildList bool
+	for _, instr := range fn.Code {
+		if instr.Op == bytecode.BUILD_LIST {
+			hasBuildList = true
+			break
+		}
+	}
+	assert.True(t, hasBuildList)
+}
+
+func TestCompile_Index(t *testing.T) {
+	mod := compileExpr(t, "[1, 2, 3][0]")
+	fn := mod.Functions[0]
+	var hasIndex bool
+	for _, instr := range fn.Code {
+		if instr.Op == bytecode.INDEX {
+			hasIndex = true
+			break
+		}
+	}
+	assert.True(t, hasIndex)
+}
+
+func TestCompile_Field(t *testing.T) {
+	mod := compileExpr(t, `struct Point:
+    x: int
+    y: int
+
+let p = Point(x: 1, y: 2)
+p.x
+`)
+	fn := mod.Functions[0]
+	var hasGetField bool
+	for _, instr := range fn.Code {
+		if instr.Op == bytecode.GET_FIELD {
+			hasGetField = true
+			break
+		}
+	}
+	assert.True(t, hasGetField)
+}

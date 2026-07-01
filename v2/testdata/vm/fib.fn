@@ -1,0 +1,7 @@
+fn fib(n: int) -> int:
+    if n < 2:
+        return n
+    return fib(n - 1) + fib(n - 2)
+
+let r = fib(20)
+println("fib(20) =", r)

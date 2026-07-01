@@ -35,8 +35,8 @@ func TestVM_Pop(t *testing.T) {
 	fn := &bytecode.Function{Name: "main", Arity: 0}
 	fn.Emit(bytecode.PUSH_INT, 0) // push 1
 	fn.Emit(bytecode.PUSH_INT, 1) // push 2
-	fn.Emit(bytecode.POP, 0)       // discard 2
-	fn.Emit(bytecode.HALT, 0)      // result: top of stack = 1
+	fn.Emit(bytecode.POP, 0)      // discard 2
+	fn.Emit(bytecode.HALT, 0)     // result: top of stack = 1
 	v := runVM(t, fn, 1, 2)
 	assert.Equal(t, 1, v)
 }

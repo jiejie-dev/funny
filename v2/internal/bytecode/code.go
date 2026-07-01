@@ -10,6 +10,14 @@ import (
 // Uses interface{} (any) since Go values can be int/float64/string/bool/nil/[]any/map[string]any.
 type Value = any
 
+// BuiltinInfo identifies a builtin function callable via CALL_BUILTIN.
+// The compiler emits one BuiltinInfo per call so the VM knows how many
+// arguments to pop from the operand stack.
+type BuiltinInfo struct {
+	Name  string
+	Arity int
+}
+
 // Instruction is a single bytecode instruction.
 type Instruction struct {
 	Op  OpCode

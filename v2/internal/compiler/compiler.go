@@ -24,21 +24,26 @@ const (
 
 // Compiler translates a typed AST into bytecode.
 type Compiler struct {
-	mod      *bytecode.Module
-	fn       *bytecode.Function
-	scopes   []map[string]int
-	varTypes []valueType // indexed by local slot (parallel to NumLocals)
+	mod         *bytecode.Module
+	fn          *bytecode.Function
+	scopes      []map[string]int
+	varTypes    []valueType   // indexed by local slot (parallel to NumLocals)
+	functions   map[string]int // function name → index in mod.Functions
+	fnRetTypes  map[string]valueType // function name → declared return value type
 }
 
 // Compile translates a typed Program into a Module.
 func Compile(prog *ast.Program, name string) (*bytecode.Module, error) {
 	c := &Compiler{
-		mod:    bytecode.NewModule(name),
-		scopes: []map[string]int{{}},
+		mod:        bytecode.NewModule(name),
+		scopes:     []map[string]int{{}},
+		functions:  map[string]int{},
+		fnRetTypes: map[string]valueType{},
 	}
 	mainFn := &bytecode.Function{Name: "main", Arity: 0}
 	c.mod.AddFunction(mainFn)
 	c.fn = mainFn
+	c.functions["main"] = 0
 	for i, s := range prog.Stmts {
 		isLast := i == len(prog.Stmts)-1
 		if err := c.compileStmt(s, isLast); err != nil {
@@ -113,9 +118,12 @@ func (c *Compiler) compileStmt(s ast.Statement, isLast bool) error {
 	case *ast.WhileStmt:
 		return c.compileWhile(n)
 	case *ast.ForStmt:
-		return fmt.Errorf("compileStmt: for-in loop not yet implemented (M2-B.5 follow-up)")
+		return c.compileFor(n)
+	case *ast.FnDecl:
+		return c.compileFnDecl(n)
 	case *ast.ReturnStmt:
-		c.fn.Emit(bytecode.RETURN, 0)
+		return c.compileReturn(n)
+	case *ast.StructDecl:
 		return nil
 	}
 	return fmt.Errorf("compileStmt: unsupported statement type %T", s)

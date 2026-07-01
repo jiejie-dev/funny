@@ -37,10 +37,16 @@ func (v *VM) Run() (bytecode.Value, error) {
 	return v.execute()
 }
 
-// execute runs the top frame's instructions until HALT.
+// execute runs the top frame's instructions until HALT or until frames are empty (main RETURN).
 func (v *VM) execute() (bytecode.Value, error) {
-	frame := v.frames[len(v.frames)-1]
 	for {
+		if len(v.frames) == 0 {
+			if len(v.stack) > 0 {
+				return v.stack[len(v.stack)-1], nil
+			}
+			return nil, nil
+		}
+		frame := v.frames[len(v.frames)-1]
 		if frame.ip >= len(frame.fn.Code) {
 			return nil, fmt.Errorf("vm: ip out of bounds at %d", frame.ip)
 		}
@@ -112,6 +118,7 @@ func (v *VM) execute() (bytecode.Value, error) {
 				return nil, fmt.Errorf("vm: JUMP_IF_FALSE on empty stack")
 			}
 			cond := v.stack[len(v.stack)-1]
+			v.stack = v.stack[:len(v.stack)-1]
 			b, isBool := cond.(bool)
 			if isBool && !b {
 				frame.ip = instr.Arg
@@ -121,10 +128,37 @@ func (v *VM) execute() (bytecode.Value, error) {
 				return nil, fmt.Errorf("vm: JUMP_IF_TRUE on empty stack")
 			}
 			cond := v.stack[len(v.stack)-1]
+			v.stack = v.stack[:len(v.stack)-1]
 			b, isBool := cond.(bool)
 			if isBool && b {
 				frame.ip = instr.Arg
 			}
+		case bytecode.CALL:
+			if err := v.execCall(instr.Arg); err != nil {
+				return nil, err
+			}
+		case bytecode.CALL_BUILTIN:
+			if err := v.execCallBuiltin(instr.Arg); err != nil {
+				return nil, err
+			}
+		case bytecode.RETURN:
+			if err := v.execReturn(); err != nil {
+				return nil, err
+			}
+		case bytecode.BUILD_LIST:
+			v.execBuildList(instr.Arg)
+		case bytecode.INDEX:
+			if err := v.execIndex(); err != nil {
+				return nil, err
+			}
+		case bytecode.BUILD_MAP:
+			v.execBuildMap(instr.Arg)
+		case bytecode.GET_FIELD:
+			if err := v.execGetField(); err != nil {
+				return nil, err
+			}
+		case bytecode.NEW_STRUCT:
+			v.execNewStruct()
 		default:
 			return nil, fmt.Errorf("vm: unsupported op %s at ip=%d (not yet implemented in this task)", instr.Op, frame.ip-1)
 		}
