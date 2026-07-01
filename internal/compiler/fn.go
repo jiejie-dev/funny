@@ -31,7 +31,13 @@ var builtinNames = map[string]bool{
 	"str_split":   true,
 }
 
-// compileFnDecl compiles a function declaration into a separate Function in the module.
+// compileFnDecl compiles a function declaration into a separate Function in
+// the module. Local slot numbering and slot->type tracking (c.scopes,
+// c.varTypes) are per-function state, so both must be swapped out for the
+// duration of the function body and restored afterward - never just reset
+// to empty, or the enclosing scope's own locals (e.g. top-level `let`s
+// declared before this `fn`) would become permanently unreachable by name,
+// silently falling back to (unimplemented) LOAD_GLOBAL lookups.
 func (c *Compiler) compileFnDecl(n *ast.FnDecl) error {
 	if _, ok := c.functions[n.Name]; ok {
 		return fmt.Errorf("function %s already declared", n.Name)
@@ -40,8 +46,14 @@ func (c *Compiler) compileFnDecl(n *ast.FnDecl) error {
 	fnIdx := c.mod.AddFunction(fn)
 	c.functions[n.Name] = fnIdx
 	c.fnRetTypes[n.Name] = paramType(n.RetType)
+
+	outerFn := c.fn
+	outerScopes := c.scopes
+	outerVarTypes := c.varTypes
+
 	c.fn = fn
 	c.scopes = []map[string]int{{}}
+	c.varTypes = nil
 	for _, p := range n.Params {
 		c.declareLocal(p.Name, paramType(p.TypeAnn))
 	}
@@ -49,8 +61,10 @@ func (c *Compiler) compileFnDecl(n *ast.FnDecl) error {
 		return err
 	}
 	c.fn.Emit(bytecode.RETURN, 0)
-	c.fn = c.mod.Functions[c.functions["main"]]
-	c.scopes = []map[string]int{{}}
+
+	c.fn = outerFn
+	c.scopes = outerScopes
+	c.varTypes = outerVarTypes
 	return nil
 }
 

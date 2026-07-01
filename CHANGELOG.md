@@ -15,9 +15,7 @@
 - Lexer bug where dedenting across multiple nesting levels to a non-zero column only emitted one DEDENT instead of all required levels
 - Bytecode compiler crash (`unsupported statement type`) on any script containing a `meta:` or `plan "...":` block when run via the default VM path (`funny run` without `FUNNY_INTERPRET=1`) — these are now no-ops in the compiler, matching the tree-walking evaluator
 - Type checker rejected every struct-typed annotation (`let p: Point = ...`, `fn f(p: Point)`, `fn f() -> Point`, struct fields, `list[Point]`, ...) with a spurious type mismatch, because `ParseType` has no environment access and could only produce an opaque `Primitive("Point")` for a bare struct name instead of the real `Struct` type; type annotations are now resolved against the environment so struct names compare correctly everywhere
-
-### Known issues found while fixing the above (not yet fixed)
-- The bytecode VM raises `unsupported op LOAD_GLOBAL` for scripts that declare a top-level `fn` in between declaring and later referencing a top-level variable (e.g. `let p = ...` / `fn foo(): ...` / `println(p)`); reproduces independent of type annotations and predates this release
+- Bytecode compiler crash (`vm: unsupported op LOAD_GLOBAL`) for any script that declares a top-level `fn` in between declaring and later referencing a top-level variable (e.g. `let p = ...` / `fn foo(): ...` / `println(p)`). `compileFnDecl` was resetting the compiler's local-scope table to a brand-new empty map after compiling each function body instead of saving/restoring the enclosing scope, permanently losing track of every local declared before that point; it also never isolated `varTypes` (local slot → value type) per function, so a variable and an unrelated function parameter sharing the same slot number could silently corrupt each other's recorded type and mis-codegen type-sensitive operators like `+`
 
 ## v2.0.0 (2026-07-XX)
 
