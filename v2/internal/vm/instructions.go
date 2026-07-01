@@ -145,3 +145,91 @@ func (v *VM) execReturn() error {
 	}
 	return nil
 }
+
+// execBuildList handles BUILD_LIST n. Pops n values from stack (in reverse), pushes a []Value.
+func (v *VM) execBuildList(n int) {
+	items := make([]bytecode.Value, n)
+	for i := n - 1; i >= 0; i-- {
+		items[i] = v.stack[len(v.stack)-1]
+		v.stack = v.stack[:len(v.stack)-1]
+	}
+	v.stack = append(v.stack, items)
+}
+
+// execIndex handles INDEX. Pops index then object, pushes element.
+func (v *VM) execIndex() error {
+	if len(v.stack) < 2 {
+		return fmt.Errorf("vm: INDEX requires 2 stack values")
+	}
+	idx := v.stack[len(v.stack)-1]
+	obj := v.stack[len(v.stack)-2]
+	v.stack = v.stack[:len(v.stack)-2]
+	i, ok := idx.(int)
+	if !ok {
+		return fmt.Errorf("vm: INDEX index not int")
+	}
+	switch val := obj.(type) {
+	case []bytecode.Value:
+		if i < 0 || i >= len(val) {
+			return fmt.Errorf("vm: INDEX list out of range")
+		}
+		v.stack = append(v.stack, val[i])
+	case string:
+		runes := []rune(val)
+		if i < 0 || i >= len(runes) {
+			return fmt.Errorf("vm: INDEX string out of range")
+		}
+		v.stack = append(v.stack, string(runes[i]))
+	default:
+		return fmt.Errorf("vm: INDEX on non-list/string")
+	}
+	return nil
+}
+
+// execBuildMap handles BUILD_MAP n. Pops 2n values (alternating key, value), pushes map.
+func (v *VM) execBuildMap(n int) {
+	m := make(map[string]bytecode.Value, n)
+	for i := 0; i < n; i++ {
+		val := v.stack[len(v.stack)-1]
+		v.stack = v.stack[:len(v.stack)-1]
+		key := v.stack[len(v.stack)-1]
+		v.stack = v.stack[:len(v.stack)-1]
+		ks, ok := key.(string)
+		if !ok {
+			ks = fmt.Sprintf("%v", key)
+		}
+		m[ks] = val
+	}
+	v.stack = append(v.stack, m)
+}
+
+// execGetField handles GET_FIELD. Pops field name then object, pushes value.
+func (v *VM) execGetField() error {
+	if len(v.stack) < 2 {
+		return fmt.Errorf("vm: GET_FIELD requires 2 stack values")
+	}
+	fname := v.stack[len(v.stack)-1]
+	obj := v.stack[len(v.stack)-2]
+	v.stack = v.stack[:len(v.stack)-2]
+	fs, ok := fname.(string)
+	if !ok {
+		return fmt.Errorf("vm: GET_FIELD field name not string")
+	}
+	switch o := obj.(type) {
+	case map[string]bytecode.Value:
+		if val, ok := o[fs]; ok {
+			v.stack = append(v.stack, val)
+		} else {
+			v.stack = append(v.stack, nil)
+		}
+	default:
+		return fmt.Errorf("vm: GET_FIELD on non-map/struct")
+	}
+	return nil
+}
+
+// execNewStruct handles NEW_STRUCT. For M2-B.5, this is a no-op tag.
+// The map is already on the stack; we just leave it as-is.
+func (v *VM) execNewStruct() {
+	// no-op for M2-B.5; structs are just maps.
+}

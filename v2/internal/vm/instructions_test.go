@@ -235,3 +235,79 @@ func TestVM_CallBuiltin_TypeOf(t *testing.T) {
 	v := runModule(t, main, nil, 42, "type_of")
 	assert.Equal(t, "int", v)
 }
+
+func TestVM_BuildList(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_INT, 0) // 1
+	main.Emit(bytecode.PUSH_INT, 1) // 2
+	main.Emit(bytecode.PUSH_INT, 2) // 3
+	main.Emit(bytecode.BUILD_LIST, 3)
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, 1, 2, 3)
+	list, ok := v.([]bytecode.Value)
+	require.True(t, ok)
+	assert.Equal(t, 3, len(list))
+	assert.Equal(t, 1, list[0])
+	assert.Equal(t, 2, list[1])
+	assert.Equal(t, 3, list[2])
+}
+
+func TestVM_IndexList(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_INT, 0)
+	main.Emit(bytecode.PUSH_INT, 1)
+	main.Emit(bytecode.PUSH_INT, 2)
+	main.Emit(bytecode.BUILD_LIST, 3)
+	main.Emit(bytecode.PUSH_INT, 3) // index 1
+	main.Emit(bytecode.INDEX, 0)
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, 10, 20, 30, 1)
+	assert.Equal(t, 20, v)
+}
+
+func TestVM_IndexString(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0) // "abc"
+	main.Emit(bytecode.PUSH_INT, 1) // index 1
+	main.Emit(bytecode.INDEX, 0)
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "abc", 1)
+	assert.Equal(t, "b", v)
+}
+
+func TestVM_BuildMap(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0) // "k"
+	main.Emit(bytecode.PUSH_INT, 1)  // 42
+	main.Emit(bytecode.BUILD_MAP, 1)
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "k", 42)
+	m, ok := v.(map[string]bytecode.Value)
+	require.True(t, ok)
+	assert.Equal(t, 42, m["k"])
+}
+
+func TestVM_GetField(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0) // "k"
+	main.Emit(bytecode.PUSH_INT, 1)  // 99
+	main.Emit(bytecode.BUILD_MAP, 1)
+	main.Emit(bytecode.PUSH_STR, 0) // "k" (field name, same deduped constant)
+	main.Emit(bytecode.GET_FIELD, 0)
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "k", 99)
+	assert.Equal(t, 99, v)
+}
+
+func TestVM_NewStruct(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0) // "k"
+	main.Emit(bytecode.PUSH_INT, 1)  // 7
+	main.Emit(bytecode.BUILD_MAP, 1)
+	main.Emit(bytecode.NEW_STRUCT, 0) // type name at constant[0] = "User"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "k", 7) // note: constant[0] is "k" but NEW_STRUCT arg unused
+	m, ok := v.(map[string]bytecode.Value)
+	require.True(t, ok)
+	assert.Equal(t, 7, m["k"])
+}

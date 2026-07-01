@@ -143,6 +143,20 @@ func (v *VM) execute() (bytecode.Value, error) {
 			if err := v.execReturn(); err != nil {
 				return nil, err
 			}
+		case bytecode.BUILD_LIST:
+			v.execBuildList(instr.Arg)
+		case bytecode.INDEX:
+			if err := v.execIndex(); err != nil {
+				return nil, err
+			}
+		case bytecode.BUILD_MAP:
+			v.execBuildMap(instr.Arg)
+		case bytecode.GET_FIELD:
+			if err := v.execGetField(); err != nil {
+				return nil, err
+			}
+		case bytecode.NEW_STRUCT:
+			v.execNewStruct()
 		default:
 			return nil, fmt.Errorf("vm: unsupported op %s at ip=%d (not yet implemented in this task)", instr.Op, frame.ip-1)
 		}
