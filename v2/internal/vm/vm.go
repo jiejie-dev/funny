@@ -135,6 +135,10 @@ func (v *VM) execute() (bytecode.Value, error) {
 			if err := v.execCall(instr.Arg); err != nil {
 				return nil, err
 			}
+		case bytecode.CALL_BUILTIN:
+			if err := v.execCallBuiltin(instr.Arg); err != nil {
+				return nil, err
+			}
 		case bytecode.RETURN:
 			if err := v.execReturn(); err != nil {
 				return nil, err
