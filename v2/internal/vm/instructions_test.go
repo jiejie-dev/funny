@@ -312,15 +312,81 @@ func TestVM_NewStruct(t *testing.T) {
 	assert.Equal(t, 7, m["k"])
 }
 
+func TestVM_ResultOK(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_INT, 0)     // value 42
+	main.Emit(bytecode.CALL_BUILTIN, 1) // BuiltinInfo{"ok",1} -> wraps in Result{tag: "ok", val: 42}
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, 42, bytecode.BuiltinInfo{Name: "ok", Arity: 1})
+	m, ok := v.(map[string]bytecode.Value)
+	require.True(t, ok)
+	assert.Equal(t, "ok", m["tag"])
+	assert.Equal(t, 42, m["val"])
+}
+
+func TestVM_ResultErr(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0)     // "oops"
+	main.Emit(bytecode.CALL_BUILTIN, 1) // BuiltinInfo{"err",1}
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "oops", bytecode.BuiltinInfo{Name: "err", Arity: 1})
+	m, ok := v.(map[string]bytecode.Value)
+	require.True(t, ok)
+	assert.Equal(t, "err", m["tag"])
+	assert.Equal(t, "oops", m["val"])
+}
+
+func TestVM_TryOrReturn_Ok(t *testing.T) {
+	// fn foo():
+	//   return ok(42)?
+	// main: CALL foo, HALT
+	// ? leaves Result on the stack on Ok; the Result is then returned.
+	fn := &bytecode.Function{Name: "foo", Arity: 0, NumLocals: 0}
+	fn.Emit(bytecode.PUSH_INT, 0)      // constant[0] = 42
+	fn.Emit(bytecode.CALL_BUILTIN, 1)  // constant[1] = BuiltinInfo{"ok",1} -> Result{tag: "ok", val: 42}
+	fn.Emit(bytecode.TRY_OR_RETURN, 0) // Ok: leave Result on stack
+	fn.Emit(bytecode.RETURN, 0)
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.CALL, 1)
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, []*bytecode.Function{fn}, 42, bytecode.BuiltinInfo{Name: "ok", Arity: 1})
+	m, ok := v.(map[string]bytecode.Value)
+	require.True(t, ok)
+	assert.Equal(t, "ok", m["tag"])
+	assert.Equal(t, 42, m["val"])
+}
+
+func TestVM_TryOrReturn_Err(t *testing.T) {
+	// fn foo():
+	//   return err("boom")?
+	// main: CALL foo, HALT
+	fn := &bytecode.Function{Name: "foo", Arity: 0, NumLocals: 0}
+	fn.Emit(bytecode.PUSH_STR, 0)      // constant[0] = "boom"
+	fn.Emit(bytecode.CALL_BUILTIN, 1)  // constant[1] = BuiltinInfo{"err",1} -> Result{tag: "err", val: "boom"}
+	fn.Emit(bytecode.TRY_OR_RETURN, 0) // Err: return from current function with Result
+	fn.Emit(bytecode.RETURN, 0)        // dead code (unreachable after TRY_OR_RETURN on err)
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.CALL, 1)
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, []*bytecode.Function{fn}, "boom", bytecode.BuiltinInfo{Name: "err", Arity: 1})
+	m, ok := v.(map[string]bytecode.Value)
+	require.True(t, ok)
+	assert.Equal(t, "err", m["tag"])
+	assert.Equal(t, "boom", m["val"])
+}
+
 func TestVM_BuiltinToJSON(t *testing.T) {
+	// to_json maps a funny value (map[string]bytecode.Value) to its canonical
+	// JSON string representation.
 	main := &bytecode.Function{Name: "main", Arity: 0}
 	main.Emit(bytecode.PUSH_STR, 0)
 	main.Emit(bytecode.CALL_BUILTIN, 1) // "to_json"
 	main.Emit(bytecode.HALT, 0)
-	v := runModule(t, main, nil, `{"k": 1}`, bytecode.BuiltinInfo{Name: "to_json", Arity: 1})
-	m, ok := v.(map[string]bytecode.Value)
+	m := map[string]bytecode.Value{"k": float64(1)}
+	v := runModule(t, main, nil, m, bytecode.BuiltinInfo{Name: "to_json", Arity: 1})
+	s, ok := v.(string)
 	require.True(t, ok)
-	assert.Equal(t, float64(1), m["k"])
+	assert.Equal(t, `{"k":1}`, s)
 }
 
 func TestVM_BuiltinParseJSON(t *testing.T) {

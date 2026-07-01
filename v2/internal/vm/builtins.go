@@ -12,12 +12,6 @@ import (
 	"github.com/jerloo/funny/v2/internal/bytecode"
 )
 
-// makeResult builds an Ok/Err tagged-result map for builtins that return
-// a value-or-error outcome instead of raising a VM error.
-func makeResult(tag string, value bytecode.Value) map[string]bytecode.Value {
-	return map[string]bytecode.Value{"tag": tag, "value": value}
-}
-
 // convertJSON converts a generic Go value (from json.Unmarshal) into a funny
 // Value, using []any and map[string]any instead of []interface{} and
 // map[string]interface{}.
@@ -140,20 +134,31 @@ func (v *VM) execCallBuiltin(nameIdx int) error {
 		default:
 			v.stack[len(v.stack)-1] = "unknown"
 		}
+case "ok":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: ok() requires 1 argument")
+		}
+		val := v.stack[len(v.stack)-1]
+		v.stack = v.stack[:len(v.stack)-1]
+		v.stack = append(v.stack, makeResult("ok", val))
+	case "err":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: err() requires 1 argument")
+		}
+		val := v.stack[len(v.stack)-1]
+		v.stack = v.stack[:len(v.stack)-1]
+		v.stack = append(v.stack, makeResult("err", val))
 	case "to_json":
 		if len(v.stack) < 1 {
 			return fmt.Errorf("vm: to_json() requires 1 argument")
 		}
-		s, ok := v.stack[len(v.stack)-1].(string)
-		if !ok {
-			return fmt.Errorf("vm: to_json() requires a string argument")
-		}
+		val := v.stack[len(v.stack)-1]
 		v.stack = v.stack[:len(v.stack)-1]
-		var x any
-		if err := json.Unmarshal([]byte(s), &x); err != nil {
-			return fmt.Errorf("vm: to_json: invalid JSON: %v", err)
+		canonical, err := json.Marshal(funnyToGo(val))
+		if err != nil {
+			return fmt.Errorf("vm: to_json: marshal error: %v", err)
 		}
-		v.stack = append(v.stack, convertJSON(x))
+		v.stack = append(v.stack, string(canonical))
 	case "parse_json":
 		if len(v.stack) < 1 {
 			return fmt.Errorf("vm: parse_json() requires 1 argument")
@@ -165,8 +170,7 @@ func (v *VM) execCallBuiltin(nameIdx int) error {
 		v.stack = v.stack[:len(v.stack)-1]
 		var x any
 		if err := json.Unmarshal([]byte(s), &x); err != nil {
-			v.stack = append(v.stack, makeResult("err", fmt.Sprintf("parse_json: %v", err)))
-			return nil
+			return fmt.Errorf("vm: parse_json: invalid JSON: %v", err)
 		}
 		v.stack = append(v.stack, convertJSON(x))
 	case "now":
@@ -263,4 +267,29 @@ func toFloat(val bytecode.Value) float64 {
 		return x
 	}
 	panic(fmt.Sprintf("vm: expected number, got %T", val))
+}
+
+// funnyToGo converts a funny bytecode.Value (using []bytecode.Value and
+// map[string]bytecode.Value) into generic Go types ([]any, map[string]any)
+// that encoding/json can marshal directly.
+func funnyToGo(val bytecode.Value) any {
+	switch v := val.(type) {
+	case nil:
+		return nil
+	case bool, int, float64, string:
+		return v
+	case []bytecode.Value:
+		out := make([]any, len(v))
+		for i, e := range v {
+			out[i] = funnyToGo(e)
+		}
+		return out
+	case map[string]bytecode.Value:
+		out := make(map[string]any, len(v))
+		for k, e := range v {
+			out[k] = funnyToGo(e)
+		}
+		return out
+	}
+	return fmt.Sprintf("%v", val)
 }

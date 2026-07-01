@@ -1,0 +1,16 @@
+let t = now()
+println("unix:", t)
+
+let s = str_upper("hello funny")
+println(s)
+
+let parts = str_split("a,b,c", ",")
+println("count:", len(parts))
+
+println("sqrt(16):", sqrt(16))
+println("pow(2, 10):", pow(2, 10))
+println("abs(-7):", abs(-7))
+
+let ts = 1700000000
+let formatted = time_format(ts, "2006-01-02")
+println("date:", formatted)

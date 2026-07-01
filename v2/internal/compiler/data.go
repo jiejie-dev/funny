@@ -40,6 +40,9 @@ func (c *Compiler) compileIndex(n *ast.IndexExpr) (valueType, error) {
 }
 
 // compileField compiles a.b (push object, push field name as string, GET_FIELD).
+// Without per-field static types we conservatively report valStr; this keeps
+// downstream comparisons like `r.tag == "err"` well-typed while letting
+// println accept the value (since println is untyped at compile time).
 func (c *Compiler) compileField(n *ast.FieldExpr) (valueType, error) {
 	if _, err := c.compileExpr(n.Object); err != nil {
 		return "", err
@@ -47,7 +50,7 @@ func (c *Compiler) compileField(n *ast.FieldExpr) (valueType, error) {
 	nameIdx := c.mod.AddConstant(n.Field)
 	c.fn.Emit(bytecode.PUSH_STR, nameIdx)
 	c.fn.Emit(bytecode.GET_FIELD, 0)
-	return valNil, nil
+	return valStr, nil
 }
 
 // compileStructLiteral compiles Point(x: 1, y: 2) into BUILD_MAP + NEW_STRUCT.

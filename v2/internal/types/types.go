@@ -20,9 +20,22 @@ func (p Primitive) typeMarker() {}
 
 // Equal is a convenience for comparing two Types.
 // Returns false if either is nil.
+// Special case: bare `Result` (Primitive "Result") matches any Result[T, E],
+// supporting Result as a top-level placeholder when concrete Ok/Err types
+// don't matter (e.g., a function returning any Result).
 func Equal(a, b Type) bool {
 	if a == nil || b == nil {
 		return false
+	}
+	if p, ok := a.(Primitive); ok && string(p) == "Result" {
+		if _, isResult := b.(Result); isResult {
+			return true
+		}
+	}
+	if p, ok := b.(Primitive); ok && string(p) == "Result" {
+		if _, isResult := a.(Result); isResult {
+			return true
+		}
 	}
 	return a.Equal(b)
 }

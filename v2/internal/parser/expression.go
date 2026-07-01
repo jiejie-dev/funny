@@ -148,6 +148,10 @@ func (p *Parser) parsePostfix() (ast.Expression, error) {
 				return nil, err
 			}
 			left = &ast.IndexExpr{NodePos: pos, Object: left, Index: idx}
+		case lexer.QUESTION:
+			pos := astPos(p.cur.Pos)
+			p.advance()
+			return &ast.TryExpr{NodePos: pos, Inner: left}, nil
 		default:
 			return left, nil
 		}

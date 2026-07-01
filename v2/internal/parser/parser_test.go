@@ -6,6 +6,7 @@ import (
 
 	"github.com/jerloo/funny/v2/internal/ast"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParser_Empty(t *testing.T) {
@@ -188,4 +189,23 @@ func TestParser_FromFile(t *testing.T) {
 		_, err = p.Parse()
 		assert.NoError(t, err, "file=%s", path)
 	}
+}
+
+func TestParser_TryOperator(t *testing.T) {
+	src := `let r = ok(42)?
+r.val
+`
+	p := New(src, "")
+	prog, err := p.Parse()
+	assert.NoError(t, err)
+	require.Len(t, prog.Stmts, 2)
+}
+
+func TestParser_TryOperator_OnCall(t *testing.T) {
+	src := `let r = divide(10, 2)?
+println(r)
+`
+	p := New(src, "")
+	_, err := p.Parse()
+	assert.NoError(t, err)
 }
