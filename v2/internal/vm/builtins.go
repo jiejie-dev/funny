@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/jerloo/funny/v2/internal/bytecode"
@@ -212,6 +213,41 @@ func (v *VM) execCallBuiltin(nameIdx int) error {
 		default:
 			return fmt.Errorf("vm: abs() requires a number")
 		}
+	case "str_upper":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: str_upper() requires 1 argument")
+		}
+		s, _ := v.stack[len(v.stack)-1].(string)
+		v.stack = v.stack[:len(v.stack)-1]
+		v.stack = append(v.stack, strings.ToUpper(s))
+	case "str_lower":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: str_lower() requires 1 argument")
+		}
+		s, _ := v.stack[len(v.stack)-1].(string)
+		v.stack = v.stack[:len(v.stack)-1]
+		v.stack = append(v.stack, strings.ToLower(s))
+	case "str_contains":
+		if len(v.stack) < 2 {
+			return fmt.Errorf("vm: str_contains() requires 2 arguments")
+		}
+		substr := v.stack[len(v.stack)-1].(string)
+		s := v.stack[len(v.stack)-2].(string)
+		v.stack = v.stack[:len(v.stack)-2]
+		v.stack = append(v.stack, strings.Contains(s, substr))
+	case "str_split":
+		if len(v.stack) < 2 {
+			return fmt.Errorf("vm: str_split() requires 2 arguments")
+		}
+		sep := v.stack[len(v.stack)-1].(string)
+		s := v.stack[len(v.stack)-2].(string)
+		v.stack = v.stack[:len(v.stack)-2]
+		parts := strings.Split(s, sep)
+		out := make([]bytecode.Value, len(parts))
+		for i, p := range parts {
+			out[i] = p
+		}
+		v.stack = append(v.stack, out)
 	default:
 		return fmt.Errorf("vm: unknown builtin %q", name)
 	}

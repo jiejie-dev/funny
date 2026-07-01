@@ -387,3 +387,46 @@ func TestVM_BuiltinAbs(t *testing.T) {
 	v := runModule(t, main, nil, -5, bytecode.BuiltinInfo{Name: "abs", Arity: 1})
 	assert.Equal(t, 5, v)
 }
+
+func TestVM_BuiltinStrUpper(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0) // "hello"
+	main.Emit(bytecode.CALL_BUILTIN, 1) // "str_upper"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "hello", bytecode.BuiltinInfo{Name: "str_upper", Arity: 1})
+	assert.Equal(t, "HELLO", v)
+}
+
+func TestVM_BuiltinStrLower(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0) // "WORLD"
+	main.Emit(bytecode.CALL_BUILTIN, 1) // "str_lower"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "WORLD", bytecode.BuiltinInfo{Name: "str_lower", Arity: 1})
+	assert.Equal(t, "world", v)
+}
+
+func TestVM_BuiltinStrContains(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0) // "hello world"
+	main.Emit(bytecode.PUSH_STR, 1) // "world"
+	main.Emit(bytecode.CALL_BUILTIN, 2) // "str_contains"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "hello world", "world", bytecode.BuiltinInfo{Name: "str_contains", Arity: 2})
+	assert.Equal(t, true, v)
+}
+
+func TestVM_BuiltinStrSplit(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0)    // "a,b,c"
+	main.Emit(bytecode.PUSH_STR, 1)    // ","
+	main.Emit(bytecode.CALL_BUILTIN, 2) // "str_split"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, "a,b,c", ",", bytecode.BuiltinInfo{Name: "str_split", Arity: 2})
+	list, ok := v.([]bytecode.Value)
+	require.True(t, ok)
+	assert.Equal(t, 3, len(list))
+	assert.Equal(t, "a", list[0])
+	assert.Equal(t, "b", list[1])
+	assert.Equal(t, "c", list[2])
+}
