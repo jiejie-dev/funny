@@ -9,7 +9,12 @@ import (
 	"github.com/jiejie-dev/funny/internal/cli"
 )
 
-var version = "0.1.0"
+// version is a fallback for non-release builds; `go build`/`go run` don't
+// set it. Release builds should override it with
+// `-ldflags "-X main.version=2.1.0"` so `funny --version` matches the tag
+// actually released, instead of drifting from CHANGELOG.md/RELEASE_NOTES.md
+// like the old hardcoded "0.1.0" did.
+var version = "2.1.0-dev"
 
 var rootCmd = &cobra.Command{
 	Use:     "funny",

@@ -2,9 +2,9 @@
 
 AI-native scripting language. See `docs/superpowers/plans/` for design and planning documents.
 
-**Status: v2.0.0 — RELEASED**
+**Status: v2.0.0 — RELEASED; v2.1.0 — in progress on `main`**
 
-The complete Funny v2 stack is shipping. See `CHANGELOG.md` for the full release notes.
+The complete Funny v2 stack is shipping. See `CHANGELOG.md` for the full release notes (including unreleased v2.1 work).
 
 ### Quick start
 
@@ -20,7 +20,7 @@ funny-lsp                   # start LSP server (for editors/IDEs)
 ### Features
 
 - AI-native design: indentation-based syntax, strong typing, agent protocol
-- Tree-walking evaluator (default) + bytecode VM (~3.5× faster, set `FUNNY_INTERPRET=1` to use interpreter)
+- Bytecode VM (default) + tree-walking evaluator fallback (VM is ~3.5× faster; set `FUNNY_INTERPRET=1` to use the interpreter instead)
 - `Result` + `?` operator for error propagation
 - Plan engine: `tool`/`transform`/`guard`/`delay`/`parallel` step kinds with real retry+backoff, timeout, and guard-assertion semantics (`branch` is currently `tool` plus ordinary `if`/`else` — no dedicated case-list syntax yet)
 - MCP server with 6 tools for LLM integration

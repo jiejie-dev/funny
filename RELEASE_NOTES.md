@@ -3,7 +3,7 @@
 **Release date:** 2026-07-01
 **Module:** `github.com/jiejie-dev/funny`
 **License:** MIT
-**Binaries:** `funny` (CLI), `funny-mcp` (MCP server)
+**Binaries:** `funny` (CLI), `funny-mcp` (MCP server), `funny-lsp` (LSP server, added in v2.1)
 
 ---
 
@@ -128,7 +128,10 @@ The VM is ~3.5× faster than the tree-walking interpreter on the recursive fib(2
 funny run <script>          Execute a funny script
 funny ast <script>          Print the JSON AST
 funny describe <script>     Print the plan + metadata as JSON
+funny disasm <script>       Print the bytecode disassembly
+funny fmt <script>          Print canonically-formatted source (v2.1)
 funny-mcp                   Start the MCP server over stdio
+funny-lsp                   Start the LSP server over stdio (v2.1)
 ```
 
 `funny --help` lists the full set.
@@ -138,7 +141,7 @@ funny-mcp                   Start the MCP server over stdio
 `funny-mcp` exposes 6 tools over stdio (per the Model Context Protocol):
 
 - `ast(path)` — parse and return JSON AST
-- `format(path)` — return formatted source (v2.0.0: no-op)
+- `format(path)` — return formatted source (v2.0.0: no-op; real formatting shipped in v2.1, see CHANGELOG.md)
 - `list_skills(dir)` — list all `.funny` files in `dir` with their meta blocks
 - `describe_skill(path)` — meta + plan steps for one file
 - `run_skill(path)` — execute a file via the CLI
@@ -149,9 +152,9 @@ funny-mcp                   Start the MCP server over stdio
 - 5× interpreter performance target not yet met (currently 3.5×)
 - AI-friendliness benchmark requires community LLM evaluation; baseline harness is 50 tasks with a perfect-guesser scorer
 - ~~Map literal AST parser syntax needs explicit braces~~ — fixed in v2.1: `{"k": v}` literals are now supported, including multi-line form with trailing commas (see CHANGELOG.md)
-- `format` MCP tool is a no-op (real formatting lands in v2.1)
+- ~~`format` MCP tool is a no-op (real formatting lands in v2.1)~~ — fixed in v2.1: the MCP `format` tool and `funny fmt` both delegate to a real AST-based formatter now (see CHANGELOG.md)
 - Some stdlib functions return Result wrappers where plain values might be simpler
-- `f"..."` string interpolation: M1 parser accepts the syntax; M2-A runtime substitution is deferred to v2.1
+- ~~`f"..."` string interpolation: M1 parser accepts the syntax; M2-A runtime substitution is deferred to v2.1~~ — fixed in v2.1: full `f"...{expr:spec}..."` interpolation now works end-to-end (lexer/parser/type checker/evaluator/bytecode VM), see CHANGELOG.md
 - ~~No LSP server in v2.0.0 (the v1 LSP scaffolding is gone in the v2 migration; v2.1 will re-add)~~ — fixed in v2.1: a from-scratch `funny-lsp` binary now provides diagnostics, hover, completion, signature help, go-to-definition (including across `import`s), document symbols, formatting, find-references, rename, and a custom `funny/planGraph` plan-visualization request (see CHANGELOG.md)
 
 ## Upgrading from v1
@@ -179,7 +182,9 @@ Built with the help of:
 ```
 funny/
 ├── cmd/
-│   └── funny/             # CLI entry (run, ast, describe)
+│   ├── funny/              # CLI entry (run, ast, fmt, describe, disasm)
+│   ├── funny-mcp/          # MCP server entry
+│   └── funny-lsp/          # LSP server entry (added in v2.1)
 ├── docs/                  # language-manual + 5 tutorials
 ├── internal/              # core packages
 │   ├── agent/             # plan engine
@@ -190,7 +195,9 @@ funny/
 │   ├── compiler/          # typed-AST → bytecode compiler
 │   ├── errs/              # unified error format
 │   ├── evaluator/         # tree-walking interpreter (fallback)
+│   ├── formatter/         # AST-based source formatter (added in v2.1)
 │   ├── lexer/             # tokenizer
+│   ├── lsp/               # LSP server implementation (added in v2.1)
 │   ├── mcp/               # MCP server (6 tools)
 │   ├── parser/            # Pratt parser
 │   ├── types/             # type system + checker
