@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jiejie-dev/funny/internal/ast"
 	"github.com/jiejie-dev/funny/internal/errs"
@@ -494,27 +495,58 @@ func (p *Parser) parseStep() (ast.Statement, error) {
 	}
 	if p.cur.Kind == lexer.NAME && p.cur.Data == "with" {
 		p.advance()
-		if p.cur.Kind != lexer.NAME || p.cur.Data != "retry" {
-			return nil, errs.New("E1045", "expected 'retry' after 'with'", errPos(p.cur.Pos), "")
+		// The literal `retry` keyword is optional and purely cosmetic now
+		// that `with` accepts any mix of retry/timeout options — kept so
+		// `with retry max=3:` (the only form that existed before timeout
+		// and backoff were added) keeps parsing unchanged.
+		if p.cur.Kind == lexer.NAME && p.cur.Data == "retry" {
+			p.advance()
 		}
-		p.advance()
 		retry := &ast.Retry{}
+		sawRetryOption := false
 		for p.cur.Kind == lexer.NAME {
 			key := p.cur.Data
 			p.advance()
 			if _, err := p.expect(lexer.EQ); err != nil {
 				return nil, err
 			}
-			if p.cur.Kind != lexer.INT {
-				return nil, errs.New("E1046", fmt.Sprintf("expected int value for %s", key), errPos(p.cur.Pos), "")
-			}
-			n, _ := strconv.Atoi(p.cur.Data)
-			if key == "max" {
+			switch key {
+			case "max":
+				if p.cur.Kind != lexer.INT {
+					return nil, errs.New("E1046", fmt.Sprintf("expected int value for %s", key), errPos(p.cur.Pos), "")
+				}
+				n, _ := strconv.Atoi(p.cur.Data)
 				retry.Max = n
+				sawRetryOption = true
+				p.advance()
+			case "backoff":
+				if p.cur.Kind != lexer.NAME {
+					return nil, errs.New("E1047", "expected backoff strategy name (constant, linear, or exp)", errPos(p.cur.Pos), "")
+				}
+				switch p.cur.Data {
+				case "constant", "linear", "exp":
+				default:
+					return nil, errs.New("E1047", fmt.Sprintf("unknown backoff strategy %q (expected constant, linear, or exp)", p.cur.Data), errPos(p.cur.Pos), "")
+				}
+				retry.Backoff = p.cur.Data
+				sawRetryOption = true
+				p.advance()
+			case "timeout":
+				if p.cur.Kind != lexer.STR {
+					return nil, errs.New("E1048", "expected quoted duration string for timeout (e.g. \"5s\")", errPos(p.cur.Pos), "")
+				}
+				if _, err := time.ParseDuration(p.cur.Data); err != nil {
+					return nil, errs.New("E1048", fmt.Sprintf("invalid timeout duration %q: %s", p.cur.Data, err), errPos(p.cur.Pos), "")
+				}
+				step.Timeout = p.cur.Data
+				p.advance()
+			default:
+				return nil, errs.New("E1049", fmt.Sprintf("unknown step option %q (expected max, backoff, or timeout)", key), errPos(p.cur.Pos), "")
 			}
-			p.advance()
 		}
-		step.Retry = retry
+		if sawRetryOption {
+			step.Retry = retry
+		}
 	}
 	if _, err := p.expect(lexer.COLON); err != nil {
 		return nil, err

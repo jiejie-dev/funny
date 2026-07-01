@@ -21,11 +21,13 @@ import (
 //     step with "parallel" edges, and the *next* top-level step is
 //     connected from the parallel step itself (matching wg.Wait()
 //     rejoining before execution continues).
-//   - All other kinds (tool/guard/transform/branch/delay) currently
-//     execute identically at runtime (see execStep's default case) — the
-//     graph still reports their declared Kind since that's the intended
-//     semantic label, but does not invent branching/delay edges the
-//     engine doesn't yet implement.
+//   - `guard`, `delay`, and retry `backoff`/`timeout` now have real
+//     engine semantics (see internal/agent/engine.go), but none of them
+//     change the *graph shape* — a guard's pass/fail assertion and a
+//     delay's sleep both happen inside a single node, they don't fan out
+//     into separate nodes/edges. `branch` still has no dedicated
+//     case-list syntax (it's just `tool` with ordinary if/else inside the
+//     body), so this graph does not invent branching edges for it.
 func (d *document) planGraphs() PlanGraphResult {
 	result := PlanGraphResult{Plans: []PlanGraph{}}
 	if d.prog == nil {

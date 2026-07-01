@@ -245,12 +245,48 @@ meta:
 plan "my_skill":
     step "setup":
         let x = 1
-    step "compute" -> tool with retry max=3:
+    step "compute" -> tool with retry max=3 backoff=exp:
         let r = x * 2
     step "verify" -> guard:
-        if r > 0:
-            pass
+        r > 0
+    step "pause" -> delay with timeout="200ms":
+        pass
 ```
+
+A step's kind (`tool`/`guard`/`transform`/`parallel`/`branch`/`delay`, after `->`; `tool` if
+omitted) and its `with` options are executed by `internal/agent.Engine` as follows:
+
+- **`tool`** / **`transform`**: run the body once (subject to retry below). If the body's
+  final statement is a bare expression or `return <value>` (not `let`/`assign`), its value
+  is published to the plan's scope as `__result`, so a later step can read what the
+  previous one produced.
+- **`guard`**: same as `tool`, but if the body's final statement is a bare
+  expression/`return <value>`, that value is also treated as an assertion — an `err(...)`
+  Result or anything falsy fails the step (triggering retry, if configured); an `ok(...)`
+  Result always passes regardless of its payload. A body that ends in `let`/`assign`
+  (nothing to assert) always passes.
+- **`branch`**: identical to `tool` — there's no dedicated branch-case syntax yet, so
+  conditional logic is just an ordinary `if`/`else` inside the body.
+- **`delay`**: requires `with timeout="<duration>"`; sleeps for that duration before
+  running the body (which is typically empty or just `pass`).
+- **`parallel`**: every statement directly in the body runs concurrently, one goroutine
+  each (not a list of named sub-steps — there's no nested-step syntax); the step
+  completes once all of them do, failing with the first error seen if any failed. Retry,
+  timeout, and guard assertions do not apply to `parallel` steps.
+- **`with retry max=<N>`**: retries the body up to `N` times on failure (an error, a
+  timeout, or — for `guard` — a failed assertion).
+- **`with ... backoff=<constant|linear|exp>`**: adds a delay between retry attempts
+  (constant, `N`× the base unit, or `2^(N-1)`× the base unit); omitting `backoff`
+  retries immediately, matching pre-v2.1 behavior.
+- **`with ... timeout="<duration>"`** (e.g. `"500ms"`, `"5s"`): bounds a single attempt's
+  wall-clock time. Since the tree-walking evaluator has no preemption point, a step that's
+  genuinely stuck (e.g. an infinite loop) keeps running in the background after the
+  timeout error is returned — `timeout` is a best-effort control-flow signal for
+  eventually-terminating work (like a slow HTTP call), not a hard isolation guarantee.
+
+`retry.on` (retry only for specific error types) is deferred: Funny doesn't have a typed
+error system yet (`err(...)` just carries a string), so there's no clean value to filter on
+without inventing a fragile string-matching stand-in.
 
 ## Builtin Functions
 
