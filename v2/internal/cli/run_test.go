@@ -77,3 +77,22 @@ func TestDisasm_Outputs(t *testing.T) {
 	assert.Contains(t, out, "module test.fn")
 	assert.Contains(t, out, "PUSH_INT")
 }
+
+func TestDescribe_Plan(t *testing.T) {
+	src := `meta:
+    name: "demo"
+    version: "1.0"
+
+plan "demo":
+    step "s1":
+        pass
+    step "s2":
+        pass
+`
+	out, err := Describe([]byte(src), "test.fn")
+	assert.NoError(t, err)
+	s := string(out)
+	assert.Contains(t, s, "demo")
+	assert.Contains(t, s, "s1")
+	assert.Contains(t, s, "s2")
+}

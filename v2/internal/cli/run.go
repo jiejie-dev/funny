@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/jerloo/funny/v2/internal/ast"
 	"github.com/jerloo/funny/v2/internal/compiler"
 	"github.com/jerloo/funny/v2/internal/evaluator"
 	"github.com/jerloo/funny/v2/internal/parser"
@@ -66,4 +67,42 @@ func Disasm(src []byte, file string) (string, error) {
 		return "", err
 	}
 	return mod.Disassemble(), nil
+}
+
+// Describe returns a JSON representation of the plan/metadata for tools to consume.
+func Describe(src []byte, file string) ([]byte, error) {
+	p := parser.New(string(src), file)
+	prog, err := p.Parse()
+	if err != nil {
+		return nil, err
+	}
+	var plan *ast.PlanBlock
+	var meta *ast.MetaBlock
+	for _, s := range prog.Stmts {
+		switch n := s.(type) {
+		case *ast.PlanBlock:
+			plan = n
+		case *ast.MetaBlock:
+			meta = n
+		}
+	}
+	out := map[string]any{}
+	if meta != nil {
+		out["meta"] = meta.Fields
+	}
+	if plan != nil {
+		steps := []string{}
+		if plan.Body != nil {
+			for _, stmt := range plan.Body.Statements {
+				if step, ok := stmt.(*ast.Step); ok {
+					steps = append(steps, step.Name)
+				}
+			}
+		}
+		out["plan"] = map[string]any{
+			"name":  plan.Name,
+			"steps": steps,
+		}
+	}
+	return json.MarshalIndent(out, "", "  ")
 }
