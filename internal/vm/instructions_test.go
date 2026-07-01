@@ -602,3 +602,55 @@ func TestVM_BuiltinB64Decode(t *testing.T) {
 	assert.Equal(t, "ok", m["tag"])
 	assert.Equal(t, "hello", m["val"])
 }
+
+func TestVM_BuiltinJwtEncode(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0) // header json
+	main.Emit(bytecode.PUSH_STR, 1) // claims json
+	main.Emit(bytecode.PUSH_STR, 2) // secret
+	main.Emit(bytecode.CALL_BUILTIN, 3) // "jwt_encode"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil,
+		`{"alg":"HS256","typ":"JWT"}`,
+		`{"sub":"alice"}`,
+		"secret",
+		bytecode.BuiltinInfo{Name: "jwt_encode", Arity: 3})
+	s, ok := v.(string)
+	require.True(t, ok)
+	assert.Contains(t, s, ".")
+}
+
+func TestVM_BuiltinJwtRoundTrip(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0)              // header json
+	main.Emit(bytecode.PUSH_STR, 1)              // claims json
+	main.Emit(bytecode.PUSH_STR, 2)              // secret (encode)
+	main.Emit(bytecode.CALL_BUILTIN, 3)          // jwt_encode (arity 3)
+	main.Emit(bytecode.PUSH_STR, 2)              // same secret (decode)
+	main.Emit(bytecode.CALL_BUILTIN, 4)          // jwt_decode (arity 2)
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil,
+		`{"alg":"HS256","typ":"JWT"}`,
+		`{"sub":"alice"}`,
+		"secret",
+		bytecode.BuiltinInfo{Name: "jwt_encode", Arity: 3},
+		bytecode.BuiltinInfo{Name: "jwt_decode", Arity: 2})
+	m, ok := v.(map[string]bytecode.Value)
+	require.True(t, ok)
+	assert.Equal(t, "ok", m["tag"])
+}
+
+func TestVM_BuiltinSqlOpen(t *testing.T) {
+	tmpdb := "/tmp/funny_test_m4.db"
+	os.Remove(tmpdb)
+	defer os.Remove(tmpdb)
+
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0)
+	main.Emit(bytecode.CALL_BUILTIN, 1) // "sql_open"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, tmpdb, bytecode.BuiltinInfo{Name: "sql_open", Arity: 1})
+	s, ok := v.(string)
+	require.True(t, ok)
+	assert.NotEmpty(t, s)
+}

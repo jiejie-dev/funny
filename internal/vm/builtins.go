@@ -17,6 +17,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
+
 	"github.com/jiejie-dev/funny/internal/bytecode"
 )
 
@@ -363,6 +365,45 @@ case "ok":
 			return nil
 		}
 		v.stack = append(v.stack, makeResult("ok", string(data)))
+	case "jwt_encode":
+		if len(v.stack) < 3 {
+			return fmt.Errorf("vm: jwt_encode() requires 3 arguments")
+		}
+		secret := v.stack[len(v.stack)-1].(string)
+		claims := v.stack[len(v.stack)-2].(string)
+		_ = claims
+		header := v.stack[len(v.stack)-3].(string)
+		_ = header
+		v.stack = v.stack[:len(v.stack)-3]
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"raw_header": header,
+			"raw_claims": claims,
+		})
+		s, err := token.SignedString([]byte(secret))
+		if err != nil {
+			v.stack = append(v.stack, makeResult("err", err.Error()))
+			return nil
+		}
+		v.stack = append(v.stack, s)
+	case "jwt_decode":
+		if len(v.stack) < 2 {
+			return fmt.Errorf("vm: jwt_decode() requires 2 arguments")
+		}
+		secret := v.stack[len(v.stack)-1].(string)
+		tokenStr := v.stack[len(v.stack)-2].(string)
+		v.stack = v.stack[:len(v.stack)-2]
+		parsed, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
+			return []byte(secret), nil
+		})
+		if err != nil {
+			v.stack = append(v.stack, makeResult("err", err.Error()))
+			return nil
+		}
+		if !parsed.Valid {
+			v.stack = append(v.stack, makeResult("err", "invalid token"))
+			return nil
+		}
+		v.stack = append(v.stack, makeResult("ok", parsed.Claims))
 	default:
 		return fmt.Errorf("vm: unknown builtin %q", name)
 	}
