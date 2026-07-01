@@ -376,3 +376,43 @@ x = "hello"`},
 		assert.Error(t, err, c.name+": expected type error")
 	}
 }
+
+func TestCheck_TryOperator(t *testing.T) {
+	// ok(42) is Result[int, str]; ? keeps the Result type (Err propagates, Ok leaves Result on stack).
+	// Accessing .val on the Result returns the inner Ok value.
+	src := `let x = ok(42)?.val
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.NoError(t, err)
+	t2, _ := env.LookupVar("x")
+	assert.Equal(t, Primitive("int"), t2)
+}
+
+func TestCheck_TryOperator_Annotated(t *testing.T) {
+	// Same but with explicit type annotation.
+	src := `let x: int = ok(42)?.val
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.NoError(t, err)
+	t2, _ := env.LookupVar("x")
+	assert.Equal(t, Primitive("int"), t2)
+}
+
+func TestCheck_TryOperator_BadType(t *testing.T) {
+	src := `let x: int = 42?
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.Error(t, err) // 42 is int, not Result
+}

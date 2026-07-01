@@ -16,6 +16,8 @@ var builtinNames = map[string]bool{
 	"to_str":  true,
 	"to_int":  true,
 	"type_of": true,
+	"ok":      true,
+	"err":     true,
 }
 
 // compileFnDecl compiles a function declaration into a separate Function in the module.

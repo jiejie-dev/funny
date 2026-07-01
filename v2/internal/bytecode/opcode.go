@@ -51,6 +51,7 @@ const (
 	JUMP          OpCode = "JUMP"
 	JUMP_IF_FALSE OpCode = "JUMP_IF_FALSE"
 	JUMP_IF_TRUE  OpCode = "JUMP_IF_TRUE"
+	TRY_OR_RETURN OpCode = "TRY_OR_RETURN"
 
 	// Functions
 	CALL         OpCode = "CALL"

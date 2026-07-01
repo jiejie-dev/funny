@@ -41,8 +41,23 @@ func CheckExpr(expr ast.Expression, env *Env) (Type, error) {
 	return nil, New("E2099", fmt.Sprintf("type checker: unsupported expression %T", expr), expr.Pos())
 }
 
+// checkTry type-checks `expr?` — expr must be Result[T, E] (or the bare
+// `Result` placeholder). `?` propagates Err (early-returns from the current
+// function) but does NOT unwrap the Ok value: the type of `expr?` is Result.
+// To get the inner value, chain `.val` (or `.tag`) on the Result.
 func checkTry(n *ast.TryExpr, env *Env) (Type, error) {
-	return nil, fmt.Errorf("checkTry: not yet implemented (Task 2)")
+	innerT, err := CheckExpr(n.Inner, env)
+	if err != nil {
+		return nil, err
+	}
+	// Accept concrete Result[T, E] or bare `Result` (Primitive) placeholder.
+	if _, ok := innerT.(Result); ok {
+		return innerT, nil
+	}
+	if p, ok := innerT.(Primitive); ok && string(p) == "Result" {
+		return innerT, nil
+	}
+	return nil, NewMismatch(n.NodePos, Primitive("Result"), innerT)
 }
 
 // literalType infers a Type from a Go value.
@@ -63,6 +78,16 @@ func literalType(v any) Type {
 }
 
 func checkBinaryExpr(n *ast.BinaryExpr, env *Env) (Type, error) {
+	// Handle `expr?.field` first: `?` returns immediately from parsePostfix so
+	// the parser produces BinaryExpr{TryExpr, ".", VariableExpr} instead of FieldExpr.
+	// Reinterpret the "." as field access without checking the Right as a value expression.
+	if n.Op == "." {
+		varExpr, ok := n.Right.(*ast.VariableExpr)
+		if !ok {
+			return nil, New("E2098", "field name must be identifier", n.NodePos)
+		}
+		return checkFieldExpr(&ast.FieldExpr{NodePos: n.NodePos, Object: n.Left, Field: varExpr.Name}, env)
+	}
 	leftT, err := CheckExpr(n.Left, env)
 	if err != nil {
 		return nil, err
@@ -125,6 +150,24 @@ func checkCallExpr(n *ast.CallExpr, env *Env) (Type, error) {
 	if !ok {
 		return nil, New("E2070", "only direct function calls supported in M2-A", n.NodePos)
 	}
+	// ok/err are polymorphic builtin Result constructors (M2-C).
+	// `ok(x)` returns Result[T, str]; `err(x)` returns Result[str, T].
+	// The Ok/Err types are inferred from the argument.
+	if varName.Name == "ok" || varName.Name == "err" {
+		if len(n.Args) != 1 {
+			return nil, New("E2020",
+				fmt.Sprintf("%s expects 1 arg, got %d", varName.Name, len(n.Args)),
+				n.NodePos)
+		}
+		argT, err := CheckExpr(n.Args[0], env)
+		if err != nil {
+			return nil, err
+		}
+		if varName.Name == "ok" {
+			return Result{Ok: argT, Err: Primitive("str")}, nil
+		}
+		return Result{Ok: Primitive("str"), Err: argT}, nil
+	}
 	fn, ok := env.LookupFunc(varName.Name)
 	if !ok {
 		return nil, New("E2002", fmt.Sprintf("undefined function: %s", varName.Name), n.NodePos)
@@ -172,15 +215,33 @@ func checkFieldExpr(n *ast.FieldExpr, env *Env) (Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	s, ok := objT.(Struct)
-	if !ok {
-		return nil, New("E2051", fmt.Sprintf("field access requires struct, got %s", objT), n.NodePos)
+	if s, ok := objT.(Struct); ok {
+		f, ok := s.Field(n.Field)
+		if !ok {
+			return nil, New("E2052", fmt.Sprintf("struct %s has no field %q", s.Name, n.Field), n.NodePos)
+		}
+		return f, nil
 	}
-	f, ok := s.Field(n.Field)
-	if !ok {
-		return nil, New("E2052", fmt.Sprintf("struct %s has no field %q", s.Name, n.Field), n.NodePos)
+	if r, ok := objT.(Result); ok {
+		switch n.Field {
+		case "tag":
+			return Primitive("str"), nil
+		case "val":
+			return r.Ok, nil
+		}
+		return nil, New("E2052", fmt.Sprintf("Result has no field %q", n.Field), n.NodePos)
 	}
-	return f, nil
+	// Bare `Result` placeholder: also accept .tag/.val.
+	if p, ok := objT.(Primitive); ok && string(p) == "Result" {
+		switch n.Field {
+		case "tag":
+			return Primitive("str"), nil
+		case "val":
+			return Primitive("any"), nil
+		}
+		return nil, New("E2052", fmt.Sprintf("Result has no field %q", n.Field), n.NodePos)
+	}
+	return nil, New("E2051", fmt.Sprintf("field access requires struct or Result, got %s", objT), n.NodePos)
 }
 
 func checkListLiteral(n *ast.ListExpr, env *Env) (Type, error) {
