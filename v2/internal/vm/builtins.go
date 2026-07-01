@@ -9,26 +9,38 @@ import (
 )
 
 // execCallBuiltin handles CALL_BUILTIN nameIdx.
-// The constant pool at nameIdx must be a string identifying the builtin.
-// Pops arguments from stack (depending on the builtin), pushes result.
+// The constant pool at nameIdx must be a struct{ Name string; Arity int }
+// identifying the builtin and its argument count. Pops Arity args from stack
+// (in source order, bottom-of-stack first) and consumes them.
 func (v *VM) execCallBuiltin(nameIdx int) error {
-	name, ok := v.mod.Constants[nameIdx].(string)
+	info, ok := v.mod.Constants[nameIdx].(bytecode.BuiltinInfo)
 	if !ok {
-		return fmt.Errorf("vm: CALL_BUILTIN name is not a string")
+		return fmt.Errorf("vm: CALL_BUILTIN name is not a BuiltinInfo")
 	}
+	name := info.Name
+	arity := info.Arity
+	if len(v.stack) < arity {
+		return fmt.Errorf("vm: %s() requires %d arguments", name, arity)
+	}
+	start := len(v.stack) - arity
 	switch name {
 	case "print":
-		if len(v.stack) < 1 {
-			return fmt.Errorf("vm: print() requires at least 1 argument")
+		for i := start; i < len(v.stack); i++ {
+			if i > start {
+				fmt.Print(" ")
+			}
+			fmt.Print(v.stack[i])
 		}
-		fmt.Print(v.stack[len(v.stack)-1])
-		v.stack = v.stack[:len(v.stack)-1]
+		v.stack = v.stack[:start]
 	case "println":
-		if len(v.stack) < 1 {
-			return fmt.Errorf("vm: println() requires at least 1 argument")
+		for i := start; i < len(v.stack); i++ {
+			if i > start {
+				fmt.Print(" ")
+			}
+			fmt.Print(v.stack[i])
 		}
-		fmt.Println(v.stack[len(v.stack)-1])
-		v.stack = v.stack[:len(v.stack)-1]
+		fmt.Println()
+		v.stack = v.stack[:start]
 	case "len":
 		if len(v.stack) < 1 {
 			return fmt.Errorf("vm: len() requires 1 argument")

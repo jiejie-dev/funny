@@ -118,17 +118,17 @@ func TestVM_EQStr(t *testing.T) {
 func TestVM_JumpIfFalse_Taken(t *testing.T) {
 	fn := &bytecode.Function{Name: "main", Arity: 0}
 	fn.Emit(bytecode.PUSH_BOOL, 0)     // push false
-	fn.Emit(bytecode.JUMP_IF_FALSE, 3) // ip=1, jump to ip=3 (HALT) if false
+	fn.Emit(bytecode.JUMP_IF_FALSE, 3) // ip=1, jump to ip=3 (HALT) if false; pops the bool
 	fn.Emit(bytecode.PUSH_INT, 1)      // ip=2, skipped
-	fn.Emit(bytecode.HALT, 0)          // ip=3, returns false
-	v := runVM(t, fn, false)
-	assert.Equal(t, false, v) // bool still on stack from PUSH_BOOL
+	fn.Emit(bytecode.HALT, 0)          // ip=3, stack empty -> returns nil
+	v := runVM(t, fn, false, 99)
+	assert.Nil(t, v)
 }
 
 func TestVM_JumpIfFalse_FallThrough(t *testing.T) {
 	fn := &bytecode.Function{Name: "main", Arity: 0}
 	fn.Emit(bytecode.PUSH_BOOL, 0)       // push true
-	fn.Emit(bytecode.JUMP_IF_FALSE, 100) // won't jump (condition is true)
+	fn.Emit(bytecode.JUMP_IF_FALSE, 100) // won't jump; pops the bool
 	fn.Emit(bytecode.PUSH_INT, 1)        // ip=2, push 42
 	fn.Emit(bytecode.HALT, 0)
 	v := runVM(t, fn, true, 42)
@@ -138,17 +138,17 @@ func TestVM_JumpIfFalse_FallThrough(t *testing.T) {
 func TestVM_JumpIfTrue_Taken(t *testing.T) {
 	fn := &bytecode.Function{Name: "main", Arity: 0}
 	fn.Emit(bytecode.PUSH_BOOL, 0)    // push true
-	fn.Emit(bytecode.JUMP_IF_TRUE, 3) // ip=1, jump to ip=3 (HALT)
+	fn.Emit(bytecode.JUMP_IF_TRUE, 3) // ip=1, jump to ip=3 (HALT); pops the bool
 	fn.Emit(bytecode.PUSH_INT, 1)     // ip=2, skipped
-	fn.Emit(bytecode.HALT, 0)         // ip=3
-	v := runVM(t, fn, true)
-	assert.Equal(t, true, v)
+	fn.Emit(bytecode.HALT, 0)         // ip=3, stack empty -> returns nil
+	v := runVM(t, fn, true, 99)
+	assert.Nil(t, v)
 }
 
 func TestVM_JumpIfTrue_FallThrough(t *testing.T) {
 	fn := &bytecode.Function{Name: "main", Arity: 0}
 	fn.Emit(bytecode.PUSH_BOOL, 0)      // push false
-	fn.Emit(bytecode.JUMP_IF_TRUE, 100) // won't jump
+	fn.Emit(bytecode.JUMP_IF_TRUE, 100) // won't jump; pops the bool
 	fn.Emit(bytecode.PUSH_INT, 1)       // ip=2
 	fn.Emit(bytecode.HALT, 0)
 	v := runVM(t, fn, false, 99)
@@ -212,27 +212,27 @@ func TestVM_NestedCall(t *testing.T) {
 func TestVM_CallBuiltin_Println(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
 	main.Emit(bytecode.PUSH_INT, 0)
-	main.Emit(bytecode.CALL_BUILTIN, 0) // constant[0] = "println"
+	main.Emit(bytecode.CALL_BUILTIN, 0) // constant[0] = BuiltinInfo{"println",1}
 	main.Emit(bytecode.HALT, 0)
-	v := runModule(t, main, nil, "println")
+	v := runModule(t, main, nil, bytecode.BuiltinInfo{Name: "println", Arity: 1}, 42)
 	assert.Nil(t, v) // println returns nil
 }
 
 func TestVM_CallBuiltin_Len(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
 	main.Emit(bytecode.PUSH_STR, 0)     // "hello" (5 chars)
-	main.Emit(bytecode.CALL_BUILTIN, 1) // constant[1] = "len"
+	main.Emit(bytecode.CALL_BUILTIN, 1) // constant[1] = BuiltinInfo{"len",1}
 	main.Emit(bytecode.HALT, 0)
-	v := runModule(t, main, nil, "hello", "len")
+	v := runModule(t, main, nil, "hello", bytecode.BuiltinInfo{Name: "len", Arity: 1})
 	assert.Equal(t, 5, v)
 }
 
 func TestVM_CallBuiltin_TypeOf(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
 	main.Emit(bytecode.PUSH_INT, 0)
-	main.Emit(bytecode.CALL_BUILTIN, 1) // constant[1] = "type_of"
+	main.Emit(bytecode.CALL_BUILTIN, 1) // constant[1] = BuiltinInfo{"type_of",1}
 	main.Emit(bytecode.HALT, 0)
-	v := runModule(t, main, nil, 42, "type_of")
+	v := runModule(t, main, nil, 42, bytecode.BuiltinInfo{Name: "type_of", Arity: 1})
 	assert.Equal(t, "int", v)
 }
 

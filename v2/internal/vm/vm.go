@@ -118,6 +118,7 @@ func (v *VM) execute() (bytecode.Value, error) {
 				return nil, fmt.Errorf("vm: JUMP_IF_FALSE on empty stack")
 			}
 			cond := v.stack[len(v.stack)-1]
+			v.stack = v.stack[:len(v.stack)-1]
 			b, isBool := cond.(bool)
 			if isBool && !b {
 				frame.ip = instr.Arg
@@ -127,6 +128,7 @@ func (v *VM) execute() (bytecode.Value, error) {
 				return nil, fmt.Errorf("vm: JUMP_IF_TRUE on empty stack")
 			}
 			cond := v.stack[len(v.stack)-1]
+			v.stack = v.stack[:len(v.stack)-1]
 			b, isBool := cond.(bool)
 			if isBool && b {
 				frame.ip = instr.Arg

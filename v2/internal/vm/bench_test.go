@@ -38,13 +38,13 @@ func runSource(src []byte, file string) error {
 }
 
 func BenchmarkFib_VM(b *testing.B) {
-	data, err := os.ReadFile("../../testdata/vm/fib_iter.fn")
+	data, err := os.ReadFile("../../testdata/vm/fib.fn")
 	if err != nil {
 		b.Fatal(err)
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if err := runSource(data, "fib_iter.fn"); err != nil {
+		if err := runSource(data, "fib.fn"); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -53,13 +53,13 @@ func BenchmarkFib_VM(b *testing.B) {
 func BenchmarkFib_Interpreter(b *testing.B) {
 	os.Setenv("FUNNY_INTERPRET", "1")
 	defer os.Unsetenv("FUNNY_INTERPRET")
-	data, err := os.ReadFile("../../testdata/vm/fib_iter.fn")
+	data, err := os.ReadFile("../../testdata/vm/fib.fn")
 	if err != nil {
 		b.Fatal(err)
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if err := runSource(data, "fib_iter.fn"); err != nil {
+		if err := runSource(data, "fib.fn"); err != nil {
 			b.Fatal(err)
 		}
 	}

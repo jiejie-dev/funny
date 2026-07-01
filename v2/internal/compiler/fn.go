@@ -24,6 +24,9 @@ func (c *Compiler) compileFnDecl(n *ast.FnDecl) error {
 		return fmt.Errorf("function %s already declared", n.Name)
 	}
 	fn := &bytecode.Function{Name: n.Name, Arity: len(n.Params)}
+	fnIdx := c.mod.AddFunction(fn)
+	c.functions[n.Name] = fnIdx
+	c.fnRetTypes[n.Name] = paramType(n.RetType)
 	c.fn = fn
 	c.scopes = []map[string]int{{}}
 	for _, p := range n.Params {
@@ -33,8 +36,6 @@ func (c *Compiler) compileFnDecl(n *ast.FnDecl) error {
 		return err
 	}
 	c.fn.Emit(bytecode.RETURN, 0)
-	fnIdx := c.mod.AddFunction(fn)
-	c.functions[n.Name] = fnIdx
 	c.fn = c.mod.Functions[c.functions["main"]]
 	c.scopes = []map[string]int{{}}
 	return nil
@@ -81,7 +82,7 @@ func (c *Compiler) compileCall(n *ast.CallExpr) (valueType, error) {
 				return "", err
 			}
 		}
-		nameIdx := c.mod.AddConstant(name)
+		nameIdx := c.mod.AddConstant(bytecode.BuiltinInfo{Name: name, Arity: len(n.Args)})
 		c.fn.Emit(bytecode.CALL_BUILTIN, nameIdx)
 		return valNil, nil
 	}
@@ -95,5 +96,5 @@ func (c *Compiler) compileCall(n *ast.CallExpr) (valueType, error) {
 		}
 	}
 	c.fn.Emit(bytecode.CALL, fnIdx)
-	return valNil, nil
+	return c.fnRetTypes[name], nil
 }

@@ -24,19 +24,21 @@ const (
 
 // Compiler translates a typed AST into bytecode.
 type Compiler struct {
-	mod       *bytecode.Module
-	fn        *bytecode.Function
-	scopes    []map[string]int
-	varTypes  []valueType  // indexed by local slot (parallel to NumLocals)
-	functions map[string]int // function name → index in mod.Functions
+	mod         *bytecode.Module
+	fn          *bytecode.Function
+	scopes      []map[string]int
+	varTypes    []valueType   // indexed by local slot (parallel to NumLocals)
+	functions   map[string]int // function name → index in mod.Functions
+	fnRetTypes  map[string]valueType // function name → declared return value type
 }
 
 // Compile translates a typed Program into a Module.
 func Compile(prog *ast.Program, name string) (*bytecode.Module, error) {
 	c := &Compiler{
-		mod:       bytecode.NewModule(name),
-		scopes:    []map[string]int{{}},
-		functions: map[string]int{},
+		mod:        bytecode.NewModule(name),
+		scopes:     []map[string]int{{}},
+		functions:  map[string]int{},
+		fnRetTypes: map[string]valueType{},
 	}
 	mainFn := &bytecode.Function{Name: "main", Arity: 0}
 	c.mod.AddFunction(mainFn)
