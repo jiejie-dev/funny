@@ -12,6 +12,7 @@ The complete Funny v2 stack is shipping. See `CHANGELOG.md` for the full release
 funny run script.fn         # execute a script
 funny ast script.fn         # print JSON AST
 funny describe script.fn    # print plan/metadata
+funny disasm script.fn      # print bytecode disassembly
 funny-mcp                   # start MCP server (for LLM clients)
 funny-lsp                   # start LSP server (for editors/IDEs)
 ```

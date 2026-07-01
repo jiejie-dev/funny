@@ -93,9 +93,27 @@ var describeCmd = &cobra.Command{
 	},
 }
 
+var disasmCmd = &cobra.Command{
+	Use:   "disasm <script>",
+	Short: "Print bytecode disassembly",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		data, err := os.ReadFile(args[0])
+		if err != nil {
+			return err
+		}
+		out, err := cli.Disasm(data, args[0])
+		if err != nil {
+			return err
+		}
+		fmt.Print(out)
+		return nil
+	},
+}
+
 func init() {
 	fmtCmd.Flags().BoolP("write", "w", false, "write result to the source file instead of stdout")
-	rootCmd.AddCommand(runCmd, astCmd, fmtCmd, describeCmd)
+	rootCmd.AddCommand(runCmd, astCmd, fmtCmd, describeCmd, disasmCmd)
 }
 
 func main() {

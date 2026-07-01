@@ -15,6 +15,7 @@
 ### Fixes
 - `internal/evaluator.Scope`'s variable map was not safe for concurrent access, even though a plan's `parallel` step (`internal/agent.Engine.execParallel`) has always run its body's statements on separate goroutines against the same Scope — a latent data race, caught while adding step `timeout` (which introduces a second source of concurrent Scope access: a timed-out step's abandoned goroutine can still be running). `Scope` is now internally synchronized
 - `funny describe` was documented (README/language-manual/CLI help) and its underlying implementation (`cli.Describe`) existed and was unit-tested, but no `cobra.Command` in `cmd/funny/main.go` ever called it — the subcommand didn't exist on the CLI at all. Wired it up alongside `run`/`ast`/`fmt`
+- Same gap as `funny describe`, for `funny disasm`: `cli.Disasm` existed and was unit-tested, but had no CLI entry point
 - Parser crash on standalone `#` comments (introduces `ast.CommentStmt`)
 - Lexer bug where dedenting across multiple nesting levels to a non-zero column only emitted one DEDENT instead of all required levels
 - Bytecode compiler crash (`unsupported statement type`) on any script containing a `meta:` or `plan "...":` block when run via the default VM path (`funny run` without `FUNNY_INTERPRET=1`) — these are now no-ops in the compiler, matching the tree-walking evaluator

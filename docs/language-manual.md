@@ -319,6 +319,7 @@ funny ast script.fn         # JSON AST
 funny fmt script.fn         # print canonically-formatted source to stdout
 funny fmt script.fn -w      # reformat the file in place
 funny describe script.fn    # JSON plan/metadata
+funny disasm script.fn      # print bytecode disassembly
 funny-mcp                   # start MCP server
 funny-lsp                   # start LSP server
 ```
