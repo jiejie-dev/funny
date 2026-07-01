@@ -4,6 +4,7 @@ package vm
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"reflect"
 	"time"
 
@@ -178,8 +179,52 @@ func (v *VM) execCallBuiltin(nameIdx int) error {
 		v.stack = v.stack[:len(v.stack)-2]
 		t := time.Unix(int64(ts), 0)
 		v.stack = append(v.stack, t.Format(layout))
+	case "sqrt":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: sqrt() requires 1 argument")
+		}
+		x := toFloat(v.stack[len(v.stack)-1])
+		v.stack = v.stack[:len(v.stack)-1]
+		v.stack = append(v.stack, math.Sqrt(x))
+	case "pow":
+		if len(v.stack) < 2 {
+			return fmt.Errorf("vm: pow() requires 2 arguments")
+		}
+		exp := toFloat(v.stack[len(v.stack)-1])
+		base := toFloat(v.stack[len(v.stack)-2])
+		v.stack = v.stack[:len(v.stack)-2]
+		v.stack = append(v.stack, math.Pow(base, exp))
+	case "abs":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: abs() requires 1 argument")
+		}
+		x := v.stack[len(v.stack)-1]
+		v.stack = v.stack[:len(v.stack)-1]
+		switch val := x.(type) {
+		case int:
+			if val < 0 {
+				v.stack = append(v.stack, -val)
+			} else {
+				v.stack = append(v.stack, val)
+			}
+		case float64:
+			v.stack = append(v.stack, math.Abs(val))
+		default:
+			return fmt.Errorf("vm: abs() requires a number")
+		}
 	default:
 		return fmt.Errorf("vm: unknown builtin %q", name)
 	}
 	return nil
+}
+
+// toFloat converts an int or float to float64. Other types panic.
+func toFloat(val bytecode.Value) float64 {
+	switch x := val.(type) {
+	case int:
+		return float64(x)
+	case float64:
+		return x
+	}
+	panic(fmt.Sprintf("vm: expected number, got %T", val))
 }

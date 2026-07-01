@@ -355,3 +355,35 @@ func TestVM_BuiltinTimeFormat(t *testing.T) {
 	require.True(t, ok)
 	assert.Contains(t, s, "2023")
 }
+
+func TestVM_BuiltinSqrt(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_INT, 0) // 16
+	main.Emit(bytecode.CALL_BUILTIN, 1) // "sqrt"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, 16, bytecode.BuiltinInfo{Name: "sqrt", Arity: 1})
+	f, ok := v.(float64)
+	require.True(t, ok)
+	assert.Equal(t, 4.0, f)
+}
+
+func TestVM_BuiltinPow(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_INT, 0) // 2
+	main.Emit(bytecode.PUSH_INT, 1) // 10
+	main.Emit(bytecode.CALL_BUILTIN, 2) // "pow"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, 2, 10, bytecode.BuiltinInfo{Name: "pow", Arity: 2})
+	f, ok := v.(float64)
+	require.True(t, ok)
+	assert.Equal(t, 1024.0, f)
+}
+
+func TestVM_BuiltinAbs(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_INT, 0) // -5
+	main.Emit(bytecode.CALL_BUILTIN, 1) // "abs"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, -5, bytecode.BuiltinInfo{Name: "abs", Arity: 1})
+	assert.Equal(t, 5, v)
+}
