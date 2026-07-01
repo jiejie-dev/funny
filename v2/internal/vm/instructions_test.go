@@ -6,6 +6,7 @@ import (
 
 	"github.com/jerloo/funny/v2/internal/bytecode"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestVM_SubInt(t *testing.T) {
@@ -162,4 +163,48 @@ func TestVM_JumpUnconditional(t *testing.T) {
 	fn.Emit(bytecode.HALT, 0)     // ip=3, returns 1 (from PUSH_INT 0)
 	v := runVM(t, fn, 1, 2)
 	assert.Equal(t, 1, v)
+}
+
+// runModule constructs a module from an entry function and helpers, plus constants.
+func runModule(t *testing.T, entry *bytecode.Function, helpers []*bytecode.Function, constants ...bytecode.Value) bytecode.Value {
+	t.Helper()
+	mod := bytecode.NewModule("test")
+	mod.AddFunction(entry)
+	for _, h := range helpers {
+		mod.AddFunction(h)
+	}
+	for _, c := range constants {
+		mod.AddConstant(c)
+	}
+	m := New(mod)
+	v, err := m.Run()
+	require.NoError(t, err)
+	return v
+}
+
+func TestVM_CallReturn(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	fn1 := &bytecode.Function{Name: "id", Arity: 1, NumLocals: 1}
+	fn1.Emit(bytecode.LOAD_LOCAL, 0)
+	fn1.Emit(bytecode.RETURN, 0)
+	main.Emit(bytecode.PUSH_INT, 0) // push 5
+	main.Emit(bytecode.CALL, 1)      // call fn1
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, []*bytecode.Function{fn1}, 5)
+	assert.Equal(t, 5, v)
+}
+
+func TestVM_NestedCall(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	add := &bytecode.Function{Name: "add", Arity: 2, NumLocals: 2}
+	add.Emit(bytecode.LOAD_LOCAL, 0)
+	add.Emit(bytecode.LOAD_LOCAL, 1)
+	add.Emit(bytecode.ADD_INT, 0)
+	add.Emit(bytecode.RETURN, 0)
+	main.Emit(bytecode.PUSH_INT, 0)
+	main.Emit(bytecode.PUSH_INT, 1)
+	main.Emit(bytecode.CALL, 1)
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, []*bytecode.Function{add}, 2, 3)
+	assert.Equal(t, 5, v)
 }
