@@ -18,6 +18,8 @@ func (c *Compiler) compileExpr(e ast.Expression) (valueType, error) {
 		return c.compileBinary(n)
 	case *ast.UnaryExpr:
 		return c.compileUnary(n)
+	case *ast.CallExpr:
+		return c.compileCall(n)
 	}
 	return "", fmt.Errorf("compileExpr: unsupported expression type %T", e)
 }
