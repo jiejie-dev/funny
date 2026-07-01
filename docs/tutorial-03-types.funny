@@ -9,9 +9,16 @@ let f: float = 3.14
 let b: bool = true
 let s: str = "hello"
 
-# Collections: list[T] and map[K, V]
+# Collections: list[T] and map[K, V]. Map literals use {key: value, ...} and
+# are read back with .field (like a struct), not m["key"] indexing. Any
+# bracketed literal may span multiple lines, conventionally one entry per
+# line with a trailing comma.
 let xs: list[int] = [1, 2, 3]
-let m: map[str, int] = {"a": 1, "b": 2}
+let m: map[str, int] = {
+    "a": 1,
+    "b": 2,
+}
+println("m.a =", m.a, "m.b =", m.b)
 
 # Structs: declare then construct.
 struct Point:

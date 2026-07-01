@@ -30,6 +30,8 @@ func CheckExpr(expr ast.Expression, env *Env) (Type, error) {
 		return checkFieldExpr(n, env)
 	case *ast.ListExpr:
 		return checkListLiteral(n, env)
+	case *ast.MapLiteralExpr:
+		return checkMapLiteral(n, env)
 	case *ast.StructLiteralExpr:
 		return checkStructLiteral(n, env)
 	case *ast.SubExpr:
@@ -319,6 +321,39 @@ func checkListLiteral(n *ast.ListExpr, env *Env) (Type, error) {
 		}
 	}
 	return List{Elem: first}, nil
+}
+
+// checkMapLiteral infers a uniform Key/Value type from the first key/value
+// pair and checks every other pair against it, mirroring checkListLiteral.
+func checkMapLiteral(n *ast.MapLiteralExpr, env *Env) (Type, error) {
+	if len(n.Keys) == 0 {
+		return nil, New("E2011", "cannot infer type of empty map; add type annotation", n.NodePos)
+	}
+	keyT, err := CheckExpr(n.Keys[0], env)
+	if err != nil {
+		return nil, err
+	}
+	valT, err := CheckExpr(n.Values[0], env)
+	if err != nil {
+		return nil, err
+	}
+	for i := 1; i < len(n.Keys); i++ {
+		kt, err := CheckExpr(n.Keys[i], env)
+		if err != nil {
+			return nil, err
+		}
+		if !Equal(kt, keyT) {
+			return nil, NewMismatch(n.Keys[i].Pos(), keyT, kt)
+		}
+		vt, err := CheckExpr(n.Values[i], env)
+		if err != nil {
+			return nil, err
+		}
+		if !Equal(vt, valT) {
+			return nil, NewMismatch(n.Values[i].Pos(), valT, vt)
+		}
+	}
+	return Map{Key: keyT, Value: valT}, nil
 }
 
 func checkStructLiteral(n *ast.StructLiteralExpr, env *Env) (Type, error) {

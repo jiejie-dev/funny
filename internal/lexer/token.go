@@ -18,6 +18,8 @@ const (
 	RPAREN   Kind = ")"
 	LBRACK   Kind = "["
 	RBRACK   Kind = "]"
+	LBRACE   Kind = "{"
+	RBRACE   Kind = "}"
 	COMMA    Kind = ","
 	DOT      Kind = "."
 	COLON    Kind = ":"

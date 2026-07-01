@@ -21,6 +21,30 @@ func evalExpr(t *testing.T, src string) any {
 	return v
 }
 
+func TestEval_MapLiteral(t *testing.T) {
+	v := evalExpr(t, `{"a": 1, "b": 2}`)
+	m, ok := v.(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, 1, m["a"])
+	assert.Equal(t, 2, m["b"])
+}
+
+func TestEval_MapLiteral_MultiLine(t *testing.T) {
+	src := "{\n    \"a\": 1,\n    \"b\": 2,\n}"
+	v := evalExpr(t, src)
+	m, ok := v.(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, 1, m["a"])
+	assert.Equal(t, 2, m["b"])
+}
+
+func TestEval_MapLiteral_Empty(t *testing.T) {
+	v := evalExpr(t, `{}`)
+	m, ok := v.(map[string]any)
+	require.True(t, ok)
+	assert.Empty(t, m)
+}
+
 func TestEval_FString_Interpolation(t *testing.T) {
 	e := New(nil)
 	e.Scope().Set("name", "world")

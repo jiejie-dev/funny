@@ -245,6 +245,12 @@ func (p *printer) expr(e ast.Expression) string {
 			parts[i] = p.expr(el)
 		}
 		return "[" + strings.Join(parts, ", ") + "]"
+	case *ast.MapLiteralExpr:
+		parts := make([]string, len(n.Keys))
+		for i, k := range n.Keys {
+			parts[i] = fmt.Sprintf("%s: %s", p.expr(k), p.expr(n.Values[i]))
+		}
+		return "{" + strings.Join(parts, ", ") + "}"
 	case *ast.IndexExpr:
 		return fmt.Sprintf("%s[%s]", p.expr(n.Object), p.expr(n.Index))
 	case *ast.FieldExpr:

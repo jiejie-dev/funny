@@ -36,6 +36,14 @@ func TestListExpr_String(t *testing.T) {
 	assert.Equal(t, "[1, 2]", e.String())
 }
 
+func TestMapLiteralExpr_String(t *testing.T) {
+	e := &MapLiteralExpr{
+		Keys:   []Expression{&LiteralExpr{Value: "a"}},
+		Values: []Expression{&LiteralExpr{Value: 1}},
+	}
+	assert.Equal(t, `{"a": 1}`, e.String())
+}
+
 func TestIndexExpr_String(t *testing.T) {
 	e := &IndexExpr{Object: &VariableExpr{Name: "a"}, Index: &LiteralExpr{Value: 0}}
 	assert.Equal(t, "a[0]", e.String())

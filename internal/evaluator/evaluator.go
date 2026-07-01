@@ -120,8 +120,33 @@ func (e *Evaluator) Eval(node ast.Expression) (any, error) {
 			fields[k] = val
 		}
 		return fields, nil
+	case *ast.MapLiteralExpr:
+		return e.evalMapLiteral(n)
 	}
 	return nil, errs.New("E2002", fmt.Sprintf("cannot eval %T", node), toErrPos(node.Pos()), "")
+}
+
+// evalMapLiteral evaluates a `{key: value, ...}` literal into a
+// map[string]any, coercing non-string keys the same way the VM's BUILD_MAP
+// instruction does, so both execution paths agree on runtime representation.
+func (e *Evaluator) evalMapLiteral(n *ast.MapLiteralExpr) (any, error) {
+	m := make(map[string]any, len(n.Keys))
+	for i, k := range n.Keys {
+		kv, err := e.Eval(k)
+		if err != nil {
+			return nil, err
+		}
+		vv, err := e.Eval(n.Values[i])
+		if err != nil {
+			return nil, err
+		}
+		ks, ok := kv.(string)
+		if !ok {
+			ks = fmt.Sprintf("%v", kv)
+		}
+		m[ks] = vv
+	}
+	return m, nil
 }
 
 // evalFString evaluates an f-string by concatenating literal text with the

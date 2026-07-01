@@ -232,6 +232,31 @@ func (p *Parser) parsePrimary() (ast.Expression, error) {
 			return nil, err
 		}
 		return &ast.ListExpr{NodePos: pos, Elements: elems}, nil
+	case lexer.LBRACE:
+		p.advance()
+		var keys, vals []ast.Expression
+		for p.cur.Kind != lexer.RBRACE && p.cur.Kind != lexer.EOF {
+			k, err := p.parseExpression()
+			if err != nil {
+				return nil, err
+			}
+			if _, err := p.expect(lexer.COLON); err != nil {
+				return nil, err
+			}
+			v, err := p.parseExpression()
+			if err != nil {
+				return nil, err
+			}
+			keys = append(keys, k)
+			vals = append(vals, v)
+			if p.cur.Kind == lexer.COMMA {
+				p.advance()
+			}
+		}
+		if _, err := p.expect(lexer.RBRACE); err != nil {
+			return nil, err
+		}
+		return &ast.MapLiteralExpr{NodePos: pos, Keys: keys, Values: vals}, nil
 	}
 	return nil, errs.New("E1012",
 		fmt.Sprintf("unexpected token %s in expression", p.cur.Kind),

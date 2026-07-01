@@ -155,6 +155,26 @@ func (e *CallExpr) String() string {
 	return fmt.Sprintf("%s(%s)", e.Func.String(), joinComma(parts))
 }
 
+// MapLiteralExpr is a `{key: value, ...}` literal. Keys and Values are
+// parallel slices (not a Go map) to preserve source order and to allow keys
+// that are arbitrary expressions, not just compile-time-constant strings.
+type MapLiteralExpr struct {
+	NodePos Pos
+	Keys    []Expression
+	Values  []Expression
+}
+
+func (e *MapLiteralExpr) Pos() Pos    { return e.NodePos }
+func (e *MapLiteralExpr) exprMarker() {}
+func (e *MapLiteralExpr) nodeMarker() {}
+func (e *MapLiteralExpr) String() string {
+	parts := make([]string, len(e.Keys))
+	for i, k := range e.Keys {
+		parts[i] = fmt.Sprintf("%s: %s", k.String(), e.Values[i].String())
+	}
+	return "{" + joinComma(parts) + "}"
+}
+
 type StructLiteralExpr struct {
 	NodePos  Pos
 	TypeName string

@@ -120,7 +120,7 @@ func isExpressionStart(k lexer.Kind) bool {
 	switch k {
 	case lexer.INT, lexer.FLOAT, lexer.STR, lexer.FSTR,
 		lexer.TRUE, lexer.FALSE, lexer.NIL,
-		lexer.NAME, lexer.LPAREN, lexer.LBRACK,
+		lexer.NAME, lexer.LPAREN, lexer.LBRACK, lexer.LBRACE,
 		lexer.MINUS, lexer.NOT:
 		return true
 	}

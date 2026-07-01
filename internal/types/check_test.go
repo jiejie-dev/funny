@@ -36,6 +36,44 @@ func TestCheck_Literal(t *testing.T) {
 	}
 }
 
+func TestCheck_MapLiteral_InfersKeyValueTypes(t *testing.T) {
+	env := NewEnv(nil)
+	got, err := CheckExpr(parseExpr(t, `{"a": 1, "b": 2}`), env)
+	require.NoError(t, err)
+	assert.True(t, got.Equal(Map{Key: Primitive("str"), Value: Primitive("int")}), "got %s", got)
+}
+
+func TestCheck_MapLiteral_EmptyRequiresAnnotation(t *testing.T) {
+	env := NewEnv(nil)
+	_, err := CheckExpr(parseExpr(t, `{}`), env)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "E2011")
+}
+
+func TestCheck_MapLiteral_MismatchedValueTypeErrors(t *testing.T) {
+	env := NewEnv(nil)
+	_, err := CheckExpr(parseExpr(t, `{"a": 1, "b": "two"}`), env)
+	require.Error(t, err)
+}
+
+func TestCheck_MapLiteral_MismatchedKeyTypeErrors(t *testing.T) {
+	env := NewEnv(nil)
+	_, err := CheckExpr(parseExpr(t, `{"a": 1, 2: 3}`), env)
+	require.Error(t, err)
+}
+
+func TestCheck_MapLiteral_LetWithAnnotation(t *testing.T) {
+	src := "let m: map[str, int] = {\n    \"a\": 1,\n    \"b\": 2,\n}\n"
+	p := parser.New(src, "t")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	require.NoError(t, Check(prog, env))
+	vt, ok := env.LookupVar("m")
+	require.True(t, ok)
+	assert.True(t, vt.Equal(Map{Key: Primitive("str"), Value: Primitive("int")}))
+}
+
 func TestCheck_FString_ValidInterpolation(t *testing.T) {
 	env := NewEnv(nil)
 	env.DeclareVar("name", Primitive("str"))

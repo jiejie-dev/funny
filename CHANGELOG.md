@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.1.0 (unreleased)
+
+### Features
+- **F-string interpolation**: full `f"...{expr:spec}..."` support (lexer/parser/type checker/evaluator/bytecode VM) with a Python/Rust-flavored format-spec mini-language (`internal/strfmt`)
+- **Real formatter**: AST-based `funny fmt` / MCP `format` tool (previously a no-op), preserving comments
+- **Map literals**: `{key: value, ...}` construction, previously impossible (the type existed only as a `map[K, V]` annotation with no way to build a value)
+- **Bracket line-continuation**: any `(...)`, `[...]`, or `{...}` may now span multiple lines; a newline inside an open bracket is insignificant whitespace, enabling the conventional one-entry-per-line-with-trailing-comma style for map/list literals and call arguments
+
+### Fixes
+- Parser crash on standalone `#` comments (introduces `ast.CommentStmt`)
+- Lexer bug where dedenting across multiple nesting levels to a non-zero column only emitted one DEDENT instead of all required levels
+- Bytecode compiler crash (`unsupported statement type`) on any script containing a `meta:` or `plan "...":` block when run via the default VM path (`funny run` without `FUNNY_INTERPRET=1`) — these are now no-ops in the compiler, matching the tree-walking evaluator
+
 ## v2.0.0 (2026-07-XX)
 
 ### Highlights

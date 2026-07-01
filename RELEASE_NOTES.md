@@ -148,7 +148,7 @@ funny-mcp                   Start the MCP server over stdio
 
 - 5× interpreter performance target not yet met (currently 3.5×)
 - AI-friendliness benchmark requires community LLM evaluation; baseline harness is 50 tasks with a perfect-guesser scorer
-- Map literal AST parser syntax needs explicit braces (`{"k": v}` is the goal; v2.0 uses `let m: map[str, int] = {"k": v}` which works because map[K, V] is a type annotation, not a literal)
+- ~~Map literal AST parser syntax needs explicit braces~~ — fixed in v2.1: `{"k": v}` literals are now supported, including multi-line form with trailing commas (see CHANGELOG.md)
 - `format` MCP tool is a no-op (real formatting lands in v2.1)
 - Some stdlib functions return Result wrappers where plain values might be simpler
 - `f"..."` string interpolation: M1 parser accepts the syntax; M2-A runtime substitution is deferred to v2.1

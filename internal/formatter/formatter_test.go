@@ -79,6 +79,19 @@ func TestFormat_ListAndBinary(t *testing.T) {
 	assert.Equal(t, "let x = [1, 2, 3]\nlet y = 1 + 2 * 3\n", out)
 }
 
+func TestFormat_MapLiteral(t *testing.T) {
+	out, err := Format([]byte(`let m: map[str, int] = {"a": 1, "b": 2}`+"\n"), "t")
+	require.NoError(t, err)
+	assert.Equal(t, "let m: map[str, int] = {\"a\": 1, \"b\": 2}\n", out)
+}
+
+func TestFormat_MapLiteral_MultiLineInputCollapsesToOneLine(t *testing.T) {
+	src := "let m = {\n    \"a\": 1,\n    \"b\": 2,\n}\n"
+	out, err := Format([]byte(src), "t")
+	require.NoError(t, err)
+	assert.Equal(t, "let m = {\"a\": 1, \"b\": 2}\n", out)
+}
+
 func TestFormat_IdempotentOnItself(t *testing.T) {
 	src := "let x = 1\nprintln(x)\n"
 	out1, err := Format([]byte(src), "t")

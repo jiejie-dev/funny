@@ -13,6 +13,11 @@ type Lexer struct {
 	saveCol     int
 	indentStack []int
 	hasEmitted  bool
+	// parenDepth counts unclosed (/[/{ so that newlines and indentation
+	// inside them are treated as insignificant whitespace (line-continuation),
+	// mirroring Python's bracket-continuation rule. Only tracked outside
+	// f-strings, which run their own nested lexFString scanner.
+	parenDepth int
 }
 
 func New(src, file string) *Lexer {
@@ -51,6 +56,7 @@ type LexerState struct {
 	Col         int
 	IndentStack []int
 	HasEmitted  bool
+	ParenDepth  int
 }
 
 func (l *Lexer) Snapshot() LexerState {
@@ -62,6 +68,7 @@ func (l *Lexer) Snapshot() LexerState {
 		Col:         l.col,
 		IndentStack: stack,
 		HasEmitted:  l.hasEmitted,
+		ParenDepth:  l.parenDepth,
 	}
 }
 
@@ -72,6 +79,7 @@ func (l *Lexer) Restore(s LexerState) {
 	l.indentStack = make([]int, len(s.IndentStack))
 	copy(l.indentStack, s.IndentStack)
 	l.hasEmitted = s.HasEmitted
+	l.parenDepth = s.ParenDepth
 }
 
 func (l *Lexer) emit(kind Kind, data string) Token {
@@ -86,8 +94,29 @@ func (l *Lexer) emit(kind Kind, data string) Token {
 
 func (l *Lexer) Next() Token {
 	for {
+		// Inside unclosed (/[/{ , newlines and indentation are insignificant
+		// whitespace (bracket line-continuation), so skip the INDENT/DEDENT/
+		// blank-line machinery entirely and just fast-forward past leading
+		// spaces and blank lines on continuation lines.
+		if l.col == 0 && l.parenDepth > 0 {
+			peekPos := l.pos
+			indent := 0
+			for peekPos < len(l.src) && l.src[peekPos] == ' ' {
+				indent++
+				peekPos++
+			}
+			if peekPos < len(l.src) && l.src[peekPos] == '\n' {
+				l.pos = peekPos + 1
+				l.line++
+				l.col = 0
+				continue
+			}
+			l.pos, l.col = peekPos, indent
+			l.save()
+		}
+
 		// At start of line (col == 0): compute indent, handle blank lines and EOF
-		if l.col == 0 {
+		if l.col == 0 && l.parenDepth == 0 {
 			// Tab is forbidden at any position
 			if l.pos < len(l.src) && l.src[l.pos] == '\t' {
 				panic(fmt.Sprintf("tab character not allowed at %s:%d:%d (use 4 spaces)", l.file, l.line+1, l.col+1))
@@ -176,11 +205,14 @@ func (l *Lexer) Next() Token {
 			return l.emit(kind, l.src[start:l.pos])
 		}
 
-		// Newline as token
+		// Newline as token (insignificant inside unclosed brackets - just skip it)
 		if ch == '\n' {
 			l.line++
 			l.col = 0
 			l.pos++
+			if l.parenDepth > 0 {
+				continue
+			}
 			l.hasEmitted = true
 			return l.emit(NEWLINE, "\n")
 		}
@@ -323,20 +355,40 @@ func (l *Lexer) Next() Token {
 			return l.emit(GT, ">")
 		case '(':
 			l.advance()
+			l.parenDepth++
 			l.hasEmitted = true
 			return l.emit(LPAREN, "(")
 		case ')':
 			l.advance()
+			if l.parenDepth > 0 {
+				l.parenDepth--
+			}
 			l.hasEmitted = true
 			return l.emit(RPAREN, ")")
 		case '[':
 			l.advance()
+			l.parenDepth++
 			l.hasEmitted = true
 			return l.emit(LBRACK, "[")
 		case ']':
 			l.advance()
+			if l.parenDepth > 0 {
+				l.parenDepth--
+			}
 			l.hasEmitted = true
 			return l.emit(RBRACK, "]")
+		case '{':
+			l.advance()
+			l.parenDepth++
+			l.hasEmitted = true
+			return l.emit(LBRACE, "{")
+		case '}':
+			l.advance()
+			if l.parenDepth > 0 {
+				l.parenDepth--
+			}
+			l.hasEmitted = true
+			return l.emit(RBRACE, "}")
 		case ',':
 			l.advance()
 			l.hasEmitted = true

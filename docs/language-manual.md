@@ -82,6 +82,37 @@ let name: str = "hello"          # explicit type
 let items: list[int] = [1, 2, 3] # explicit type
 ```
 
+### Collections
+
+List literals use `[...]`; map literals use `{key: value, ...}`. Both infer
+their element/key/value types from the first entry when there's no explicit
+annotation, and require an annotation when empty (`let xs: list[int] = []`,
+`let m: map[str, int] = {}`).
+
+```
+let xs = [1, 2, 3]
+let m: map[str, int] = {"a": 1, "b": 2}
+```
+
+Any bracketed literal - `[...]`, `(...)`, and `{...}` - may span multiple
+lines; a newline inside an open bracket is insignificant whitespace, so the
+usual convention is one entry per line ending with a trailing comma:
+
+```
+let m: map[str, int] = {
+    "a": 1,
+    "b": 2,
+    "c": 3,
+}
+```
+
+Map values are accessed with `.field` (like a struct), not `m["key"]`
+indexing:
+
+```
+println(m.a)  # 1
+```
+
 ### Functions
 ```
 fn add(a: int, b: int) -> int:

@@ -56,7 +56,13 @@ let u = User(name: "alice", age: 30)
 let xs = [1, 2, 3]
 let m  = {"key": "value"}
 let x  = xs[0]
-let v  = m["key"]
+let v  = m.key                   # map values are read via .field, not m["key"]
+
+let big: map[str, int] = {       # any bracketed literal ([...], (...), {...})
+    "a": 1,                      # may span multiple lines; one entry per
+    "b": 2,                      # line ending with a trailing comma is the
+    "c": 3,                      # usual style
+}
 ```
 
 ## Strings & F-strings

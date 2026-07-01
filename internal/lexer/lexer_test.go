@@ -52,6 +52,8 @@ func TestLexer_Operators(t *testing.T) {
 		{")", RPAREN, ")"},
 		{"[", LBRACK, "["},
 		{"]", RBRACK, "]"},
+		{"{", LBRACE, "{"},
+		{"}", RBRACE, "}"},
 		{",", COMMA, ","},
 		{".", DOT, "."},
 		{":", COLON, ":"},
@@ -200,6 +202,58 @@ func TestLexer_MultiLevelDedentToNonzeroColumn(t *testing.T) {
 		DEDENT, EOF,
 	}
 	assert.Equal(t, expected, kinds)
+}
+
+// TestLexer_NewlineInsideParensIsSkipped verifies that newlines (and any
+// leading indentation on continuation lines) inside an unclosed `(` are not
+// emitted as NEWLINE/INDENT/DEDENT tokens - they're insignificant whitespace,
+// letting call arguments span multiple lines.
+func TestLexer_NewlineInsideParensIsSkipped(t *testing.T) {
+	src := "foo(\n    1,\n    2,\n)\n"
+	l := New(src, "")
+	kinds := drain(l)
+	expected := []Kind{NAME, LPAREN, INT, COMMA, INT, COMMA, RPAREN, NEWLINE, EOF}
+	assert.Equal(t, expected, kinds)
+}
+
+// TestLexer_NewlineInsideBracketsIsSkipped covers `[` the same way.
+func TestLexer_NewlineInsideBracketsIsSkipped(t *testing.T) {
+	src := "[\n    1,\n    2,\n]\n"
+	l := New(src, "")
+	kinds := drain(l)
+	expected := []Kind{LBRACK, INT, COMMA, INT, COMMA, RBRACK, NEWLINE, EOF}
+	assert.Equal(t, expected, kinds)
+}
+
+// TestLexer_NewlineInsideBracesIsSkipped covers `{` (map literals).
+func TestLexer_NewlineInsideBracesIsSkipped(t *testing.T) {
+	src := "{\n    \"a\": 1,\n    \"b\": 2,\n}\n"
+	l := New(src, "")
+	kinds := drain(l)
+	expected := []Kind{LBRACE, STR, COLON, INT, COMMA, STR, COLON, INT, COMMA, RBRACE, NEWLINE, EOF}
+	assert.Equal(t, expected, kinds)
+}
+
+// TestLexer_NestedBracketsTrackDepthIndependently ensures depth is a single
+// counter shared across bracket kinds (matching Python's bracket-continuation
+// rule) - a newline inside a `[` nested within a `(` is still skipped, and
+// closing both restores normal NEWLINE emission.
+func TestLexer_NestedBracketsTrackDepthIndependently(t *testing.T) {
+	src := "foo([\n    1,\n], 2)\n"
+	l := New(src, "")
+	kinds := drain(l)
+	expected := []Kind{NAME, LPAREN, LBRACK, INT, COMMA, RBRACK, COMMA, INT, RPAREN, NEWLINE, EOF}
+	assert.Equal(t, expected, kinds)
+}
+
+// TestLexer_UnbalancedCloseDoesNotUnderflowDepth guards against a stray
+// closing bracket driving parenDepth negative, which would incorrectly
+// suppress NEWLINE emission for the rest of the file.
+func TestLexer_UnbalancedCloseDoesNotUnderflowDepth(t *testing.T) {
+	l := New(")", "")
+	tok := l.Next()
+	assert.Equal(t, RPAREN, tok.Kind)
+	assert.Equal(t, 0, l.parenDepth)
 }
 
 func drain(l *Lexer) []Kind {

@@ -53,6 +53,21 @@ func (c *Compiler) compileField(n *ast.FieldExpr) (valueType, error) {
 	return valStr, nil
 }
 
+// compileMapLiteral compiles {k: v, ...} into BUILD_MAP n. Empty map literals
+// are rejected by the type checker before compilation is reached.
+func (c *Compiler) compileMapLiteral(n *ast.MapLiteralExpr) (valueType, error) {
+	for i, k := range n.Keys {
+		if _, err := c.compileExpr(k); err != nil {
+			return "", err
+		}
+		if _, err := c.compileExpr(n.Values[i]); err != nil {
+			return "", err
+		}
+	}
+	c.fn.Emit(bytecode.BUILD_MAP, len(n.Keys))
+	return valNil, nil
+}
+
 // compileStructLiteral compiles Point(x: 1, y: 2) into BUILD_MAP + NEW_STRUCT.
 func (c *Compiler) compileStructLiteral(n *ast.StructLiteralExpr) (valueType, error) {
 	if len(n.Fields) == 0 {

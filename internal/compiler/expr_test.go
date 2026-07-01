@@ -6,6 +6,7 @@ import (
 	"github.com/jiejie-dev/funny/internal/bytecode"
 	"github.com/jiejie-dev/funny/internal/parser"
 	"github.com/jiejie-dev/funny/internal/types"
+	"github.com/jiejie-dev/funny/internal/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -30,6 +31,27 @@ func TestCompile_LiteralInt(t *testing.T) {
 	assert.Equal(t, 0, fn.Code[0].Arg)
 	assert.Equal(t, bytecode.HALT, fn.Code[1].Op)
 	assert.Equal(t, 42, mod.Constants[0])
+}
+
+func TestCompile_MapLiteral_EmitsBuildMap(t *testing.T) {
+	mod := compileExpr(t, `{"a": 1, "b": 2}`)
+	fn := mod.Functions[0]
+	var found bool
+	for _, instr := range fn.Code {
+		if instr.Op == bytecode.BUILD_MAP {
+			found = true
+			assert.Equal(t, 2, instr.Arg)
+		}
+	}
+	assert.True(t, found, "expected BUILD_MAP in %v", fn.Code)
+}
+
+func TestCompile_MapLiteral_MultiLine_RunsOnVM(t *testing.T) {
+	src := "let m = {\n    \"a\": 1,\n    \"b\": 2,\n}\nm.a\n"
+	mod := compileExpr(t, src)
+	got, err := vm.New(mod).Run()
+	require.NoError(t, err)
+	assert.Equal(t, 1, got)
 }
 
 func TestCompile_FString_ProducesFormatValueAndAddStr(t *testing.T) {

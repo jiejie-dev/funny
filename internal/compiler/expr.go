@@ -22,6 +22,8 @@ func (c *Compiler) compileExpr(e ast.Expression) (valueType, error) {
 		return c.compileCall(n)
 	case *ast.ListExpr:
 		return c.compileList(n)
+	case *ast.MapLiteralExpr:
+		return c.compileMapLiteral(n)
 	case *ast.IndexExpr:
 		return c.compileIndex(n)
 	case *ast.FieldExpr:
