@@ -376,14 +376,17 @@ func TestVM_TryOrReturn_Err(t *testing.T) {
 }
 
 func TestVM_BuiltinToJSON(t *testing.T) {
+	// to_json maps a funny value (map[string]bytecode.Value) to its canonical
+	// JSON string representation.
 	main := &bytecode.Function{Name: "main", Arity: 0}
 	main.Emit(bytecode.PUSH_STR, 0)
 	main.Emit(bytecode.CALL_BUILTIN, 1) // "to_json"
 	main.Emit(bytecode.HALT, 0)
-	v := runModule(t, main, nil, `{"k": 1}`, bytecode.BuiltinInfo{Name: "to_json", Arity: 1})
-	m, ok := v.(map[string]bytecode.Value)
+	m := map[string]bytecode.Value{"k": float64(1)}
+	v := runModule(t, main, nil, m, bytecode.BuiltinInfo{Name: "to_json", Arity: 1})
+	s, ok := v.(string)
 	require.True(t, ok)
-	assert.Equal(t, float64(1), m["k"])
+	assert.Equal(t, `{"k":1}`, s)
 }
 
 func TestVM_BuiltinParseJSON(t *testing.T) {

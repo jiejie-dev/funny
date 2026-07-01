@@ -180,8 +180,8 @@ func (l *Lexer) Next() Token {
 		}
 
 		// Strings
-		if ch == '"' || ch == '\'' {
-			tok := l.lexString(ch == '\'')
+		if ch == '"' || ch == '\'' || ch == '`' {
+			tok := l.lexString(ch)
 			l.hasEmitted = true
 			return tok
 		}
@@ -370,15 +370,11 @@ func isHexDigit(b byte) bool {
 	return isDigit(b) || (b >= 'a' && b <= 'f') || (b >= 'A' && b <= 'F')
 }
 
-func (l *Lexer) lexString(single bool) Token {
-	quote := byte('"')
-	if single {
-		quote = '\''
-	}
+func (l *Lexer) lexString(quote byte) Token {
 	l.advance()
 	var buf []byte
 	for l.pos < len(l.src) && l.src[l.pos] != quote {
-		if l.src[l.pos] == '\\' && l.pos+1 < len(l.src) {
+		if quote != '`' && l.src[l.pos] == '\\' && l.pos+1 < len(l.src) {
 			esc := l.src[l.pos+1]
 			switch esc {
 			case 'n':

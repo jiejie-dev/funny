@@ -406,7 +406,9 @@ func TestCheck_TryOperator_Annotated(t *testing.T) {
 	assert.Equal(t, Primitive("int"), t2)
 }
 
-func TestCheck_TryOperator_BadType(t *testing.T) {
+func TestCheck_TryOperator_NonResult(t *testing.T) {
+	// `?` on a non-Result expression is now a transparent pass-through:
+	// the value's type is preserved and no Result unwrap is performed.
 	src := `let x: int = 42?
 `
 	p := parser.New(src, "")
@@ -414,5 +416,7 @@ func TestCheck_TryOperator_BadType(t *testing.T) {
 	require.NoError(t, err)
 	env := NewEnv(nil)
 	err = Check(prog, env)
-	assert.Error(t, err) // 42 is int, not Result
+	assert.NoError(t, err)
+	t2, _ := env.LookupVar("x")
+	assert.Equal(t, Primitive("int"), t2)
 }

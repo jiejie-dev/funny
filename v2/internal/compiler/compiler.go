@@ -105,8 +105,13 @@ func (c *Compiler) compileStmt(s ast.Statement, isLast bool) error {
 		if _, err := c.compileExpr(n.X); err != nil {
 			return err
 		}
+		// POP only if the expression leaves a value on the stack.
+		// Function calls (e.g. println) consume their own args and don't push
+		// a result, so POPping after them would underflow.
 		if !isLast {
-			c.fn.Emit(bytecode.POP, 0)
+			if _, isCall := n.X.(*ast.CallExpr); !isCall {
+				c.fn.Emit(bytecode.POP, 0)
+			}
 		}
 		return nil
 	case *ast.LetStmt:

@@ -10,14 +10,25 @@ import (
 
 // builtinNames lists functions that compile to CALL_BUILTIN instead of CALL.
 var builtinNames = map[string]bool{
-	"print":   true,
-	"println": true,
-	"len":     true,
-	"to_str":  true,
-	"to_int":  true,
-	"type_of": true,
-	"ok":      true,
-	"err":     true,
+	"print":       true,
+	"println":     true,
+	"len":         true,
+	"to_str":      true,
+	"to_int":      true,
+	"type_of":     true,
+	"ok":          true,
+	"err":         true,
+	"to_json":     true,
+	"parse_json":  true,
+	"now":         true,
+	"time_format": true,
+	"sqrt":        true,
+	"pow":         true,
+	"abs":         true,
+	"str_upper":   true,
+	"str_lower":   true,
+	"str_contains": true,
+	"str_split":   true,
 }
 
 // compileFnDecl compiles a function declaration into a separate Function in the module.

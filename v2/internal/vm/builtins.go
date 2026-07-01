@@ -152,16 +152,13 @@ case "ok":
 		if len(v.stack) < 1 {
 			return fmt.Errorf("vm: to_json() requires 1 argument")
 		}
-		s, ok := v.stack[len(v.stack)-1].(string)
-		if !ok {
-			return fmt.Errorf("vm: to_json() requires a string argument")
-		}
+		val := v.stack[len(v.stack)-1]
 		v.stack = v.stack[:len(v.stack)-1]
-		var x any
-		if err := json.Unmarshal([]byte(s), &x); err != nil {
-			return fmt.Errorf("vm: to_json: invalid JSON: %v", err)
+		canonical, err := json.Marshal(funnyToGo(val))
+		if err != nil {
+			return fmt.Errorf("vm: to_json: marshal error: %v", err)
 		}
-		v.stack = append(v.stack, convertJSON(x))
+		v.stack = append(v.stack, string(canonical))
 	case "parse_json":
 		if len(v.stack) < 1 {
 			return fmt.Errorf("vm: parse_json() requires 1 argument")
@@ -173,8 +170,7 @@ case "ok":
 		v.stack = v.stack[:len(v.stack)-1]
 		var x any
 		if err := json.Unmarshal([]byte(s), &x); err != nil {
-			v.stack = append(v.stack, makeResult("err", fmt.Sprintf("parse_json: %v", err)))
-			return nil
+			return fmt.Errorf("vm: parse_json: invalid JSON: %v", err)
 		}
 		v.stack = append(v.stack, convertJSON(x))
 	case "now":
@@ -271,4 +267,29 @@ func toFloat(val bytecode.Value) float64 {
 		return x
 	}
 	panic(fmt.Sprintf("vm: expected number, got %T", val))
+}
+
+// funnyToGo converts a funny bytecode.Value (using []bytecode.Value and
+// map[string]bytecode.Value) into generic Go types ([]any, map[string]any)
+// that encoding/json can marshal directly.
+func funnyToGo(val bytecode.Value) any {
+	switch v := val.(type) {
+	case nil:
+		return nil
+	case bool, int, float64, string:
+		return v
+	case []bytecode.Value:
+		out := make([]any, len(v))
+		for i, e := range v {
+			out[i] = funnyToGo(e)
+		}
+		return out
+	case map[string]bytecode.Value:
+		out := make(map[string]any, len(v))
+		for k, e := range v {
+			out[k] = funnyToGo(e)
+		}
+		return out
+	}
+	return fmt.Sprintf("%v", val)
 }

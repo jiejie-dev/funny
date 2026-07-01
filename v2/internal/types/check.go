@@ -41,23 +41,24 @@ func CheckExpr(expr ast.Expression, env *Env) (Type, error) {
 	return nil, New("E2099", fmt.Sprintf("type checker: unsupported expression %T", expr), expr.Pos())
 }
 
-// checkTry type-checks `expr?` — expr must be Result[T, E] (or the bare
-// `Result` placeholder). `?` propagates Err (early-returns from the current
-// function) but does NOT unwrap the Ok value: the type of `expr?` is Result.
-// To get the inner value, chain `.val` (or `.tag`) on the Result.
+// checkTry type-checks `expr?`. The accepted operand is the inner expression's
+// type. When the operand is a Result, `?` propagates Err (early-returns from
+// the current function) but does NOT unwrap the Ok value: the type of `expr?`
+// is still Result, and the user chains `.val` (or `.tag`) on it. For non-Result
+// operands, `?` is treated as a transparent pass-through (the runtime leaves
+// the value on the stack unchanged).
 func checkTry(n *ast.TryExpr, env *Env) (Type, error) {
 	innerT, err := CheckExpr(n.Inner, env)
 	if err != nil {
 		return nil, err
 	}
-	// Accept concrete Result[T, E] or bare `Result` (Primitive) placeholder.
 	if _, ok := innerT.(Result); ok {
 		return innerT, nil
 	}
 	if p, ok := innerT.(Primitive); ok && string(p) == "Result" {
 		return innerT, nil
 	}
-	return nil, NewMismatch(n.NodePos, Primitive("Result"), innerT)
+	return innerT, nil
 }
 
 // literalType infers a Type from a Go value.
@@ -145,6 +146,40 @@ func checkUnaryExpr(n *ast.UnaryExpr, env *Env) (Type, error) {
 	return nil, New("E2098", fmt.Sprintf("unsupported unary operator: %s", n.Op), n.NodePos)
 }
 
+// builtinTypeNames is the set of names recognized by the type checker as
+// builtins (the compiler and VM also know these). Their return types are
+// reported as Primitive("any") since the type checker does not narrow them.
+var builtinTypeNames = map[string]bool{
+	"print":        true,
+	"println":      true,
+	"len":          true,
+	"to_str":       true,
+	"to_int":       true,
+	"type_of":      true,
+	"to_json":      true,
+	"parse_json":   true,
+	"now":          true,
+	"time_format":  true,
+	"sqrt":         true,
+	"pow":          true,
+	"abs":          true,
+	"str_upper":    true,
+	"str_lower":    true,
+	"str_contains": true,
+	"str_split":    true,
+}
+
+// builtinResultReturns lists builtins that return a Result, so the `?` operator
+// can be applied to them at the type level.
+var builtinResultReturns = map[string]bool{}
+
+func builtinReturnType(name string) Type {
+	if builtinResultReturns[name] {
+		return Result{Ok: Primitive("any"), Err: Primitive("str")}
+	}
+	return Primitive("any")
+}
+
 func checkCallExpr(n *ast.CallExpr, env *Env) (Type, error) {
 	varName, ok := n.Func.(*ast.VariableExpr)
 	if !ok {
@@ -167,6 +202,9 @@ func checkCallExpr(n *ast.CallExpr, env *Env) (Type, error) {
 			return Result{Ok: argT, Err: Primitive("str")}, nil
 		}
 		return Result{Ok: Primitive("str"), Err: argT}, nil
+	}
+	if builtinTypeNames[varName.Name] {
+		return builtinReturnType(varName.Name), nil
 	}
 	fn, ok := env.LookupFunc(varName.Name)
 	if !ok {

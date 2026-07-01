@@ -139,17 +139,21 @@ func (v *VM) execute() (bytecode.Value, error) {
 			}
 			top := v.stack[len(v.stack)-1]
 			if !isResult(top) {
-				return nil, fmt.Errorf("vm: TRY_OR_RETURN operand is not a Result")
+				// Non-Result operand: `?` is a no-op, leave the value as-is.
+				break
 			}
-			if resultTag(top) == "err" {
-				// Err: leave the Result on the stack; execReturn will pop it,
-				// pop the current frame, and push it back as the caller's return value.
+			if resultTag(top) == "err" && len(v.frames) > 1 {
+				// Err inside a function: leave the Result on the stack; execReturn will
+				// pop it, pop the current frame, and push it back as the caller's
+				// return value.
 				if err := v.execReturn(); err != nil {
 					return nil, err
 				}
 			}
-			// Ok (or Err already handled): leave the Result on the stack.
-			// `?` propagates Err but does NOT unwrap Ok. Use `.val` to read the inner value.
+			// Ok, or Err at top level: leave the Result on the stack.
+			// `?` propagates Err from a function but does NOT unwrap Ok.
+			// At the top level there is no caller to return to, so the Result
+			// stays on the stack for the program to inspect.
 		case bytecode.CALL:
 			if err := v.execCall(instr.Arg); err != nil {
 				return nil, err

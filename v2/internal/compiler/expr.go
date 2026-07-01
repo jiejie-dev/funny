@@ -34,14 +34,21 @@ func (c *Compiler) compileExpr(e ast.Expression) (valueType, error) {
 	return "", fmt.Errorf("compileExpr: unsupported expression type %T", e)
 }
 
-// compileTry compiles `expr?`. Emits `expr` followed by TRY_OR_RETURN.
-// The runtime handles the unwrap/propagate; the compiler just emits the instruction.
+// compileTry compiles `expr?`. Emits the inner expression's code and, if
+// the result is a Result, follows it with TRY_OR_RETURN to propagate Err
+// or unwrap Ok. If the inner expression's type is not a Result, the `?` is
+// a no-op (we still emit TRY_OR_RETURN but the runtime check is a no-op
+// for non-Results).
 func (c *Compiler) compileTry(n *ast.TryExpr) (valueType, error) {
-	if _, err := c.compileExpr(n.Inner); err != nil {
+	vt, err := c.compileExpr(n.Inner)
+	if err != nil {
 		return "", err
 	}
 	c.fn.Emit(bytecode.TRY_OR_RETURN, 0)
-	return valNil, nil
+	if vt == valStr {
+		return valStr, nil
+	}
+	return vt, nil
 }
 
 func (c *Compiler) compileLiteral(n *ast.LiteralExpr) (valueType, error) {
