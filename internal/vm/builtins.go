@@ -4,6 +4,7 @@ package vm
 import (
 	"crypto/md5"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -18,6 +19,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	_ "modernc.org/sqlite"
 
 	"github.com/jiejie-dev/funny/internal/bytecode"
 )
@@ -404,6 +406,20 @@ case "ok":
 			return nil
 		}
 		v.stack = append(v.stack, makeResult("ok", parsed.Claims))
+	case "sql_open":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: sql_open() requires 1 argument")
+		}
+		path := v.stack[len(v.stack)-1].(string)
+		v.stack = v.stack[:len(v.stack)-1]
+		db, err := sql.Open("sqlite", path)
+		if err != nil {
+			v.stack = append(v.stack, makeResult("err", err.Error()))
+			return nil
+		}
+		handle := "sqlite:" + path
+		_ = db
+		v.stack = append(v.stack, handle)
 	default:
 		return fmt.Errorf("vm: unknown builtin %q", name)
 	}
