@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/jerloo/funny/internal/ast"
-	"github.com/jerloo/funny/internal/errs"
-	"github.com/jerloo/funny/internal/lexer"
+	"github.com/jiejie-dev/funny/internal/ast"
+	"github.com/jiejie-dev/funny/internal/errs"
+	"github.com/jiejie-dev/funny/internal/lexer"
 )
 
 const (

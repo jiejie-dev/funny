@@ -4,8 +4,8 @@ package compiler
 import (
 	"fmt"
 
-	"github.com/jerloo/funny/internal/ast"
-	"github.com/jerloo/funny/internal/bytecode"
+	"github.com/jiejie-dev/funny/internal/ast"
+	"github.com/jiejie-dev/funny/internal/bytecode"
 )
 
 func (c *Compiler) compileExpr(e ast.Expression) (valueType, error) {

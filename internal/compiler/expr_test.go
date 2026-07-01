@@ -3,9 +3,9 @@ package compiler
 import (
 	"testing"
 
-	"github.com/jerloo/funny/internal/bytecode"
-	"github.com/jerloo/funny/internal/parser"
-	"github.com/jerloo/funny/internal/types"
+	"github.com/jiejie-dev/funny/internal/bytecode"
+	"github.com/jiejie-dev/funny/internal/parser"
+	"github.com/jiejie-dev/funny/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

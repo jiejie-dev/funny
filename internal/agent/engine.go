@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/jerloo/funny/internal/ast"
-	"github.com/jerloo/funny/internal/evaluator"
+	"github.com/jiejie-dev/funny/internal/ast"
+	"github.com/jiejie-dev/funny/internal/evaluator"
 )
 
 // Engine executes plan blocks step-by-step.

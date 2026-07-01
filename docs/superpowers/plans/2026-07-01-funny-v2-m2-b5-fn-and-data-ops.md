@@ -339,7 +339,7 @@ import (
     "fmt"
     "reflect"
 
-    "github.com/jerloo/funny/v2/internal/bytecode"
+    "github.com/jiejie-dev/funny/v2/internal/bytecode"
 )
 
 // execCallBuiltin handles CALL_BUILTIN nameIdx.
@@ -681,7 +681,7 @@ package compiler
 import (
     "testing"
 
-    "github.com/jerloo/funny/v2/internal/bytecode"
+    "github.com/jiejie-dev/funny/v2/internal/bytecode"
     "github.com/stretchr/testify/assert"
     "github.com/stretchr/testify/require"
 )
@@ -817,8 +817,8 @@ package compiler
 import (
     "fmt"
 
-    "github.com/jerloo/funny/v2/internal/ast"
-    "github.com/jerloo/funny/v2/internal/bytecode"
+    "github.com/jiejie-dev/funny/v2/internal/ast"
+    "github.com/jiejie-dev/funny/v2/internal/bytecode"
 )
 
 // compileFnDecl compiles a function declaration into a separate Function in the module.
@@ -931,8 +931,8 @@ package compiler
 import (
     "fmt"
 
-    "github.com/jerloo/funny/v2/internal/ast"
-    "github.com/jerloo/funny/v2/internal/bytecode"
+    "github.com/jiejie-dev/funny/v2/internal/ast"
+    "github.com/jiejie-dev/funny/v2/internal/bytecode"
 )
 
 // compileList compiles a list literal into BUILD_LIST n.

@@ -3,7 +3,7 @@ package evaluator
 import (
 	"testing"
 
-	"github.com/jerloo/funny/internal/parser"
+	"github.com/jiejie-dev/funny/internal/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

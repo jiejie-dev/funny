@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	"github.com/jerloo/funny/internal/ast"
+	"github.com/jiejie-dev/funny/internal/ast"
 )
 
 // CheckExpr type-checks an expression and returns its type.

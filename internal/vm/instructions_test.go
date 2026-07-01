@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jerloo/funny/internal/bytecode"
+	"github.com/jiejie-dev/funny/internal/bytecode"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

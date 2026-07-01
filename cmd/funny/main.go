@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jerloo/funny/internal/cli"
+	"github.com/jiejie-dev/funny/internal/cli"
 )
 
 var version = "0.1.0"

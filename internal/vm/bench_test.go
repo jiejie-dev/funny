@@ -5,10 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jerloo/funny/internal/compiler"
-	"github.com/jerloo/funny/internal/evaluator"
-	"github.com/jerloo/funny/internal/parser"
-	"github.com/jerloo/funny/internal/types"
+	"github.com/jiejie-dev/funny/internal/compiler"
+	"github.com/jiejie-dev/funny/internal/evaluator"
+	"github.com/jiejie-dev/funny/internal/parser"
+	"github.com/jiejie-dev/funny/internal/types"
 )
 
 // runSource parses, type-checks, and executes src. If FUNNY_INTERPRET is set

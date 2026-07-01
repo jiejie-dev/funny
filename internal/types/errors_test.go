@@ -3,7 +3,7 @@ package types
 import (
 	"testing"
 
-	"github.com/jerloo/funny/internal/ast"
+	"github.com/jiejie-dev/funny/internal/ast"
 	"github.com/stretchr/testify/assert"
 )
 

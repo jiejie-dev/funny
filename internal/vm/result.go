@@ -1,7 +1,7 @@
 // v2/internal/vm/result.go
 package vm
 
-import "github.com/jerloo/funny/internal/bytecode"
+import "github.com/jiejie-dev/funny/internal/bytecode"
 
 // makeResult constructs a Result runtime value: map{tag, val}.
 func makeResult(tag string, val bytecode.Value) bytecode.Value {

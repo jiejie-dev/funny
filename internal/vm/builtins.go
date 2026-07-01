@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jerloo/funny/internal/bytecode"
+	"github.com/jiejie-dev/funny/internal/bytecode"
 )
 
 // convertJSON converts a generic Go value (from json.Unmarshal) into a funny

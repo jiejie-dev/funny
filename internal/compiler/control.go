@@ -4,8 +4,8 @@ package compiler
 import (
 	"fmt"
 
-	"github.com/jerloo/funny/internal/ast"
-	"github.com/jerloo/funny/internal/bytecode"
+	"github.com/jiejie-dev/funny/internal/ast"
+	"github.com/jiejie-dev/funny/internal/bytecode"
 )
 
 // compileIf translates: `if cond: then else:?` into JUMP_IF_FALSE + then + JUMP + else.

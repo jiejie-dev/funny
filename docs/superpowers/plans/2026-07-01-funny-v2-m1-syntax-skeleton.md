@@ -20,7 +20,7 @@ All v2 code lives under `/Users/j/repos/funny/v2/` to preserve v1:
 
 ```
 v2/
-├── go.mod                              # module github.com/jerloo/funny/v2
+├── go.mod                              # module github.com/jiejie-dev/funny/v2
 ├── README.md
 ├── .gitignore
 ├── cmd/
@@ -81,7 +81,7 @@ v2/
 
 **Files:** `v2/go.mod`, `v2/README.md`, `v2/.gitignore`, `v2/cmd/funny/main.go`
 
-- [ ] Create directory and init module: `mkdir -p /Users/j/repos/funny/v2 && cd /Users/j/repos/funny/v2 && go mod init github.com/jerloo/funny/v2`
+- [ ] Create directory and init module: `mkdir -p /Users/j/repos/funny/v2 && cd /Users/j/repos/funny/v2 && go mod init github.com/jiejie-dev/funny/v2`
 - [ ] Add testify: `cd /Users/j/repos/funny/v2 && go get github.com/stretchr/testify@latest`
 - [ ] Write `.gitignore`: `/funny`, `/coverage.out`, `*.test`
 - [ ] Write minimal `README.md` (build/test instructions, M1 status)
@@ -542,9 +542,9 @@ package parser
 
 import (
     "fmt"
-    "github.com/jerloo/funny/v2/internal/ast"
-    "github.com/jerloo/funny/v2/internal/errs"
-    "github.com/jerloo/funny/v2/internal/lexer"
+    "github.com/jiejie-dev/funny/v2/internal/ast"
+    "github.com/jiejie-dev/funny/v2/internal/errs"
+    "github.com/jiejie-dev/funny/v2/internal/lexer"
 )
 
 type Parser struct {
@@ -591,9 +591,9 @@ package parser
 
 import (
     "fmt"
-    "github.com/jerloo/funny/v2/internal/ast"
-    "github.com/jerloo/funny/v2/internal/errs"
-    "github.com/jerloo/funny/v2/internal/lexer"
+    "github.com/jiejie-dev/funny/v2/internal/ast"
+    "github.com/jiejie-dev/funny/v2/internal/errs"
+    "github.com/jiejie-dev/funny/v2/internal/lexer"
 )
 
 func (p *Parser) parseStatement() (ast.Statement, error) {
@@ -655,9 +655,9 @@ package parser
 import (
     "fmt"
     "strconv"
-    "github.com/jerloo/funny/v2/internal/ast"
-    "github.com/jerloo/funny/v2/internal/errs"
-    "github.com/jerloo/funny/v2/internal/lexer"
+    "github.com/jiejie-dev/funny/v2/internal/ast"
+    "github.com/jiejie-dev/funny/v2/internal/errs"
+    "github.com/jiejie-dev/funny/v2/internal/lexer"
 )
 
 const (
@@ -1386,8 +1386,8 @@ package cli
 
 import (
     "encoding/json"
-    "github.com/jerloo/funny/v2/internal/evaluator"
-    "github.com/jerloo/funny/v2/internal/parser"
+    "github.com/jiejie-dev/funny/v2/internal/evaluator"
+    "github.com/jiejie-dev/funny/v2/internal/parser"
 )
 
 func Run(src []byte, file string) error {
@@ -1425,7 +1425,7 @@ import (
     "fmt"
     "os"
     "github.com/spf13/cobra"
-    "github.com/jerloo/funny/v2/internal/cli"
+    "github.com/jiejie-dev/funny/v2/internal/cli"
 )
 
 var rootCmd = &cobra.Command{

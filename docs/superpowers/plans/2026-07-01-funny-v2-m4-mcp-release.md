@@ -238,9 +238,9 @@ import (
 
     "github.com/modelcontextprotocol/go-sdk/mcp"
 
-    "github.com/jerloo/funny/v2/internal/cli"
-    "github.com/jerloo/funny/v2/internal/parser"
-    "github.com/jerloo/funny/v2/internal/types"
+    "github.com/jiejie-dev/funny/v2/internal/cli"
+    "github.com/jiejie-dev/funny/v2/internal/parser"
+    "github.com/jiejie-dev/funny/v2/internal/types"
 )
 
 // Run starts the MCP server on stdio. Blocks until ctx is cancelled.
@@ -338,7 +338,7 @@ import (
     "context"
     "os"
 
-    "github.com/jerloo/funny/v2/internal/mcp"
+    "github.com/jiejie-dev/funny/v2/internal/mcp"
 )
 
 func main() {
