@@ -1,0 +1,21 @@
+# Tutorial 4: Result and the ? operator
+#
+# Result[T, E] is a tagged union: Ok(value) or Err(error).
+# The ? postfix propagates Err from the enclosing function.
+
+fn divide(a: int, b: int) -> Result:
+    if b == 0:
+        return err("divide by zero")?
+    return ok(a / b)?
+
+# Successful call: unwrap with .val, check .tag
+let r1 = divide(10, 2)?
+if r1.tag == "err":
+    println("error:", r1.val)
+else:
+    println("result:", r1.val)
+
+# Err case: the ? propagates Err from divide, so the variable is Err.
+let r2 = divide(10, 0)?
+if r2.tag == "err":
+    println("got expected error:", r2.val)

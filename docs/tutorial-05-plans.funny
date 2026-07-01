@@ -1,0 +1,26 @@
+# Tutorial 5: Plans (Agent Protocol)
+#
+# Plans let agents (or humans) declare multi-step workflows.
+# Each step has a kind: tool, guard, transform, parallel, branch, delay.
+
+meta:
+    name: "demo_skill"
+    version: "1.0"
+
+plan "demo_skill":
+    # Step 1: simple computation
+    step "compute" -> tool:
+        let result = 42 * 2
+        println("computed:", result)
+
+    # Step 2: guard (only runs if condition holds)
+    step "verify" -> guard:
+        if result > 0:
+            pass
+        else:
+            return err("expected positive")?
+
+    # Step 3: parallel — branches run concurrently
+    step "fanout" -> parallel:
+        let a = 1
+        let b = 2

@@ -1,0 +1,17 @@
+# Tutorial 1: Hello, Funny v2!
+#
+# Your first script. Run with: funny run tutorial-01-hello.funny
+
+# Variables: let binds a name to a value. The compiler infers the type.
+let greeting = "Hello, Funny!"
+let count = 42
+let price = 9.99
+let active = true
+
+# Print to stdout (no newline) and println (with newline).
+print("count = ")
+println(count)
+
+# String interpolation is via f-strings (deferred to v2.1); concat with +.
+let message = greeting + " The price is " + to_str(price)
+println(message)

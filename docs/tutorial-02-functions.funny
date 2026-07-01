@@ -1,0 +1,25 @@
+# Tutorial 2: Functions
+#
+# Functions are declared with fn. Parameters and return values require
+# explicit type annotations.
+
+# Basic function: add two ints.
+fn add(a: int, b: int) -> int:
+    return a + b
+
+let sum = add(3, 4)
+println("3 + 4 =", sum)
+
+# Recursive function: factorial.
+fn factorial(n: int) -> int:
+    if n < 2:
+        return 1
+    return n * factorial(n - 1)
+
+println("5! =", factorial(5))
+
+# Public function (callable from other modules).
+pub fn double(x: int) -> int:
+    return x * 2
+
+println("double(21) =", double(21))

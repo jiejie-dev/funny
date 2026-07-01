@@ -1,0 +1,25 @@
+# Tutorial 3: Types and Structs
+#
+# Funny v2 has strong static typing. Variables can have explicit type
+# annotations, and the compiler checks compatibility.
+
+# Primitives: int, float, bool, str, nil
+let i: int = 42
+let f: float = 3.14
+let b: bool = true
+let s: str = "hello"
+
+# Collections: list[T] and map[K, V]
+let xs: list[int] = [1, 2, 3]
+let m: map[str, int] = {"a": 1, "b": 2}
+
+# Structs: declare then construct.
+struct Point:
+    x: int
+    y: int
+
+let p = Point(x: 10, y: 20)
+println("point =", p.x, p.y)
+
+# Type mismatch: this would fail at compile time.
+# let bad: int = "hello"   # ERROR E2010: type mismatch
