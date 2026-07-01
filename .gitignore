@@ -19,4 +19,5 @@ mysql.funny
 # Built binaries
 /funny
 /funny-mcp
+/funny-lsp
 /coverage.out
