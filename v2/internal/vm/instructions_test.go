@@ -2,6 +2,8 @@
 package vm
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
@@ -552,4 +554,21 @@ func TestVM_BuiltinFileExists(t *testing.T) {
 	main.Emit(bytecode.HALT, 0)
 	v := runModule(t, main, nil, "/tmp/funny_test_definitely_does_not_exist_12345", bytecode.BuiltinInfo{Name: "file_exists", Arity: 1})
 	assert.Equal(t, false, v)
+}
+
+func TestVM_BuiltinHttpGet(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("hello"))
+	}))
+	defer srv.Close()
+
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0) // URL
+	main.Emit(bytecode.CALL_BUILTIN, 1) // "http_get"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, srv.URL, bytecode.BuiltinInfo{Name: "http_get", Arity: 1})
+	m, ok := v.(map[string]bytecode.Value)
+	require.True(t, ok, "expected Result, got %T", v)
+	assert.Equal(t, "ok", m["tag"])
+	assert.Equal(t, "hello", m["val"])
 }

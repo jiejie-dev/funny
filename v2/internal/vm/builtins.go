@@ -4,7 +4,9 @@ package vm
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
+	"net/http"
 	"os"
 	"reflect"
 	"regexp"
@@ -304,6 +306,24 @@ case "ok":
 		v.stack = v.stack[:len(v.stack)-1]
 		_, err := os.Stat(path)
 		v.stack = append(v.stack, err == nil)
+	case "http_get":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: http_get() requires 1 argument")
+		}
+		url := v.stack[len(v.stack)-1].(string)
+		v.stack = v.stack[:len(v.stack)-1]
+		resp, err := http.Get(url)
+		if err != nil {
+			v.stack = append(v.stack, makeResult("err", err.Error()))
+			return nil
+		}
+		defer resp.Body.Close()
+		data, err := io.ReadAll(resp.Body)
+		if err != nil {
+			v.stack = append(v.stack, makeResult("err", err.Error()))
+			return nil
+		}
+		v.stack = append(v.stack, makeResult("ok", string(data)))
 	default:
 		return fmt.Errorf("vm: unknown builtin %q", name)
 	}
