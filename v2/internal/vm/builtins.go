@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/jerloo/funny/v2/internal/bytecode"
 )
@@ -166,6 +167,17 @@ func (v *VM) execCallBuiltin(nameIdx int) error {
 			return nil
 		}
 		v.stack = append(v.stack, convertJSON(x))
+	case "now":
+		v.stack = append(v.stack, int(time.Now().Unix()))
+	case "time_format":
+		if len(v.stack) < 2 {
+			return fmt.Errorf("vm: time_format() requires 2 arguments")
+		}
+		layout := v.stack[len(v.stack)-1].(string)
+		ts := v.stack[len(v.stack)-2].(int)
+		v.stack = v.stack[:len(v.stack)-2]
+		t := time.Unix(int64(ts), 0)
+		v.stack = append(v.stack, t.Format(layout))
 	default:
 		return fmt.Errorf("vm: unknown builtin %q", name)
 	}
