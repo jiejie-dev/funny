@@ -140,6 +140,12 @@ func (c *Compiler) compileStmt(s ast.Statement, isLast bool) error {
 		return nil
 	case *ast.CommentStmt:
 		return nil
+	case *ast.ImportDecl:
+		return nil
+	case *ast.MetaBlock:
+		return nil
+	case *ast.PlanBlock:
+		return nil
 	}
 	return fmt.Errorf("compileStmt: unsupported statement type %T", s)
 }
