@@ -284,6 +284,26 @@ case "ok":
 		key := v.stack[len(v.stack)-1].(string)
 		v.stack = v.stack[:len(v.stack)-1]
 		v.stack = append(v.stack, os.Getenv(key))
+	case "file_read":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: file_read() requires 1 argument")
+		}
+		path := v.stack[len(v.stack)-1].(string)
+		v.stack = v.stack[:len(v.stack)-1]
+		data, err := os.ReadFile(path)
+		if err != nil {
+			v.stack = append(v.stack, makeResult("err", err.Error()))
+			return nil
+		}
+		v.stack = append(v.stack, makeResult("ok", string(data)))
+	case "file_exists":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: file_exists() requires 1 argument")
+		}
+		path := v.stack[len(v.stack)-1].(string)
+		v.stack = v.stack[:len(v.stack)-1]
+		_, err := os.Stat(path)
+		v.stack = append(v.stack, err == nil)
 	default:
 		return fmt.Errorf("vm: unknown builtin %q", name)
 	}
