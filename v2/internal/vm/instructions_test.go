@@ -311,3 +311,47 @@ func TestVM_NewStruct(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, 7, m["k"])
 }
+
+func TestVM_BuiltinToJSON(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0)
+	main.Emit(bytecode.CALL_BUILTIN, 1) // "to_json"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, `{"k": 1}`, bytecode.BuiltinInfo{Name: "to_json", Arity: 1})
+	m, ok := v.(map[string]bytecode.Value)
+	require.True(t, ok)
+	assert.Equal(t, float64(1), m["k"])
+}
+
+func TestVM_BuiltinParseJSON(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_STR, 0)
+	main.Emit(bytecode.CALL_BUILTIN, 1) // "parse_json"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, `{"k": 1}`, bytecode.BuiltinInfo{Name: "parse_json", Arity: 1})
+	m, ok := v.(map[string]bytecode.Value)
+	require.True(t, ok)
+	assert.Equal(t, float64(1), m["k"])
+}
+
+func TestVM_BuiltinNow(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.CALL_BUILTIN, 0) // "now"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, bytecode.BuiltinInfo{Name: "now", Arity: 0})
+	n, ok := v.(int)
+	require.True(t, ok)
+	assert.Greater(t, n, 1700000000) // after 2023
+}
+
+func TestVM_BuiltinTimeFormat(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_INT, 0)  // timestamp
+	main.Emit(bytecode.PUSH_STR, 1)  // layout
+	main.Emit(bytecode.CALL_BUILTIN, 2) // "time_format"
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, 1700000000, "2006-01-02", bytecode.BuiltinInfo{Name: "time_format", Arity: 2})
+	s, ok := v.(string)
+	require.True(t, ok)
+	assert.Contains(t, s, "2023")
+}

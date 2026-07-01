@@ -2,11 +2,48 @@
 package vm
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 
 	"github.com/jerloo/funny/v2/internal/bytecode"
 )
+
+// makeResult builds an Ok/Err tagged-result map for builtins that return
+// a value-or-error outcome instead of raising a VM error.
+func makeResult(tag string, value bytecode.Value) map[string]bytecode.Value {
+	return map[string]bytecode.Value{"tag": tag, "value": value}
+}
+
+// convertJSON converts a generic Go value (from json.Unmarshal) into a funny
+// Value, using []any and map[string]any instead of []interface{} and
+// map[string]interface{}.
+func convertJSON(x any) bytecode.Value {
+	switch v := x.(type) {
+	case nil:
+		return nil
+	case bool:
+		return v
+	case float64:
+		return v
+	case string:
+		return v
+	case []any:
+		out := make([]bytecode.Value, len(v))
+		for i, e := range v {
+			out[i] = convertJSON(e)
+		}
+		return out
+	case map[string]any:
+		out := make(map[string]bytecode.Value, len(v))
+		for k, e := range v {
+			out[k] = convertJSON(e)
+		}
+		return out
+	default:
+		return fmt.Sprintf("%v", v)
+	}
+}
 
 // execCallBuiltin handles CALL_BUILTIN nameIdx.
 // The constant pool at nameIdx must be a struct{ Name string; Arity int }
@@ -100,6 +137,35 @@ func (v *VM) execCallBuiltin(nameIdx int) error {
 		default:
 			v.stack[len(v.stack)-1] = "unknown"
 		}
+	case "to_json":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: to_json() requires 1 argument")
+		}
+		s, ok := v.stack[len(v.stack)-1].(string)
+		if !ok {
+			return fmt.Errorf("vm: to_json() requires a string argument")
+		}
+		v.stack = v.stack[:len(v.stack)-1]
+		var x any
+		if err := json.Unmarshal([]byte(s), &x); err != nil {
+			return fmt.Errorf("vm: to_json: invalid JSON: %v", err)
+		}
+		v.stack = append(v.stack, convertJSON(x))
+	case "parse_json":
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: parse_json() requires 1 argument")
+		}
+		s, ok := v.stack[len(v.stack)-1].(string)
+		if !ok {
+			return fmt.Errorf("vm: parse_json() requires a string argument")
+		}
+		v.stack = v.stack[:len(v.stack)-1]
+		var x any
+		if err := json.Unmarshal([]byte(s), &x); err != nil {
+			v.stack = append(v.stack, makeResult("err", fmt.Sprintf("parse_json: %v", err)))
+			return nil
+		}
+		v.stack = append(v.stack, convertJSON(x))
 	default:
 		return fmt.Errorf("vm: unknown builtin %q", name)
 	}
