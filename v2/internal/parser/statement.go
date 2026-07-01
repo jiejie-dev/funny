@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/jerloo/funny/v2/internal/ast"
@@ -473,6 +474,39 @@ func (p *Parser) parseStep() (ast.Statement, error) {
 	}
 	name := p.cur.Data
 	p.advance()
+	step := &ast.Step{NodePos: pos, Name: name, Kind: ast.StepTool}
+	if p.cur.Kind == lexer.ARROW {
+		p.advance()
+		if p.cur.Kind != lexer.NAME {
+			return nil, errs.New("E1044", "expected step kind after ->", errPos(p.cur.Pos), "")
+		}
+		step.Kind = ast.StepKind(p.cur.Data)
+		p.advance()
+	}
+	if p.cur.Kind == lexer.NAME && p.cur.Data == "with" {
+		p.advance()
+		if p.cur.Kind != lexer.NAME || p.cur.Data != "retry" {
+			return nil, errs.New("E1045", "expected 'retry' after 'with'", errPos(p.cur.Pos), "")
+		}
+		p.advance()
+		retry := &ast.Retry{}
+		for p.cur.Kind == lexer.NAME {
+			key := p.cur.Data
+			p.advance()
+			if _, err := p.expect(lexer.EQ); err != nil {
+				return nil, err
+			}
+			if p.cur.Kind != lexer.INT {
+				return nil, errs.New("E1046", fmt.Sprintf("expected int value for %s", key), errPos(p.cur.Pos), "")
+			}
+			n, _ := strconv.Atoi(p.cur.Data)
+			if key == "max" {
+				retry.Max = n
+			}
+			p.advance()
+		}
+		step.Retry = retry
+	}
 	if _, err := p.expect(lexer.COLON); err != nil {
 		return nil, err
 	}
@@ -480,7 +514,8 @@ func (p *Parser) parseStep() (ast.Statement, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &ast.Step{NodePos: pos, Name: name, Body: body}, nil
+	step.Body = body
+	return step, nil
 }
 
 func (p *Parser) parseImport() (ast.Statement, error) {

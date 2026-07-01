@@ -28,3 +28,24 @@ func TestEngine_SequentialSteps(t *testing.T) {
 	err = e.RunPlan(plan, "test")
 	assert.NoError(t, err)
 }
+
+func TestEngine_Retry(t *testing.T) {
+	// Step that succeeds on second attempt (uses a counter).
+	src := `plan "demo":
+    let tries = 0
+    step "flaky" -> tool with retry max=3:
+        tries = tries + 1
+        if tries < 2:
+            return err("not yet")
+        return 42
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	require.Len(t, prog.Stmts, 1)
+	plan, ok := prog.Stmts[0].(*ast.PlanBlock)
+	require.True(t, ok)
+	e := New()
+	err = e.RunPlan(plan, "test")
+	assert.NoError(t, err)
+}
