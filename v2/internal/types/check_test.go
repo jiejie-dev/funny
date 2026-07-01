@@ -420,3 +420,28 @@ func TestCheck_TryOperator_NonResult(t *testing.T) {
 	t2, _ := env.LookupVar("x")
 	assert.Equal(t, Primitive("int"), t2)
 }
+
+func TestCheck_MetaBlock(t *testing.T) {
+	src := `meta:
+    name: "demo"
+    version: "1.0"
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.NoError(t, err)
+}
+
+func TestCheck_MetaBlock_MissingName(t *testing.T) {
+	src := `meta:
+    version: "1.0"
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.Error(t, err)
+}

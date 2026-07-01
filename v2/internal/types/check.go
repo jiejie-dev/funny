@@ -351,8 +351,10 @@ func checkStmt(s ast.Statement, env *Env) error {
 		return checkFnDecl(n, env)
 	case *ast.StructDecl:
 		return checkStructDecl(n, env)
-	case *ast.ExprStmt, *ast.BreakStmt, *ast.ContinueStmt, *ast.MetaBlock, *ast.PlanBlock, *ast.ImportDecl:
+	case *ast.ExprStmt, *ast.BreakStmt, *ast.ContinueStmt, *ast.PlanBlock, *ast.ImportDecl:
 		return nil // M2-A doesn't type-check these
+	case *ast.MetaBlock:
+		return checkMeta(n, env)
 	}
 	return New("E2099", fmt.Sprintf("unsupported statement %T", s), s.Pos())
 }
@@ -502,5 +504,16 @@ func checkStructDecl(n *ast.StructDecl, env *Env) error {
 		fields[f.Name] = ft
 	}
 	env.DeclareStruct(n.Name, Struct{Name: n.Name, Fields: fields})
+	return nil
+}
+
+func checkMeta(n *ast.MetaBlock, env *Env) error {
+	// Spec requires "name" and "version" fields to be non-empty strings.
+	for _, required := range []string{"name", "version"} {
+		v, ok := n.Fields[required]
+		if !ok || v == "" {
+			return New("E2014", fmt.Sprintf("meta.%s must be a non-empty string", required), n.NodePos)
+		}
+	}
 	return nil
 }
