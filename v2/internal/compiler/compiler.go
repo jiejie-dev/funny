@@ -116,7 +116,7 @@ func (c *Compiler) compileStmt(s ast.Statement, isLast bool) error {
 	case *ast.WhileStmt:
 		return c.compileWhile(n)
 	case *ast.ForStmt:
-		return fmt.Errorf("compileStmt: for-in loop not yet implemented (M2-B.5 follow-up)")
+		return c.compileFor(n)
 	case *ast.FnDecl:
 		return c.compileFnDecl(n)
 	case *ast.ReturnStmt:

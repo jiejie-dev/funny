@@ -71,3 +71,24 @@ x
 	}
 	assert.GreaterOrEqual(t, storeLocalCount, 2) // let x = 0 + x = 1
 }
+
+func TestCompile_For(t *testing.T) {
+	mod := compileExpr(t, `for i in [1, 2, 3]:
+    let x = i
+`)
+	fn := mod.Functions[0]
+	var hasBuildList, hasIndex, hasJump bool
+	for _, instr := range fn.Code {
+		switch instr.Op {
+		case bytecode.BUILD_LIST:
+			hasBuildList = true
+		case bytecode.INDEX:
+			hasIndex = true
+		case bytecode.JUMP:
+			hasJump = true
+		}
+	}
+	assert.True(t, hasBuildList, "BUILD_LIST for iterable")
+	assert.True(t, hasIndex, "INDEX for iteration")
+	assert.True(t, hasJump, "JUMP for loop back")
+}

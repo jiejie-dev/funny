@@ -78,6 +78,80 @@ func (c *Compiler) compileWhile(n *ast.WhileStmt) error {
 	return nil
 }
 
+// compileFor compiles: for x in iterable: body
+//
+// Emitted layout (using list and index locals):
+//
+//	<compile iterable>
+//	STORE_LOCAL __for_list__
+//	POP
+//	PUSH_INT 0
+//	STORE_LOCAL __for_idx__
+//	POP
+// loopStart:
+//	LOAD_LOCAL __for_idx__
+//	LOAD_LOCAL __for_list__
+//	CALL_BUILTIN "len"
+//	LT_INT
+//	JUMP_IF_FALSE loopEnd
+//	LOAD_LOCAL __for_list__
+//	LOAD_LOCAL __for_idx__
+//	INDEX
+//	STORE_LOCAL x
+//	POP
+//	<compile body>
+//	LOAD_LOCAL __for_idx__
+//	PUSH_INT <one_const>
+//	ADD_INT
+//	STORE_LOCAL __for_idx__
+//	POP
+//	JUMP loopStart
+// loopEnd:
+func (c *Compiler) compileFor(n *ast.ForStmt) error {
+	c.pushScope()
+	defer c.popScope()
+	iterType, err := c.compileExpr(n.Iterable)
+	if err != nil {
+		return err
+	}
+	listSlot := c.declareLocal("__for_list__", valNil)
+	c.fn.Emit(bytecode.STORE_LOCAL, listSlot)
+	c.fn.Emit(bytecode.POP, 0)
+	idxSlot := c.declareLocal("__for_idx__", valInt)
+	c.fn.Emit(bytecode.PUSH_INT, 0)
+	c.fn.Emit(bytecode.STORE_LOCAL, idxSlot)
+	c.fn.Emit(bytecode.POP, 0)
+	loopStart := len(c.fn.Code)
+	c.fn.Emit(bytecode.LOAD_LOCAL, idxSlot)
+	c.fn.Emit(bytecode.LOAD_LOCAL, listSlot)
+	nameIdx := c.mod.AddConstant("len")
+	c.fn.Emit(bytecode.CALL_BUILTIN, nameIdx)
+	c.fn.Emit(bytecode.LT_INT, 0)
+	exitJump := len(c.fn.Code)
+	c.fn.Emit(bytecode.JUMP_IF_FALSE, 0)
+	c.fn.Emit(bytecode.LOAD_LOCAL, listSlot)
+	c.fn.Emit(bytecode.LOAD_LOCAL, idxSlot)
+	c.fn.Emit(bytecode.INDEX, 0)
+	if iterType == "" {
+		iterType = valNil
+	}
+	userSlot := c.declareLocal(n.Name, iterType)
+	c.fn.Emit(bytecode.STORE_LOCAL, userSlot)
+	c.fn.Emit(bytecode.POP, 0)
+	if err := c.compileBlock(n.Body); err != nil {
+		return err
+	}
+	c.fn.Emit(bytecode.LOAD_LOCAL, idxSlot)
+	oneIdx := c.mod.AddConstant(1)
+	c.fn.Emit(bytecode.PUSH_INT, oneIdx)
+	c.fn.Emit(bytecode.ADD_INT, 0)
+	c.fn.Emit(bytecode.STORE_LOCAL, idxSlot)
+	c.fn.Emit(bytecode.POP, 0)
+	c.fn.Emit(bytecode.JUMP, loopStart)
+	c.fn.Code[exitJump].Arg = len(c.fn.Code)
+	return nil
+}
+
 // compileBlock compiles a block of statements in a new scope.
 func (c *Compiler) compileBlock(b *ast.Block) error {
 	if b == nil {

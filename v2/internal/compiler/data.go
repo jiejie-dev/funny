@@ -9,14 +9,22 @@ import (
 )
 
 // compileList compiles a list literal into BUILD_LIST n.
+// Returns the uniform element value type if all elements agree, otherwise valNil.
 func (c *Compiler) compileList(n *ast.ListExpr) (valueType, error) {
-	for _, e := range n.Elements {
-		if _, err := c.compileExpr(e); err != nil {
+	var elemType valueType = valNil
+	for i, e := range n.Elements {
+		vt, err := c.compileExpr(e)
+		if err != nil {
 			return "", err
+		}
+		if i == 0 {
+			elemType = vt
+		} else if vt != elemType {
+			elemType = valNil
 		}
 	}
 	c.fn.Emit(bytecode.BUILD_LIST, len(n.Elements))
-	return valNil, nil
+	return elemType, nil
 }
 
 // compileIndex compiles a[b] (object on stack, then index, then INDEX).
