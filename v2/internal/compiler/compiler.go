@@ -121,6 +121,8 @@ func (c *Compiler) compileStmt(s ast.Statement, isLast bool) error {
 		return c.compileFnDecl(n)
 	case *ast.ReturnStmt:
 		return c.compileReturn(n)
+	case *ast.StructDecl:
+		return nil
 	}
 	return fmt.Errorf("compileStmt: unsupported statement type %T", s)
 }

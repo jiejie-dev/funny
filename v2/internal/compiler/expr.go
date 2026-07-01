@@ -20,6 +20,14 @@ func (c *Compiler) compileExpr(e ast.Expression) (valueType, error) {
 		return c.compileUnary(n)
 	case *ast.CallExpr:
 		return c.compileCall(n)
+	case *ast.ListExpr:
+		return c.compileList(n)
+	case *ast.IndexExpr:
+		return c.compileIndex(n)
+	case *ast.FieldExpr:
+		return c.compileField(n)
+	case *ast.StructLiteralExpr:
+		return c.compileStructLiteral(n)
 	}
 	return "", fmt.Errorf("compileExpr: unsupported expression type %T", e)
 }
