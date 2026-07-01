@@ -427,6 +427,7 @@ func checkLet(n *ast.LetStmt, env *Env) error {
 		if err != nil {
 			return New("E2012", fmt.Sprintf("invalid type annotation %q: %v", n.TypeAnn, err), n.NodePos)
 		}
+		declared = resolveNamedType(declared, env)
 		if !Equal(valT, declared) {
 			return NewMismatch(n.NodePos, declared, valT)
 		}
@@ -527,6 +528,7 @@ func checkFnDecl(n *ast.FnDecl, env *Env) error {
 		if err != nil {
 			return New("E2012", fmt.Sprintf("invalid return type %q: %v", n.RetType, err), n.NodePos)
 		}
+		retType = resolveNamedType(retType, env)
 	}
 	var paramTypes []Type
 	for _, p := range n.Params {
@@ -537,7 +539,7 @@ func checkFnDecl(n *ast.FnDecl, env *Env) error {
 		if err != nil {
 			return New("E2012", fmt.Sprintf("invalid type for parameter %q: %v", p.Name, err), n.NodePos)
 		}
-		paramTypes = append(paramTypes, pt)
+		paramTypes = append(paramTypes, resolveNamedType(pt, env))
 	}
 	env.DeclareFunc(n.Name, Func{Params: paramTypes, Return: retType})
 	bodyEnv := NewEnv(env)
@@ -558,10 +560,44 @@ func checkStructDecl(n *ast.StructDecl, env *Env) error {
 		if err != nil {
 			return New("E2012", fmt.Sprintf("invalid type for field %q: %v", f.Name, err), n.NodePos)
 		}
-		fields[f.Name] = ft
+		fields[f.Name] = resolveNamedType(ft, env)
 	}
 	env.DeclareStruct(n.Name, Struct{Name: n.Name, Fields: fields})
 	return nil
+}
+
+// resolveNamedType rewrites bare type names that refer to a known struct
+// into their full Struct type (with fields populated), recursing into
+// compound types (list/map/optional/Result/func). ParseType has no access
+// to the environment, so a struct type annotation like `Point` initially
+// comes back as an opaque Primitive("Point"); left as-is, it would never
+// compare equal to the real Struct{Name: "Point", ...} type produced by
+// struct literals/lookups, causing every struct-typed annotation to fail
+// type-checking with a spurious mismatch.
+func resolveNamedType(t Type, env *Env) Type {
+	switch tt := t.(type) {
+	case Primitive:
+		if s, ok := env.LookupStruct(string(tt)); ok {
+			return s
+		}
+		return tt
+	case List:
+		return List{Elem: resolveNamedType(tt.Elem, env)}
+	case Map:
+		return Map{Key: resolveNamedType(tt.Key, env), Value: resolveNamedType(tt.Value, env)}
+	case Optional:
+		return Optional{Inner: resolveNamedType(tt.Inner, env)}
+	case Result:
+		return Result{Ok: resolveNamedType(tt.Ok, env), Err: resolveNamedType(tt.Err, env)}
+	case Func:
+		params := make([]Type, len(tt.Params))
+		for i, p := range tt.Params {
+			params[i] = resolveNamedType(p, env)
+		}
+		return Func{Params: params, Return: resolveNamedType(tt.Return, env)}
+	default:
+		return t
+	}
 }
 
 func checkMeta(n *ast.MetaBlock, env *Env) error {

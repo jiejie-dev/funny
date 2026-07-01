@@ -436,6 +436,89 @@ let px = p.x
 	assert.NoError(t, err)
 }
 
+func TestIntegration_TypeCheck_StructTypeAnnotation(t *testing.T) {
+	// Regression test: `let p: Point = ...` used to fail with a spurious
+	// type mismatch because ParseType has no environment access and could
+	// only produce an opaque Primitive("Point") for a bare struct name,
+	// which never compared equal to the real Struct type.
+	src := `struct Point:
+    x: int
+    y: int
+
+let p: Point = Point(x: 1, y: 2)
+let px: int = p.x
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.NoError(t, err)
+}
+
+func TestIntegration_TypeCheck_StructTypeAnnotation_FunctionParamAndReturn(t *testing.T) {
+	src := `struct Point:
+    x: int
+    y: int
+
+fn make_point(x: int, y: int) -> Point:
+    return Point(x: x, y: y)
+
+fn sum_x(p: Point) -> int:
+    return p.x
+
+let p: Point = make_point(1, 2)
+let total: int = sum_x(p)
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.NoError(t, err)
+}
+
+func TestIntegration_TypeCheck_StructTypeAnnotation_NestedInStructFieldAndList(t *testing.T) {
+	src := `struct Point:
+    x: int
+    y: int
+
+struct Wrapper:
+    inner: Point
+
+let p: Point = Point(x: 1, y: 2)
+let w: Wrapper = Wrapper(inner: p)
+let pts: list[Point] = [p, w.inner]
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.NoError(t, err)
+}
+
+func TestIntegration_TypeCheck_StructTypeAnnotation_MismatchStillErrors(t *testing.T) {
+	// Make sure the fix doesn't accidentally make struct-typed annotations
+	// vacuously true: a genuine mismatch must still be caught.
+	src := `struct Point:
+    x: int
+    y: int
+
+struct Other:
+    z: int
+
+let o: Other = Other(z: 1)
+let p: Point = o
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.Error(t, err)
+}
+
 func TestIntegration_TypeCheck_Functions(t *testing.T) {
 	src := `fn add(a: int, b: int) -> int:
     return a + b
