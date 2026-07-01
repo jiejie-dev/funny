@@ -1,177 +1,103 @@
-# funny lang
+# Funny v2 (M2-B)
 
-A funny language interpreter written in golang.
+AI-native scripting language. See `../docs/superpowers/specs/2026-07-01-funny-v2-ai-native-language-design.md` for the full design.
 
-It begins just for fun.
+**Status: M3 (Agent Protocol) — RELEASED**
 
-## Target
+- ✅ M1–M2-C (lex, parse, types, VM, Result+?, stdlib)
+- ✅ **Plan engine**: sequential/parallel/branch steps with retry
+- ✅ **meta block** type validation (name/version required)
+- ✅ **stdlib extensions**: regex, env, file
+- ✅ **CLI `describe`**: JSON visualization of plan/metadata
+- ⏳ MCP server + full stdlib → M4
 
-To make creating dsl easily based on funny.
+## Build
 
-- apitest dsl
-- api declare dsl
-
-## Installation
-
-```console
-go install github.com/jerloo/funny/cmd/funny@latest
+```bash
+cd v2
+go build -o funny ./cmd/funny
 ```
 
 ## Usage
 
-```javascript
-
-// funny.fun
-// author: jerloo@gmail.com
-// github: https://github.com/jerloo/funny
-
-echoln('define a varible value 1')
-a = 1
-
-echoln('define b varible value 2')
-b = 2
-
-echoln('define c varible value a ')
-c = a
-
-echoln('a, b, c values: ')
-echoln('a = ', a,', b = ',  b, ', c = ', c)
-
-echoln('assert c equels 1')
-assert(c == 1)
-
-d = c + b
-
-echoln('assert (d = c + b) === ', d)
-assert(d == 3)
-
-echoln('define a function ')
-echoln('minus(a, b) {')
-echoln('  return b - a')
-echoln('}')
-
-minus(a, b) {
-  return b - a
-}
-
-e = minus(a, b)
-echoln('minus(a, b) === ', e)
-assert(e == 1)
-
-if a > 0 {
-  echoln('if a > 0')
-}
-
-fib(n) {
-  if n < 2 {
-    return n
-  }
-  return fib(n - 1) + fib(n - 2)
-}
-
-r = fib(1)
-echoln(r)
-r = fib(2)
-echoln(r)
-r = fib(3)
-echoln(r)
-r = fib(4)
-echoln(r)
-r = fib(5)
-echoln(r)
-r = fib(6)
-echoln(r)
-r = fib(7)
-echoln(r)
-r = fib(8)
-echoln(r)
-
-person = {
-  name = 'jerloo'
-  age = 10
-}
-assert(person.name == 'jerloo')
-echoln(person.age)
-
-Object() {
-  return {
-    name = 'jerloo'
-    age = 10
-    isAdult() {
-      this.age = this.age + 5
-      echoln('this.age ', this.age)
-      return true
-    }
-  }
-}
-
-obj = Object()
-assert(obj.name == 'jerloo')
-obj.age = 20
-assert(obj.age == 20)
-assert(obj.isAdult())
-echoln(obj.isAdult())
-echoln(obj.age)
-
-arrdemo = [1,2,3]
-echoln(arrdemo[2])
-assert(arrdemo[2]==3)
-
-hashTest = 'i am string'
-echoln(hashTest)
-echoln('hash(i am string) => ', hash(hashTest))
-
-echoln('max(10, 20) => ', max(10,20))
-
-import 'funny.imported.fun'
-
-echoln('uuid => ', uuid())
-
-deepObj = {
-  a = {
-    b = {
-      c = 1
-    }
-  }
-}
-
-echoln('deepObj.a =>', test.a)
-echoln('deepObj.a.b =>', test.a.b)
-echoln('deepObj.a.b.c =>', test.a.b.c)
+```bash
+./funny run script.fn        # execute script
+./funny ast script.fn        # output JSON AST
+./funny --help               # all commands
 ```
 
-```console
-$ funny --help
+## Test
 
-usage: funny [<flags>] [<script>]
-
-funny lang
-
-Flags:
-  --help    Show context-sensitive help (also try --help-long and --help-man).
-  --lexer   tokenizer script
-  --parser  parser AST
-
-Args:
-  [<script>]  script file path
+```bash
+go test ./...
 ```
 
-## Todos
+## End-to-end demo
 
-- Fix many and many bugs
-- Fix scope
-- Fix echo
-- Add more builtin functions
-- Add tests
-- ~~Fix import feature~~
-- Typings
-- module and package feature
-- module repo based on github
-- Add everything with(have) comment's feature
-- Chinese comments length
+```bash
+$ ./funny run ./testdata/integration/fib.fn
+fib(10) = 55
+```
 
-## License
+## Project Layout
 
-The MIT License (MIT)
+```
+v2/
+├── cmd/funny/             # CLI entry (cobra)
+├── internal/
+│   ├── errs/              # Unified error system (E0xxx–E5xxx)
+│   ├── lexer/             # Tokenizer with INDENT/DEDENT
+│   ├── ast/               # AST node types
+│   ├── parser/            # Pratt parser + control flow
+│   ├── evaluator/         # Tree-walking interpreter
+│   ├── types/             # M2-A: type system + checker
+│   └── cli/               # CLI helpers (Run, Ast)
+└── testdata/              # .fn source files
+    ├── integration/       # end-to-end scripts
+    ├── parser/            # parser positive cases
+    └── types/             # type checker fixtures (M2-A)
+```
 
-Copyright (c) 2018 jerloo
+## Limitations (M2-A)
+
+- **Types checked at compile-time only** — runtime evaluator remains dynamic (no tagged values)
+- **No `?` Result operator** (defer to M2-C)
+- **No actual `import` resolution** (parsed only)
+- **`meta` and `plan` blocks parsed but not executed** (M3)
+- **Limited stdlib**: `print`, `println`, `len`, `to_str`, `to_int`, `type_of`
+
+## M3 Usage
+
+Plans and metadata enable agent-driven execution. Demo:
+
+```bash
+$ ./funny describe ./testdata/agent/plan.fn
+{
+  "meta": {
+    "name": "demo_plan",
+    "version": "1.0"
+  },
+  "plan": {
+    "name": "demo_plan",
+    "steps": ["setup", "compute", "verify"]
+  }
+}
+```
+
+The plan engine executes steps in order, with support for parallel branches, retry, and guard steps. Available stdlib includes regex, env, and file operations on top of M2-C's json/time/math/str.
+
+## Roadmap
+
+| Version | Status | Highlights |
+|---|---|---|
+| v2.0.0-alpha (M1) | ✅ Done | Lexer + Parser + Evaluator (no types) |
+| v2.0.0-beta (M2-A) | ✅ Done | Type system + type checker |
+| v2.0.0-beta (M2-B) | ✅ Done | Bytecode VM (literals, arithmetic, control flow) |
+| v2.0.0-beta (M2-B.5) | ✅ Done | VM function calls + data structures (~3.5× interpreter) |
+| v2.0.0-beta (M2-C) | ✅ Done | Result + `?` + stdlib (json/time/math/str) |
+| v2.0.0-rc (M3) | ✅ Done | Plan engine + agent protocol + extended stdlib |
+| v2.0.0 (M4) | Planned | MCP server + full stdlib |
+
+## Next: M2-B (Bytecode VM)
+
+See `docs/superpowers/specs/2026-07-01-funny-v2-ai-native-language-design.md` §6.3.

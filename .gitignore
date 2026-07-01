@@ -15,3 +15,8 @@ mysql.funny
 
 # Worktrees (created by subagent-driven-development)
 .worktrees/
+
+# Built binaries
+/funny
+/funny-mcp
+/coverage.out

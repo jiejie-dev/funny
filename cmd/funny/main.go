@@ -1,22 +1,63 @@
-/*
-Copyright © 2019 NAME HERE <EMAIL ADDRESS>
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package main
 
-import "github.com/jerloo/funny/cmd/funny/cmd"
+import (
+	"fmt"
+	"os"
+
+	"github.com/spf13/cobra"
+
+	"github.com/jerloo/funny/internal/cli"
+)
+
+var version = "0.1.0"
+
+var rootCmd = &cobra.Command{
+	Use:     "funny",
+	Short:   "funny v2 - AI-native scripting language",
+	Version: version,
+}
+
+var runCmd = &cobra.Command{
+	Use:   "run <script>",
+	Short: "Execute a funny script",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		data, err := os.ReadFile(args[0])
+		if err != nil {
+			return err
+		}
+		if err := cli.Run(data, args[0]); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return nil
+	},
+}
+
+var astCmd = &cobra.Command{
+	Use:   "ast <script>",
+	Short: "Print JSON AST",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		data, err := os.ReadFile(args[0])
+		if err != nil {
+			return err
+		}
+		out, err := cli.Ast(data, args[0])
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(out))
+		return nil
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(runCmd, astCmd)
+}
 
 func main() {
-	cmd.Execute()
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1)
+	}
 }
