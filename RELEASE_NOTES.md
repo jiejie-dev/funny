@@ -152,7 +152,7 @@ funny-mcp                   Start the MCP server over stdio
 - `format` MCP tool is a no-op (real formatting lands in v2.1)
 - Some stdlib functions return Result wrappers where plain values might be simpler
 - `f"..."` string interpolation: M1 parser accepts the syntax; M2-A runtime substitution is deferred to v2.1
-- ~~No LSP server in v2.0.0 (the v1 LSP scaffolding is gone in the v2 migration; v2.1 will re-add)~~ — fixed in v2.1: a from-scratch `funny-lsp` binary now provides diagnostics, hover, completion, signature help, go-to-definition (including across `import`s), document symbols, and formatting (see CHANGELOG.md)
+- ~~No LSP server in v2.0.0 (the v1 LSP scaffolding is gone in the v2 migration; v2.1 will re-add)~~ — fixed in v2.1: a from-scratch `funny-lsp` binary now provides diagnostics, hover, completion, signature help, go-to-definition (including across `import`s), document symbols, formatting, find-references, rename, and a custom `funny/planGraph` plan-visualization request (see CHANGELOG.md)
 
 ## Upgrading from v1
 

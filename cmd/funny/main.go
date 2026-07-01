@@ -75,9 +75,27 @@ var fmtCmd = &cobra.Command{
 	},
 }
 
+var describeCmd = &cobra.Command{
+	Use:   "describe <script>",
+	Short: "Print JSON plan/metadata",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		data, err := os.ReadFile(args[0])
+		if err != nil {
+			return err
+		}
+		out, err := cli.Describe(data, args[0])
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(out))
+		return nil
+	},
+}
+
 func init() {
 	fmtCmd.Flags().BoolP("write", "w", false, "write result to the source file instead of stdout")
-	rootCmd.AddCommand(runCmd, astCmd, fmtCmd)
+	rootCmd.AddCommand(runCmd, astCmd, fmtCmd, describeCmd)
 }
 
 func main() {

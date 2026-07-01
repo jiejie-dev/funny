@@ -23,5 +23,5 @@ funny-lsp                   # start LSP server (for editors/IDEs)
 - `Result` + `?` operator for error propagation
 - Plan engine with retry, parallel, branch, guard step kinds
 - MCP server with 6 tools for LLM integration
-- LSP server: diagnostics, hover, completion, signature help, go-to-definition, document symbols, formatting
+- LSP server: diagnostics, hover, completion, signature help, go-to-definition, document symbols, formatting, find-references, rename, and a custom `funny/planGraph` plan-visualization request
 - Standard library: json, time, math, str, regex, env, file, http, crypto, jwt, sql

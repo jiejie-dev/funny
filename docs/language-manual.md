@@ -326,7 +326,28 @@ protocol dependency) over stdio, framed as standard `Content-Length`-prefixed JS
   nested underneath) and `plan` blocks (with `step`s nested underneath, as a
   lightweight tree view of the plan graph).
 - **Formatting**: delegates to the same formatter as `funny fmt`.
-
-Not yet implemented: rename, find-references, and a dedicated plan-as-graph visual
-protocol extension (the `documentSymbol` tree above is a generic-client-compatible
-stand-in for the latter).
+- **Find references** (`textDocument/references`): every occurrence of the
+  identifier under the cursor — a local variable/parameter search is scoped to its
+  own function (matching the same over-approximation `documentSymbol`/hover use for
+  shadowed names in different blocks), a top-level `let`/`fn`/`struct` search covers
+  the whole document. Scoped to the requested document only; occurrences in other
+  files (even ones that `import` this one) are not indexed.
+- **Rename** (`textDocument/prepareRename` + `textDocument/rename`): validates the
+  symbol under the cursor is a renameable identifier (not a keyword or builtin),
+  then reuses the same reference search as above to build a `WorkspaceEdit` that
+  updates every occurrence in the current document. `meta` block fields are plain
+  free-form strings with no grammar-level link to a `fn`/`struct` name, so rename
+  intentionally does not attempt to pattern-match and rewrite them.
+- **`funny/planGraph`** (custom extension, not part of standard LSP): given a
+  document URI, returns `{"plans": [...]}` — one node/edge graph per `plan` block,
+  built to mirror `internal/agent/engine.go`'s actual execution semantics rather
+  than grammar shape alone. Each `step` is a node (`id`, `label` = step name, `kind`
+  = `tool`/`guard`/`transform`/`parallel`/`branch`/`delay`, `range`, and optional
+  `retry`/`timeout`); consecutive top-level steps get a `"sequence"` edge. A
+  `parallel` step's body statements each run concurrently at runtime (one goroutine
+  per statement — there's no nested named sub-step syntax), so they become child
+  `"task"` nodes (`parentId` set to the parallel step) connected by `"parallel"`
+  edges, and the step *after* the parallel step is linked from the parallel step
+  itself (matching where the engine rejoins after waiting for every task). Editors
+  without custom-request support can fall back to the `documentSymbol` outline,
+  which already nests `step`s under their `plan`.

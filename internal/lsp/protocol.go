@@ -73,6 +73,12 @@ type ServerCapabilities struct {
 	DefinitionProvider         bool                  `json:"definitionProvider"`
 	DocumentSymbolProvider     bool                  `json:"documentSymbolProvider"`
 	DocumentFormattingProvider bool                  `json:"documentFormattingProvider"`
+	ReferencesProvider         bool                  `json:"referencesProvider"`
+	RenameProvider             *RenameOptions        `json:"renameProvider,omitempty"`
+}
+
+type RenameOptions struct {
+	PrepareProvider bool `json:"prepareProvider"`
 }
 
 type CompletionOptions struct {
@@ -181,6 +187,81 @@ type SignatureHelp struct {
 	Signatures      []SignatureInformation `json:"signatures"`
 	ActiveSignature int                    `json:"activeSignature"`
 	ActiveParameter int                    `json:"activeParameter"`
+}
+
+// --- References ---
+
+type ReferenceContext struct {
+	IncludeDeclaration bool `json:"includeDeclaration"`
+}
+
+type ReferenceParams struct {
+	TextDocumentPositionParams
+	Context ReferenceContext `json:"context"`
+}
+
+// --- Rename ---
+
+type RenameParams struct {
+	TextDocumentPositionParams
+	NewName string `json:"newName"`
+}
+
+type PrepareRenameParams = TextDocumentPositionParams
+
+type PrepareRenameResult struct {
+	Range       Range  `json:"range"`
+	Placeholder string `json:"placeholder"`
+}
+
+type WorkspaceEdit struct {
+	Changes map[string][]TextEdit `json:"changes"`
+}
+
+// --- funny/planGraph (custom extension) ---
+//
+// This is not part of standard LSP 3.17; it's a funny-specific request
+// that lets an editor render a `plan` block as a step graph instead of
+// (or alongside) plain text. See docs/language-manual.md's "LSP Server"
+// section for the schema description.
+
+type PlanGraphParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+}
+
+type PlanGraphResult struct {
+	Plans []PlanGraph `json:"plans"`
+}
+
+type PlanGraph struct {
+	Name  string     `json:"name"`
+	Range Range      `json:"range"`
+	Nodes []PlanNode `json:"nodes"`
+	Edges []PlanEdge `json:"edges"`
+}
+
+type PlanNode struct {
+	ID       string     `json:"id"`
+	Label    string     `json:"label"`
+	Kind     string     `json:"kind"` // step kind: tool/guard/transform/parallel/branch/delay, or "task" for a parallel step's concurrent child
+	Range    Range      `json:"range"`
+	Retry    *RetryInfo `json:"retry,omitempty"`
+	Timeout  string     `json:"timeout,omitempty"`
+	ParentID string     `json:"parentId,omitempty"` // set on a parallel step's concurrent children
+}
+
+type RetryInfo struct {
+	Max     int      `json:"max"`
+	Backoff string   `json:"backoff,omitempty"`
+	On      []string `json:"on,omitempty"`
+}
+
+// PlanEdge.Kind is "sequence" (A runs, then B runs) or "parallel" (A
+// spawns concurrent child B; see internal/agent/engine.go's execParallel).
+type PlanEdge struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+	Kind string `json:"kind"`
 }
 
 // --- Document symbols ---

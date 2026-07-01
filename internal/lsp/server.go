@@ -91,6 +91,14 @@ func (s *Server) dispatch(msg *rpcMessage) {
 		s.handleDocumentSymbol(msg)
 	case "textDocument/formatting":
 		s.handleFormatting(msg)
+	case "textDocument/references":
+		s.handleReferences(msg)
+	case "textDocument/prepareRename":
+		s.handlePrepareRename(msg)
+	case "textDocument/rename":
+		s.handleRename(msg)
+	case "funny/planGraph":
+		s.handlePlanGraph(msg)
 	default:
 		if !isNotification(msg) {
 			_ = s.out.writeError(msg.ID, codeMethodNotFound, "method not found: "+msg.Method)
@@ -109,6 +117,8 @@ func (s *Server) handleInitialize(msg *rpcMessage) {
 			DefinitionProvider:         true,
 			DocumentSymbolProvider:     true,
 			DocumentFormattingProvider: true,
+			ReferencesProvider:         true,
+			RenameProvider:             &RenameOptions{PrepareProvider: true},
 		},
 	}
 	if err := s.out.writeResult(msg.ID, result); err != nil {
@@ -244,4 +254,74 @@ func (s *Server) handleFormatting(msg *rpcMessage) {
 		edits = []TextEdit{}
 	}
 	_ = s.out.writeResult(msg.ID, edits)
+}
+
+func (s *Server) handleReferences(msg *rpcMessage) {
+	var p ReferenceParams
+	if err := json.Unmarshal(msg.Params, &p); err != nil {
+		_ = s.out.writeError(msg.ID, codeInvalidParams, err.Error())
+		return
+	}
+	d, ok := s.docs.get(p.TextDocument.URI)
+	if !ok {
+		_ = s.out.writeResult(msg.ID, []Location{})
+		return
+	}
+	locs := d.references(p.Position, p.Context.IncludeDeclaration)
+	if locs == nil {
+		locs = []Location{}
+	}
+	_ = s.out.writeResult(msg.ID, locs)
+}
+
+func (s *Server) handlePrepareRename(msg *rpcMessage) {
+	var p PrepareRenameParams
+	if err := json.Unmarshal(msg.Params, &p); err != nil {
+		_ = s.out.writeError(msg.ID, codeInvalidParams, err.Error())
+		return
+	}
+	d, ok := s.docs.get(p.TextDocument.URI)
+	if !ok {
+		_ = s.out.writeResult(msg.ID, nil)
+		return
+	}
+	result, err := d.prepareRename(p.Position)
+	if err != nil {
+		_ = s.out.writeError(msg.ID, codeInvalidRequest, err.Error())
+		return
+	}
+	_ = s.out.writeResult(msg.ID, result)
+}
+
+func (s *Server) handleRename(msg *rpcMessage) {
+	var p RenameParams
+	if err := json.Unmarshal(msg.Params, &p); err != nil {
+		_ = s.out.writeError(msg.ID, codeInvalidParams, err.Error())
+		return
+	}
+	d, ok := s.docs.get(p.TextDocument.URI)
+	if !ok {
+		_ = s.out.writeError(msg.ID, codeInvalidRequest, "document not open: "+p.TextDocument.URI)
+		return
+	}
+	edit, err := d.rename(p.Position, p.NewName)
+	if err != nil {
+		_ = s.out.writeError(msg.ID, codeInvalidRequest, err.Error())
+		return
+	}
+	_ = s.out.writeResult(msg.ID, edit)
+}
+
+func (s *Server) handlePlanGraph(msg *rpcMessage) {
+	var p PlanGraphParams
+	if err := json.Unmarshal(msg.Params, &p); err != nil {
+		_ = s.out.writeError(msg.ID, codeInvalidParams, err.Error())
+		return
+	}
+	d, ok := s.docs.get(p.TextDocument.URI)
+	if !ok {
+		_ = s.out.writeResult(msg.ID, PlanGraphResult{Plans: []PlanGraph{}})
+		return
+	}
+	_ = s.out.writeResult(msg.ID, d.planGraphs())
 }
