@@ -50,6 +50,25 @@ struct User:
 let u = User(name: "alice", age: 30)
 ```
 
+## Modules
+
+```
+# math.fn
+pub fn add(a: int, b: int) -> int:
+    return a + b
+
+# main.fn
+import "math.fn"          # merges pub fn/struct under their bare name
+import "math.fn" as m     # m is a local nickname; call as m.add(...)
+
+let r1 = add(1, 2)
+let r2 = m.add(1, 2)
+```
+
+Paths are resolved relative to the importing file. Only `pub` functions are
+callable from outside their module; struct types always merge under their
+bare name.
+
 ## Lists & Maps
 
 ```

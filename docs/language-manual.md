@@ -139,6 +139,56 @@ let u = User(name: "alice", age: 30)
 println(u.name)  # field access
 ```
 
+### Modules and Imports
+
+`import "path/to/file.fn"` loads real declarations from another file on
+disk - it is not just syntax. The path is resolved relative to the
+*importing file's* directory. Only top-level `fn` and `struct` declarations
+are extracted from the imported file; other top-level statements (`let`,
+bare expressions, `meta`, `plan`, ...) are ignored, since dependency files
+are treated as function/struct libraries.
+
+Without an alias, the module's `pub` functions and all of its `struct`
+types are merged directly into the importing file's namespace and called
+like any local function:
+
+```
+# math.fn
+pub fn add(a: int, b: int) -> int:
+    return a + b
+
+# main.fn
+import "math.fn"
+let r = add(1, 2)
+```
+
+With `as alias`, the module isn't renamed - `alias` is just a local nickname
+used at the call site, similar to Python's `import numpy as np`. Only `pub`
+functions are reachable this way; calling a non-`pub` function through an
+alias (`m.helper()`) is a compile error:
+
+```
+import "math.fn" as m
+let r = m.add(1, 2)
+```
+
+Struct types are always merged under their bare name regardless of alias
+(there is no `m.Point(...)` construction syntax); use the struct name
+directly after importing it.
+
+Other rules:
+- A module's own private (non-`pub`) functions are still usable by that
+  module's `pub` functions, but are invisible to (and cannot collide with)
+  everything else - they're internally renamed to a hygienic, unwritable
+  name.
+- A file is only ever read and merged once per run, even if reached through
+  multiple import paths (diamond dependencies).
+- Circular imports (`a.fn` -> `b.fn` -> `a.fn`) are a compile error.
+- Two distinct files declaring a `pub fn`/`struct` with the same name that
+  both end up merged into the same program (e.g. two unaliased imports, or
+  an import colliding with a name declared in the importing file) is a
+  compile error; use `as` to disambiguate, or rename one of them.
+
 ## Control Flow
 
 ### If

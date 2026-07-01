@@ -10,6 +10,7 @@ import (
 	"github.com/jiejie-dev/funny/internal/compiler"
 	"github.com/jiejie-dev/funny/internal/evaluator"
 	"github.com/jiejie-dev/funny/internal/formatter"
+	"github.com/jiejie-dev/funny/internal/module"
 	"github.com/jiejie-dev/funny/internal/parser"
 	"github.com/jiejie-dev/funny/internal/types"
 	"github.com/jiejie-dev/funny/internal/vm"
@@ -20,6 +21,10 @@ import (
 func Run(src []byte, file string) error {
 	p := parser.New(string(src), file)
 	prog, err := p.Parse()
+	if err != nil {
+		return err
+	}
+	prog, err = module.Resolve(prog, file)
 	if err != nil {
 		return err
 	}
@@ -62,6 +67,10 @@ func Format(src []byte, file string) (string, error) {
 func Disasm(src []byte, file string) (string, error) {
 	p := parser.New(string(src), file)
 	prog, err := p.Parse()
+	if err != nil {
+		return "", err
+	}
+	prog, err = module.Resolve(prog, file)
 	if err != nil {
 		return "", err
 	}

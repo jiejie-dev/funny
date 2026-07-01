@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -76,6 +78,70 @@ func TestDisasm_Outputs(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Contains(t, out, "module test.fn")
 	assert.Contains(t, out, "PUSH_INT")
+}
+
+func TestRun_ImportUnaliased_CallsPubFuncDirectly(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "math.fn"),
+		[]byte("pub fn add(a: int, b: int) -> int:\n    return a + b\n"), 0o644))
+	mainPath := filepath.Join(dir, "main.fn")
+	src := `import "math.fn"
+let r = add(1, 2)
+println(r)
+`
+	require.NoError(t, os.WriteFile(mainPath, []byte(src), 0o644))
+
+	data, err := os.ReadFile(mainPath)
+	require.NoError(t, err)
+	assert.NoError(t, Run(data, mainPath))
+}
+
+func TestRun_ImportAliased_CallsViaNamespace(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "math.fn"),
+		[]byte("pub fn add(a: int, b: int) -> int:\n    return a + b\n"), 0o644))
+	mainPath := filepath.Join(dir, "main.fn")
+	src := `import "math.fn" as m
+let r = m.add(1, 2)
+println(r)
+`
+	require.NoError(t, os.WriteFile(mainPath, []byte(src), 0o644))
+
+	data, err := os.ReadFile(mainPath)
+	require.NoError(t, err)
+	assert.NoError(t, Run(data, mainPath))
+}
+
+func TestRun_ImportMissingFile_ReturnsError(t *testing.T) {
+	dir := t.TempDir()
+	mainPath := filepath.Join(dir, "main.fn")
+	src := `import "nope.fn"
+println(1)
+`
+	require.NoError(t, os.WriteFile(mainPath, []byte(src), 0o644))
+
+	data, err := os.ReadFile(mainPath)
+	require.NoError(t, err)
+	err = Run(data, mainPath)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "E1102")
+}
+
+func TestDisasm_WithImport_IncludesImportedFunction(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "math.fn"),
+		[]byte("pub fn add(a: int, b: int) -> int:\n    return a + b\n"), 0o644))
+	mainPath := filepath.Join(dir, "main.fn")
+	src := `import "math.fn"
+let r = add(1, 2)
+`
+	require.NoError(t, os.WriteFile(mainPath, []byte(src), 0o644))
+
+	data, err := os.ReadFile(mainPath)
+	require.NoError(t, err)
+	out, err := Disasm(data, mainPath)
+	require.NoError(t, err)
+	assert.Contains(t, out, "add")
 }
 
 func TestDescribe_Plan(t *testing.T) {

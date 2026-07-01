@@ -8,6 +8,7 @@
 - **Map literals**: `{key: value, ...}` construction, previously impossible (the type existed only as a `map[K, V]` annotation with no way to build a value)
 - **Bracket line-continuation**: any `(...)`, `[...]`, or `{...}` may now span multiple lines; a newline inside an open bracket is insignificant whitespace, enabling the conventional one-entry-per-line-with-trailing-comma style for map/list literals and call arguments
 - **`m[key]` indexing**: map values can now be read and written with bracket indexing (`m["a"]`, `m["a"] = 1`), in addition to `.field` access; index assignment also now works for lists (`xs[0] = 1`), via a new `SET_INDEX` bytecode instruction
+- **Real module loading**: `import "path.fn"` (previously a pure no-op) now actually reads, parses, and merges the target file's `pub fn`/`struct` declarations, relative to the importing file's directory (`internal/module`). Unaliased imports merge `pub` symbols under their bare name (`add(1, 2)`); `import "path.fn" as m` keeps the module's own names unchanged and instead teaches call sites that `m.add(...)` means "call `add` from that module" (à la Python's `import x as y`). Private (non-`pub`) functions remain reachable from within their own module but are hygienically renamed and inaccessible from outside it. Diamond dependencies are merged once; circular imports and cross-file symbol collisions are compile errors (`E1101`-`E1105`).
 
 ### Fixes
 - Parser crash on standalone `#` comments (introduces `ast.CommentStmt`)

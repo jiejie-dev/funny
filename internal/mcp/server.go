@@ -13,6 +13,7 @@ import (
 
 	"github.com/jiejie-dev/funny/internal/ast"
 	"github.com/jiejie-dev/funny/internal/cli"
+	"github.com/jiejie-dev/funny/internal/module"
 	"github.com/jiejie-dev/funny/internal/parser"
 	"github.com/jiejie-dev/funny/internal/types"
 )
@@ -115,6 +116,10 @@ func lintTool(ctx context.Context, req *mcp.CallToolRequest, args pathArg) (*mcp
 	}
 	p := parser.New(string(data), args.Path)
 	prog, err := p.Parse()
+	if err != nil {
+		return nil, map[string]any{"errors": []string{err.Error()}}, nil
+	}
+	prog, err = module.Resolve(prog, args.Path)
 	if err != nil {
 		return nil, map[string]any{"errors": []string{err.Error()}}, nil
 	}
