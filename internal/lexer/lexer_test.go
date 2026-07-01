@@ -30,6 +30,27 @@ func TestLexer_TracksLineAndCol(t *testing.T) {
 	assert.Equal(t, 0, bTok.Pos.Col)
 }
 
+// TestLexer_TracksColPastFirstTokenOnLine guards against a regression where
+// Position.Col/Offset were only captured once per line (during indent
+// handling) and then silently reused for every subsequent token on that
+// line, making every token but the first report the line's indentation
+// column instead of its own position. TestLexer_TracksLineAndCol above
+// only exercises first-of-line tokens and did not catch this.
+func TestLexer_TracksColPastFirstTokenOnLine(t *testing.T) {
+	l := New("let x: int = 5", "test.fn")
+	assertTok := func(want Kind, wantCol int) {
+		tok := l.Next()
+		assert.Equal(t, want, tok.Kind)
+		assert.Equal(t, wantCol, tok.Pos.Col)
+	}
+	assertTok(LET, 0)
+	assertTok(NAME, 4)  // x
+	assertTok(COLON, 5) // :
+	assertTok(NAME, 7)  // int
+	assertTok(EQ, 11)   // =
+	assertTok(INT, 13)  // 5
+}
+
 func TestLexer_Operators(t *testing.T) {
 	cases := []struct {
 		src  string

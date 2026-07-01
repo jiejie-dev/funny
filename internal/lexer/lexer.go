@@ -184,6 +184,30 @@ func (l *Lexer) Next() Token {
 			return l.emit(EOF, "")
 		}
 
+		// Skip ordinary intra-line whitespace (spaces between tokens) without
+		// going through the generic single-byte fallback at the bottom of
+		// this loop, so that l.save() below always captures the true start
+		// position of the *next real token*, not a stale position left over
+		// from whatever token preceded the whitespace.
+		for l.pos < len(l.src) && l.src[l.pos] == ' ' {
+			l.advance()
+		}
+		if l.pos >= len(l.src) {
+			if len(l.indentStack) > 1 {
+				l.indentStack = l.indentStack[:len(l.indentStack)-1]
+				return l.emit(DEDENT, "")
+			}
+			return l.emit(EOF, "")
+		}
+
+		// Every token's reported Position must reflect where *that token*
+		// starts, not where the current line started: save() was previously
+		// only called once per line (during indent handling above), so
+		// every token after the first on a line silently inherited the
+		// line's indent column instead of its own. Saving right before
+		// dispatch fixes that for every token kind uniformly.
+		l.save()
+
 		ch := l.src[l.pos]
 
 		// Comments

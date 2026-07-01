@@ -13,6 +13,7 @@ funny run script.fn         # execute a script
 funny ast script.fn         # print JSON AST
 funny describe script.fn    # print plan/metadata
 funny-mcp                   # start MCP server (for LLM clients)
+funny-lsp                   # start LSP server (for editors/IDEs)
 ```
 
 ### Features
@@ -22,4 +23,5 @@ funny-mcp                   # start MCP server (for LLM clients)
 - `Result` + `?` operator for error propagation
 - Plan engine with retry, parallel, branch, guard step kinds
 - MCP server with 6 tools for LLM integration
+- LSP server: diagnostics, hover, completion, signature help, go-to-definition, document symbols, formatting
 - Standard library: json, time, math, str, regex, env, file, http, crypto, jwt, sql

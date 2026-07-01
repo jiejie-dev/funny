@@ -284,6 +284,7 @@ funny fmt script.fn         # print canonically-formatted source to stdout
 funny fmt script.fn -w      # reformat the file in place
 funny describe script.fn    # JSON plan/metadata
 funny-mcp                   # start MCP server
+funny-lsp                   # start LSP server
 ```
 
 ## MCP Server
@@ -296,3 +297,36 @@ The `funny-mcp` binary exposes 6 tools over stdio:
 - `run_skill`: execute a .fn file
 - `lint`: type-check only, no execution
 ```
+
+## LSP Server
+
+The `funny-lsp` binary speaks LSP 3.17 (a hand-rolled minimal subset, no third-party
+protocol dependency) over stdio, framed as standard `Content-Length`-prefixed JSON-RPC
+2.0. Point any LSP-capable editor at it for `.fn` files. Supported capabilities:
+
+- **Diagnostics** (`textDocument/publishDiagnostics`, sent on `didOpen`/`didChange`):
+  parser, module-resolution, and type-checker errors, each anchored at its precise
+  position and carrying its structured error code (`E1xxx`/`E2xxx`). Since the type
+  checker stops at the first error (fail-fast, matching the compiler), only one
+  diagnostic is reported per analysis pass. An error inside an *imported* file is
+  still surfaced in the importing document (anchored at the top of the file, with the
+  imported file's path/line embedded in the message), so it isn't silently invisible.
+- **Hover**: shows the type of local variables/parameters, full function signatures,
+  struct field layouts, builtin functions, and keyword documentation.
+- **Completion**: keywords, builtins, declared functions/structs, and locals in scope
+  everywhere; immediately after `<expr>.`, only that expression's fields (struct
+  fields, or `tag`/`val` for a `Result`) are offered — type-aware, same-type-only
+  completion, not a generic symbol dump.
+- **Signature help**: shows the enclosing call's signature and highlights the active
+  parameter while typing arguments.
+- **Go-to-definition**: jumps to local variable/parameter declarations, and to
+  function/struct declarations — including across `import`ed files, reusing the same
+  module resolution used by `funny run`.
+- **Document symbols**: an outline of `fn`/`struct` declarations (struct fields
+  nested underneath) and `plan` blocks (with `step`s nested underneath, as a
+  lightweight tree view of the plan graph).
+- **Formatting**: delegates to the same formatter as `funny fmt`.
+
+Not yet implemented: rename, find-references, and a dedicated plan-as-graph visual
+protocol extension (the `documentSymbol` tree above is a generic-client-compatible
+stand-in for the latter).

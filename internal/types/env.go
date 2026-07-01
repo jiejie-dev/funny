@@ -66,6 +66,26 @@ func (e *Env) LookupStruct(name string) (Struct, bool) {
 	return Struct{}, false
 }
 
+// Funcs returns the functions declared directly in this scope (not
+// including parent scopes). Used by tooling (e.g. the LSP server) that
+// needs to enumerate available symbols; not used by the type checker
+// itself.
+func (e *Env) Funcs() map[string]Func {
+	return e.funcs
+}
+
+// Structs returns the struct types declared directly in this scope (not
+// including parent scopes). See Funcs for usage notes.
+func (e *Env) Structs() map[string]Struct {
+	return e.structs
+}
+
+// Vars returns the variables declared directly in this scope (not
+// including parent scopes). See Funcs for usage notes.
+func (e *Env) Vars() map[string]Type {
+	return e.vars
+}
+
 // Has reports whether any binding with this name exists in this scope chain.
 func (e *Env) Has(name string) bool {
 	if _, ok := e.vars[name]; ok {

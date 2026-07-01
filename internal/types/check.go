@@ -194,6 +194,18 @@ var builtinTypeNames = map[string]bool{
 // can be applied to them at the type level.
 var builtinResultReturns = map[string]bool{}
 
+// BuiltinNames returns the sorted-by-declaration list of builtin function
+// names the type checker (and therefore the compiler/VM/evaluator) knows
+// about. Exposed for tooling (e.g. the LSP server's completion provider).
+func BuiltinNames() []string {
+	names := make([]string, 0, len(builtinTypeNames)+2)
+	for name := range builtinTypeNames {
+		names = append(names, name)
+	}
+	names = append(names, "ok", "err")
+	return names
+}
+
 func builtinReturnType(name string) Type {
 	if builtinResultReturns[name] {
 		return Result{Ok: Primitive("any"), Err: Primitive("str")}
@@ -574,6 +586,14 @@ func checkStructDecl(n *ast.StructDecl, env *Env) error {
 // compare equal to the real Struct{Name: "Point", ...} type produced by
 // struct literals/lookups, causing every struct-typed annotation to fail
 // type-checking with a spurious mismatch.
+// ResolveNamedType is the exported form of resolveNamedType, for tooling
+// (e.g. the LSP server) that needs to resolve a bare type-annotation string
+// (from ParseType) against an environment the same way the type checker
+// does internally.
+func ResolveNamedType(t Type, env *Env) Type {
+	return resolveNamedType(t, env)
+}
+
 func resolveNamedType(t Type, env *Env) Type {
 	switch tt := t.(type) {
 	case Primitive:
