@@ -73,6 +73,17 @@ func (e *Engine) execStmt(s ast.Statement) (any, bool, error) {
 		return nil, false, e.execWhile(n)
 	case *ast.ReturnStmt:
 		return e.execReturn(n)
+	case *ast.CommentStmt:
+		// A plan body interleaves `# ...` comments between step
+		// declarations at the same indent level (that's exactly how a
+		// well-documented, readable plan is written), so these show up
+		// as real statements in plan.Body.Statements right alongside the
+		// *ast.Step nodes - not just at file scope. Before this, any
+		// plan with such a comment failed outright with "unsupported
+		// statement type *ast.CommentStmt" the moment RunPlan reached
+		// it, even though the compiler and evaluator have always treated
+		// comments as no-ops everywhere else.
+		return nil, false, nil
 	}
 	return nil, false, fmt.Errorf("agent: unsupported statement type %T", s)
 }

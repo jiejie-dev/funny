@@ -257,6 +257,33 @@ func TestEngine_Delay_RequiresTimeout(t *testing.T) {
 	assert.Contains(t, err.Error(), "timeout")
 }
 
+// TestEngine_CommentsBetweenSteps_AreSkipped is a regression test: a
+// `plan` body interleaves `# ...` comments between step declarations at
+// the same indent level whenever the plan is documented (exactly what a
+// readable plan looks like), which shows up as *ast.CommentStmt nodes
+// directly in plan.Body.Statements alongside the *ast.Step nodes - not
+// just at file scope. execStmt used to have no case for it at all, so
+// any such plan failed outright with "agent: unsupported statement type
+// *ast.CommentStmt" the moment RunPlan reached the comment, even though
+// the compiler and evaluator have always treated comments as no-ops
+// everywhere else.
+func TestEngine_CommentsBetweenSteps_AreSkipped(t *testing.T) {
+	src := `plan "demo":
+    # explains step one
+    step "one" -> tool:
+        1
+    # explains step two
+    step "two" -> tool:
+        __result + 1
+    # trailing comment
+`
+	e, err := runPlanSrc(t, src)
+	require.NoError(t, err)
+	v, ok := e.eval.Scope().Get("__result")
+	require.True(t, ok)
+	assert.Equal(t, 2, v)
+}
+
 func TestEngine_PlanFromFile(t *testing.T) {
 	data, err := os.ReadFile("../../testdata/agent/plan.fn")
 	if err != nil {
