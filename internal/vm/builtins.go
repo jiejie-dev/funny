@@ -15,6 +15,7 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -143,6 +144,25 @@ func (v *VM) execCallBuiltin(nameIdx int) error {
 				}
 			}
 			v.stack[len(v.stack)-1] = n
+		}
+	case "to_float":
+		// Without this there was no int->float conversion and no
+		// string->float parsing at all (to_int truncates strings like
+		// "42.3" down to the digits "423", discarding the decimal
+		// point), so something as ordinary as averaging a list of ints
+		// into a float, or parsing a numeric field out of text, was
+		// unreachable from funny code.
+		if len(v.stack) < 1 {
+			return fmt.Errorf("vm: to_float() requires 1 argument")
+		}
+		switch x := v.stack[len(v.stack)-1].(type) {
+		case float64:
+			_ = x
+		case int:
+			v.stack[len(v.stack)-1] = float64(x)
+		case string:
+			f, _ := strconv.ParseFloat(strings.TrimSpace(x), 64)
+			v.stack[len(v.stack)-1] = f
 		}
 	case "type_of":
 		if len(v.stack) < 1 {

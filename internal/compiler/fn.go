@@ -21,6 +21,7 @@ var builtinNames = map[string]bool{
 	"len":           true,
 	"to_str":        true,
 	"to_int":        true,
+	"to_float":      true,
 	"type_of":       true,
 	"ok":            true,
 	"err":           true,
@@ -187,7 +188,7 @@ func builtinValueType(name string, argTypes []valueType) valueType {
 	switch name {
 	case "len", "to_int", "now":
 		return valInt
-	case "sqrt", "pow":
+	case "sqrt", "pow", "to_float":
 		return valFloat
 	case "abs":
 		// abs preserves its argument's numeric type (int stays int, float

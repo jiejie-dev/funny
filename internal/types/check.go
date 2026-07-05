@@ -187,6 +187,7 @@ var builtinTypeNames = map[string]bool{
 	"len":           true,
 	"to_str":        true,
 	"to_int":        true,
+	"to_float":      true,
 	"type_of":       true,
 	"to_json":       true,
 	"parse_json":    true,
@@ -258,7 +259,7 @@ func builtinReturnType(name string, argTypes []Type) Type {
 	switch name {
 	case "len", "to_int", "now":
 		return Primitive("int")
-	case "sqrt", "pow":
+	case "sqrt", "pow", "to_float":
 		return Primitive("float")
 	case "abs":
 		if len(argTypes) == 1 {

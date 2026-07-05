@@ -302,6 +302,39 @@ func TestVM_CallBuiltin_Append(t *testing.T) {
 	assert.Equal(t, []bytecode.Value{1, 2, 3}, list)
 }
 
+// TestVM_CallBuiltin_ToFloat is a regression test: funny had no way to
+// convert an int to a float, or to parse a float out of a string
+// (to_int truncates "3.14" down to "314"), which blocked ordinary things
+// like averaging a list of ints as a float.
+func TestVM_CallBuiltin_ToFloat(t *testing.T) {
+	cases := []struct {
+		name string
+		val  bytecode.Value
+		want float64
+	}{
+		{"int", 5, 5.0},
+		{"float passthrough", 2.5, 2.5},
+		{"string", "3.14", 3.14},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			main := &bytecode.Function{Name: "main", Arity: 0}
+			switch c.val.(type) {
+			case int:
+				main.Emit(bytecode.PUSH_INT, 0)
+			case float64:
+				main.Emit(bytecode.PUSH_FLOAT, 0)
+			case string:
+				main.Emit(bytecode.PUSH_STR, 0)
+			}
+			main.Emit(bytecode.CALL_BUILTIN, 1)
+			main.Emit(bytecode.HALT, 0)
+			v := runModule(t, main, nil, c.val, bytecode.BuiltinInfo{Name: "to_float", Arity: 1})
+			assert.Equal(t, c.want, v)
+		})
+	}
+}
+
 func TestVM_IndexList(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
 	main.Emit(bytecode.PUSH_INT, 0)

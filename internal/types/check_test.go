@@ -295,6 +295,7 @@ func TestCheck_BuiltinReturnType_ConcreteTypes(t *testing.T) {
 		{`regex_match("a", "b")`, Primitive("bool")},
 		{`file_exists("x")`, Primitive("bool")},
 		{`str_split("a,b", ",")`, List{Elem: Primitive("str")}},
+		{`to_float("3.14")`, Primitive("float")},
 	}
 	for _, c := range cases {
 		env := NewEnv(nil)

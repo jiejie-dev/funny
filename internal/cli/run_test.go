@@ -306,6 +306,27 @@ for e in evens:
 	assert.Equal(t, "3\n2\n4\n6\n", out)
 }
 
+// TestRun_ToFloatEnablesIntDivisionAverages is a regression test: funny
+// had no int->float conversion and no string->float parsing at all
+// (to_int truncates "42.3" down to the digits "423", silently discarding
+// the decimal point), so averaging a list of ints into a float - one of
+// the most ordinary things a stats/reporting script needs to do - had no
+// way to be expressed. See internal/vm/builtins.go's "to_float" case.
+func TestRun_ToFloatEnablesIntDivisionAverages(t *testing.T) {
+	src := `let xs = [10, 20, 30, 40]
+let total = 0
+for x in xs:
+    total = total + x
+let avg = to_float(total) / to_float(len(xs))
+println(avg)
+println(to_float("2.5") + 0.5)
+`
+	out := captureStdout(t, func() {
+		require.NoError(t, Run([]byte(src), "test.fn"))
+	})
+	assert.Equal(t, "25\n3\n", out)
+}
+
 func TestDescribe_Plan(t *testing.T) {
 	src := `meta:
     name: "demo"
