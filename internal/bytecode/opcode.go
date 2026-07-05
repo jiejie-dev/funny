@@ -38,17 +38,24 @@ const (
 	FORMAT_VALUE OpCode = "FORMAT_VALUE"
 
 	// Comparison (typed)
-	EQ_INT  OpCode = "EQ_INT"
-	EQ_STR  OpCode = "EQ_STR"
-	EQ_BOOL OpCode = "EQ_BOOL"
-	EQ_NIL  OpCode = "EQ_NIL"
-	LT_INT  OpCode = "LT_INT"
-	GT_INT  OpCode = "GT_INT"
-	LTE_INT OpCode = "LTE_INT"
-	GTE_INT OpCode = "GTE_INT"
+	EQ_INT    OpCode = "EQ_INT"
+	EQ_STR    OpCode = "EQ_STR"
+	EQ_BOOL   OpCode = "EQ_BOOL"
+	EQ_NIL    OpCode = "EQ_NIL"
+	EQ_FLOAT  OpCode = "EQ_FLOAT"
+	LT_INT    OpCode = "LT_INT"
+	GT_INT    OpCode = "GT_INT"
+	LTE_INT   OpCode = "LTE_INT"
+	GTE_INT   OpCode = "GTE_INT"
+	LT_FLOAT  OpCode = "LT_FLOAT"
+	GT_FLOAT  OpCode = "GT_FLOAT"
+	LTE_FLOAT OpCode = "LTE_FLOAT"
+	GTE_FLOAT OpCode = "GTE_FLOAT"
 
 	// Logical
 	NOT_BOOL OpCode = "NOT_BOOL"
+	AND_BOOL OpCode = "AND_BOOL"
+	OR_BOOL  OpCode = "OR_BOOL"
 
 	// Control flow
 	JUMP          OpCode = "JUMP"

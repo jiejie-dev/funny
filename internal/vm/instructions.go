@@ -47,8 +47,8 @@ func (v *VM) execArith(op bytecode.OpCode, a, b bytecode.Value) (bytecode.Value,
 	return nil, fmt.Errorf("vm: unsupported arith op %s", op)
 }
 
-// execCmp handles comparison operations on the top two stack values.
-// Pops b first, then a, pushes bool result.
+// execCmp handles comparison and logical operations on the top two stack
+// values. Pops b first, then a, pushes bool result.
 func (v *VM) execCmp(op bytecode.OpCode, a, b bytecode.Value) (bool, error) {
 	switch op {
 	case bytecode.EQ_INT:
@@ -59,6 +59,8 @@ func (v *VM) execCmp(op bytecode.OpCode, a, b bytecode.Value) (bool, error) {
 		return a.(bool) == b.(bool), nil
 	case bytecode.EQ_NIL:
 		return a == nil && b == nil, nil
+	case bytecode.EQ_FLOAT:
+		return a.(float64) == b.(float64), nil
 	case bytecode.LT_INT:
 		return a.(int) < b.(int), nil
 	case bytecode.GT_INT:
@@ -67,6 +69,18 @@ func (v *VM) execCmp(op bytecode.OpCode, a, b bytecode.Value) (bool, error) {
 		return a.(int) <= b.(int), nil
 	case bytecode.GTE_INT:
 		return a.(int) >= b.(int), nil
+	case bytecode.LT_FLOAT:
+		return a.(float64) < b.(float64), nil
+	case bytecode.GT_FLOAT:
+		return a.(float64) > b.(float64), nil
+	case bytecode.LTE_FLOAT:
+		return a.(float64) <= b.(float64), nil
+	case bytecode.GTE_FLOAT:
+		return a.(float64) >= b.(float64), nil
+	case bytecode.AND_BOOL:
+		return a.(bool) && b.(bool), nil
+	case bytecode.OR_BOOL:
+		return a.(bool) || b.(bool), nil
 	}
 	return false, fmt.Errorf("vm: unsupported cmp op %s", op)
 }

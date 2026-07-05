@@ -130,17 +130,29 @@ func (c *Compiler) compileBinary(n *ast.BinaryExpr) (valueType, error) {
 	if leftOp != rightOp {
 		return "", fmt.Errorf("compileBinary: type mismatch %s vs %s for op %s", leftOp, rightOp, n.Op)
 	}
+	// `!=` has no dedicated opcode family of its own; it reuses whichever
+	// EQ_* opcode `==` would pick for this operand type and negates it.
+	if n.Op == "!=" {
+		op, err := pickBinaryOp("==", leftOp)
+		if err != nil {
+			return "", fmt.Errorf("compileBinary: unsupported op != for %s", leftOp)
+		}
+		c.fn.Emit(op, 0)
+		c.fn.Emit(bytecode.NOT_BOOL, 0)
+		return valBool, nil
+	}
 	op, err := pickBinaryOp(n.Op, leftOp)
 	if err != nil {
 		return "", err
 	}
 	c.fn.Emit(op, 0)
 
-	// Comparison / equality ops produce bool; arithmetic preserves operand type.
+	// Comparison / equality / logical ops produce bool; arithmetic preserves
+	// operand type.
 	switch n.Op {
 	case "+", "-", "*", "/", "%":
 		return leftOp, nil
-	case "==", "<", ">", "<=", ">=":
+	case "==", "<", ">", "<=", ">=", "and", "or":
 		return valBool, nil
 	}
 	return "", fmt.Errorf("compileBinary: unknown operator %s", n.Op)
@@ -192,22 +204,44 @@ func pickBinaryOp(op string, lhs valueType) (bytecode.OpCode, error) {
 			return bytecode.EQ_BOOL, nil
 		case valNil:
 			return bytecode.EQ_NIL, nil
+		case valFloat:
+			return bytecode.EQ_FLOAT, nil
 		}
 	case "<":
-		if lhs == valInt {
+		switch lhs {
+		case valInt:
 			return bytecode.LT_INT, nil
+		case valFloat:
+			return bytecode.LT_FLOAT, nil
 		}
 	case ">":
-		if lhs == valInt {
+		switch lhs {
+		case valInt:
 			return bytecode.GT_INT, nil
+		case valFloat:
+			return bytecode.GT_FLOAT, nil
 		}
 	case "<=":
-		if lhs == valInt {
+		switch lhs {
+		case valInt:
 			return bytecode.LTE_INT, nil
+		case valFloat:
+			return bytecode.LTE_FLOAT, nil
 		}
 	case ">=":
-		if lhs == valInt {
+		switch lhs {
+		case valInt:
 			return bytecode.GTE_INT, nil
+		case valFloat:
+			return bytecode.GTE_FLOAT, nil
+		}
+	case "and":
+		if lhs == valBool {
+			return bytecode.AND_BOOL, nil
+		}
+	case "or":
+		if lhs == valBool {
+			return bytecode.OR_BOOL, nil
 		}
 	}
 	return "", fmt.Errorf("pickBinaryOp: unsupported op %s for %s", op, lhs)

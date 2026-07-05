@@ -170,29 +170,63 @@ func checkUnaryExpr(n *ast.UnaryExpr, env *Env) (Type, error) {
 // builtinTypeNames is the set of names recognized by the type checker as
 // builtins (the compiler and VM also know these). Their return types are
 // reported as Primitive("any") since the type checker does not narrow them.
+//
+// regex_match/regex_replace/env_get/file_read/file_exists/http_get/md5/
+// sha256/b64_encode/b64_decode/jwt_encode/jwt_decode/sql_open were
+// implemented in internal/vm/builtins.go (and documented in
+// docs/language-manual.md) but never added here — since checkCallExpr
+// rejects any name that's neither a builtin nor a user-declared function
+// with E2002 "undefined function" *before* the compiler ever runs, every
+// one of them was actually uncallable from a real .fn script; only
+// Go-level VM tests that hand-build bytecode (bypassing the type checker)
+// exercised them. See internal/compiler/fn.go's builtinNames for the
+// matching compiler-side allowlist that had to be fixed alongside this one.
 var builtinTypeNames = map[string]bool{
-	"print":        true,
-	"println":      true,
-	"len":          true,
-	"to_str":       true,
-	"to_int":       true,
-	"type_of":      true,
-	"to_json":      true,
-	"parse_json":   true,
-	"now":          true,
-	"time_format":  true,
-	"sqrt":         true,
-	"pow":          true,
-	"abs":          true,
-	"str_upper":    true,
-	"str_lower":    true,
-	"str_contains": true,
-	"str_split":    true,
+	"print":         true,
+	"println":       true,
+	"len":           true,
+	"to_str":        true,
+	"to_int":        true,
+	"type_of":       true,
+	"to_json":       true,
+	"parse_json":    true,
+	"now":           true,
+	"time_format":   true,
+	"sqrt":          true,
+	"pow":           true,
+	"abs":           true,
+	"str_upper":     true,
+	"str_lower":     true,
+	"str_contains":  true,
+	"str_split":     true,
+	"regex_match":   true,
+	"regex_replace": true,
+	"env_get":       true,
+	"file_read":     true,
+	"file_exists":   true,
+	"http_get":      true,
+	"md5":           true,
+	"sha256":        true,
+	"b64_encode":    true,
+	"b64_decode":    true,
+	"jwt_encode":    true,
+	"jwt_decode":    true,
+	"sql_open":      true,
 }
 
 // builtinResultReturns lists builtins that return a Result, so the `?` operator
-// can be applied to them at the type level.
-var builtinResultReturns = map[string]bool{}
+// can be applied to them at the type level. Only builtins whose
+// internal/vm/builtins.go implementation *consistently* pushes a
+// makeResult(...) on both the success and failure path qualify; jwt_encode
+// and sql_open return a plain string on success and a Result only on
+// failure, so they're deliberately left out (and just typed `any`) rather
+// than claiming a Result shape their success value doesn't actually have.
+var builtinResultReturns = map[string]bool{
+	"file_read":  true,
+	"http_get":   true,
+	"b64_decode": true,
+	"jwt_decode": true,
+}
 
 // BuiltinNames returns the sorted-by-declaration list of builtin function
 // names the type checker (and therefore the compiler/VM/evaluator) knows

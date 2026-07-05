@@ -9,26 +9,44 @@ import (
 )
 
 // builtinNames lists functions that compile to CALL_BUILTIN instead of CALL.
+// Must stay in sync with internal/types.builtinTypeNames (checked first) and
+// internal/vm/builtins.go's execCallBuiltin switch (what actually runs) —
+// see the comment on builtinTypeNames for how far out of sync this list had
+// drifted from the VM before regex/env/file/http/crypto/jwt/sql were added
+// here.
 var builtinNames = map[string]bool{
-	"print":       true,
-	"println":     true,
-	"len":         true,
-	"to_str":      true,
-	"to_int":      true,
-	"type_of":     true,
-	"ok":          true,
-	"err":         true,
-	"to_json":     true,
-	"parse_json":  true,
-	"now":         true,
-	"time_format": true,
-	"sqrt":        true,
-	"pow":         true,
-	"abs":         true,
-	"str_upper":   true,
-	"str_lower":   true,
-	"str_contains": true,
-	"str_split":   true,
+	"print":         true,
+	"println":       true,
+	"len":           true,
+	"to_str":        true,
+	"to_int":        true,
+	"type_of":       true,
+	"ok":            true,
+	"err":           true,
+	"to_json":       true,
+	"parse_json":    true,
+	"now":           true,
+	"time_format":   true,
+	"sqrt":          true,
+	"pow":           true,
+	"abs":           true,
+	"str_upper":     true,
+	"str_lower":     true,
+	"str_contains":  true,
+	"str_split":     true,
+	"regex_match":   true,
+	"regex_replace": true,
+	"env_get":       true,
+	"file_read":     true,
+	"file_exists":   true,
+	"http_get":      true,
+	"md5":           true,
+	"sha256":        true,
+	"b64_encode":    true,
+	"b64_decode":    true,
+	"jwt_encode":    true,
+	"jwt_decode":    true,
+	"sql_open":      true,
 }
 
 // compileFnDecl compiles a function declaration into a separate Function in
@@ -104,14 +122,17 @@ func (c *Compiler) compileCall(n *ast.CallExpr) (valueType, error) {
 	}
 	name := varName.Name
 	if builtinNames[name] {
-		for _, arg := range n.Args {
-			if _, err := c.compileExpr(arg); err != nil {
+		argTypes := make([]valueType, len(n.Args))
+		for i, arg := range n.Args {
+			vt, err := c.compileExpr(arg)
+			if err != nil {
 				return "", err
 			}
+			argTypes[i] = vt
 		}
 		nameIdx := c.mod.AddConstant(bytecode.BuiltinInfo{Name: name, Arity: len(n.Args)})
 		c.fn.Emit(bytecode.CALL_BUILTIN, nameIdx)
-		return valNil, nil
+		return builtinValueType(name, argTypes), nil
 	}
 	fnIdx, ok := c.functions[name]
 	if !ok {
@@ -124,4 +145,42 @@ func (c *Compiler) compileCall(n *ast.CallExpr) (valueType, error) {
 	}
 	c.fn.Emit(bytecode.CALL, fnIdx)
 	return c.fnRetTypes[name], nil
+}
+
+// builtinValueType returns the concrete compiler-tracked value type a
+// builtin call produces, so `len(x) > 0` / `sqrt(x) < 1.0` / etc. can pick
+// a typed comparison opcode the same way a literal or `let`-bound local
+// would — before this, every builtin call was opaquely typed valNil (see
+// the comment on the old return statement this replaced), so using *any*
+// builtin's result directly in an arithmetic or comparison expression
+// failed to compile with "type mismatch nil vs X", even though the same
+// code ran fine under the tree-walking evaluator (which has no static
+// value-type tracking to trip over).
+//
+// Builtins that return something the compiler doesn't model as a
+// valueType at all (list, map, Result, or no value) are left at valNil —
+// that's correct/harmless since their results reach further code through
+// compileField/compileIndex, not typed arithmetic.
+func builtinValueType(name string, argTypes []valueType) valueType {
+	switch name {
+	case "len", "to_int", "now":
+		return valInt
+	case "sqrt", "pow":
+		return valFloat
+	case "abs":
+		// abs preserves its argument's numeric type (int stays int, float
+		// stays float); only claim a type when the argument's was known.
+		if len(argTypes) == 1 {
+			switch argTypes[0] {
+			case valInt, valFloat:
+				return argTypes[0]
+			}
+		}
+	case "to_str", "type_of", "str_upper", "str_lower", "regex_replace",
+		"env_get", "time_format", "md5", "sha256", "b64_encode":
+		return valStr
+	case "str_contains", "regex_match", "file_exists":
+		return valBool
+	}
+	return valNil
 }

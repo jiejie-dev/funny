@@ -35,7 +35,7 @@ funny-mcp
 ### M1 — Language core (28 tasks)
 
 - **Lexer** with INDENT / DEDENT / NEWLINE tokens, 59 token types
-- **Parser** with Pratt expressions, full control flow (if/while/for/match), function and struct declarations
+- **Parser** with Pratt expressions, full control flow (if/while/for), function and struct declarations
 - **Type system** with 7 type kinds (Primitive, List, Map, Struct, Func, Result, Optional)
 - **Tree-walking evaluator** as the default execution path (use `FUNNY_INTERPRET=0` to bypass the VM)
 - **LSP scaffolding** (kept from v1; not exercised in v2.0.0 but available)
@@ -156,6 +156,8 @@ funny-lsp                   Start the LSP server over stdio (v2.1)
 - Some stdlib functions return Result wrappers where plain values might be simpler
 - ~~`f"..."` string interpolation: M1 parser accepts the syntax; M2-A runtime substitution is deferred to v2.1~~ — fixed in v2.1: full `f"...{expr:spec}..."` interpolation now works end-to-end (lexer/parser/type checker/evaluator/bytecode VM), see CHANGELOG.md
 - ~~No LSP server in v2.0.0 (the v1 LSP scaffolding is gone in the v2 migration; v2.1 will re-add)~~ — fixed in v2.1: a from-scratch `funny-lsp` binary now provides diagnostics, hover, completion, signature help, go-to-definition (including across `import`s), document symbols, formatting, find-references, rename, and a custom `funny/planGraph` plan-visualization request (see CHANGELOG.md)
+- ~~`regex_match`/`regex_replace`/`env_get`/`file_read`/`file_exists`/`http_get`/`md5`/`sha256`/`b64_encode`/`b64_decode`/`jwt_encode`/`jwt_decode`/`sql_open` were implemented in the VM but uncallable from any `.fn` script (missing from the type checker's and compiler's builtin allowlists — E2002 "undefined function" on every call), and any builtin call's result (`len(x) > 0`, `sqrt(x) < 1.0`, ...), `float` comparisons, `!=`, and `and`/`or` all failed to compile under the default bytecode VM~~ — fixed in v2.1 (see CHANGELOG.md); the tree-walking evaluator fallback (`FUNNY_INTERPRET=1`) still only implements the original 8 M1 builtins
+- `match` is documented in the language manual but not implemented anywhere (no parser/type-checker/evaluator/compiler support) — a script using it fails to parse. Use `if`/`elif`/`else` instead until it's built; the manual now flags this inline
 
 ## Upgrading from v1
 

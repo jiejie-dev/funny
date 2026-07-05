@@ -91,8 +91,10 @@ func (v *VM) execute() (bytecode.Value, error) {
 				return nil, err
 			}
 			v.stack = append(v.stack, res)
-		case bytecode.EQ_INT, bytecode.EQ_STR, bytecode.EQ_BOOL, bytecode.EQ_NIL,
-			bytecode.LT_INT, bytecode.GT_INT, bytecode.LTE_INT, bytecode.GTE_INT:
+		case bytecode.EQ_INT, bytecode.EQ_STR, bytecode.EQ_BOOL, bytecode.EQ_NIL, bytecode.EQ_FLOAT,
+			bytecode.LT_INT, bytecode.GT_INT, bytecode.LTE_INT, bytecode.GTE_INT,
+			bytecode.LT_FLOAT, bytecode.GT_FLOAT, bytecode.LTE_FLOAT, bytecode.GTE_FLOAT,
+			bytecode.AND_BOOL, bytecode.OR_BOOL:
 			a, b := v.pop2()
 			res, err := v.execCmp(instr.Op, a, b)
 			if err != nil {

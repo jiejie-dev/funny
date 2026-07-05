@@ -225,6 +225,52 @@ func TestCheck_Call_WrongType(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// TestCheck_ExtendedStdlibBuiltins guards against the regex/env/file/http/
+// crypto/jwt/sql builtins silently falling out of builtinTypeNames again -
+// they were implemented in internal/vm/builtins.go and documented in
+// docs/language-manual.md, but were never registered here, so every call
+// to them failed with E2002 "undefined function" before the compiler (and
+// therefore the VM) ever saw them.
+func TestCheck_ExtendedStdlibBuiltins(t *testing.T) {
+	srcs := []string{
+		`regex_match("a.c", "abc")`,
+		`regex_replace("a", "b", "c")`,
+		`env_get("HOME")`,
+		`file_read("x")`,
+		`file_exists("x")`,
+		`http_get("http://x")`,
+		`md5("x")`,
+		`sha256("x")`,
+		`b64_encode("x")`,
+		`b64_decode("x")`,
+		`jwt_encode("h", "c", "s")`,
+		`jwt_decode("t", "s")`,
+		`sql_open(":memory:")`,
+	}
+	for _, src := range srcs {
+		env := NewEnv(nil)
+		_, err := CheckExpr(parseExpr(t, src), env)
+		assert.NoError(t, err, src)
+	}
+}
+
+// TestCheck_ExtendedStdlibBuiltins_ResultReturnsSupportTry confirms the `?`
+// operator type-checks against builtins whose VM implementation
+// consistently returns a Result on both the success and failure path.
+func TestCheck_ExtendedStdlibBuiltins_ResultReturnsSupportTry(t *testing.T) {
+	srcs := []string{
+		`file_read("x")?`,
+		`http_get("http://x")?`,
+		`b64_decode("x")?`,
+		`jwt_decode("t", "s")?`,
+	}
+	for _, src := range srcs {
+		env := NewEnv(nil)
+		_, err := CheckExpr(parseExpr(t, src), env)
+		assert.NoError(t, err, src)
+	}
+}
+
 func TestCheck_Index_List(t *testing.T) {
 	env := NewEnv(nil)
 	got, err := CheckExpr(parseExpr(t, "[1, 2, 3][0]"), env)

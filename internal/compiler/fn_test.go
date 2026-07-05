@@ -122,3 +122,70 @@ func TestCompile_CallBuiltin(t *testing.T) {
 	}
 	assert.True(t, hasCallBuiltin)
 }
+
+// Regression test: compileCall used to report valNil as the value type of
+// *every* builtin call regardless of what it actually returns, so using a
+// builtin's result directly as an operand of a typed arithmetic/comparison
+// operator failed with "compileBinary: type mismatch nil vs X" even though
+// the exact same source ran fine under the tree-walking evaluator (which
+// has no static value-type tracking to trip over). builtinValueType fixes
+// this by inferring a concrete type for the builtins that return one.
+func TestCompile_BuiltinResultUsableInComparison_RunsOnVM(t *testing.T) {
+	cases := []struct {
+		name string
+		src  string
+		want any
+	}{
+		{"len_int", `println(len("hello") > 0)`, nil},
+		{"sqrt_float", `println(sqrt(4.0) < 3.0)`, nil},
+		{"abs_preserves_int", `let n = -5
+println(abs(n) + 1)`, nil},
+		{"abs_preserves_float", `let f = -2.5
+println(abs(f) + 1.0)`, nil},
+		{"str_upper_concat", `println(str_upper("a") + "b")`, nil},
+		{"str_contains_and", `println(str_contains("abc", "b") and true)`, nil},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			mod := compileExpr(t, c.src)
+			_, err := vm.New(mod).Run()
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestBuiltinValueType(t *testing.T) {
+	cases := []struct {
+		name     string
+		argTypes []valueType
+		want     valueType
+	}{
+		{"len", nil, valInt},
+		{"to_int", nil, valInt},
+		{"now", nil, valInt},
+		{"sqrt", nil, valFloat},
+		{"pow", nil, valFloat},
+		{"abs", []valueType{valInt}, valInt},
+		{"abs", []valueType{valFloat}, valFloat},
+		{"abs", []valueType{valNil}, valNil},
+		{"to_str", nil, valStr},
+		{"type_of", nil, valStr},
+		{"str_upper", nil, valStr},
+		{"str_lower", nil, valStr},
+		{"regex_replace", nil, valStr},
+		{"env_get", nil, valStr},
+		{"time_format", nil, valStr},
+		{"md5", nil, valStr},
+		{"sha256", nil, valStr},
+		{"b64_encode", nil, valStr},
+		{"str_contains", nil, valBool},
+		{"regex_match", nil, valBool},
+		{"file_exists", nil, valBool},
+		{"file_read", nil, valNil},
+		{"println", nil, valNil},
+	}
+	for _, c := range cases {
+		got := builtinValueType(c.name, c.argTypes)
+		assert.Equal(t, c.want, got, "%s(%v)", c.name, c.argTypes)
+	}
+}
