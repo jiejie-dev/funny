@@ -294,6 +294,7 @@ func TestCheck_BuiltinReturnType_ConcreteTypes(t *testing.T) {
 		{`str_contains("a", "b")`, Primitive("bool")},
 		{`regex_match("a", "b")`, Primitive("bool")},
 		{`file_exists("x")`, Primitive("bool")},
+		{`str_split("a,b", ",")`, List{Elem: Primitive("str")}},
 	}
 	for _, c := range cases {
 		env := NewEnv(nil)
@@ -301,6 +302,55 @@ func TestCheck_BuiltinReturnType_ConcreteTypes(t *testing.T) {
 		require.NoError(t, err, c.src)
 		assert.True(t, got.Equal(c.want), "%s: got %s want %s", c.src, got, c.want)
 	}
+}
+
+// TestCheck_StrSplit_IndexableAndIterable is a regression test: before
+// str_split had a concrete List(str) return type, both indexing into its
+// result (`str_split(...)[0]`) and iterating over it (`for p in
+// str_split(...)`) failed type-checking with E2050 "cannot index into
+// any" / "for-in requires list, got any", even though the VM always
+// returns an actual list of strings at runtime.
+func TestCheck_StrSplit_IndexableAndIterable(t *testing.T) {
+	src := `
+let parts = str_split("a,b,c", ",")
+let first = parts[0]
+for p in parts:
+    println(p)
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	require.NoError(t, Check(prog, env))
+}
+
+// TestCheck_LetEmptyListWithAnnotation_Allowed is a regression test:
+// checkLet used to type-check the RHS *before* ever consulting the type
+// annotation, so `let xs: list[int] = []` failed with E2011 "cannot infer
+// type of empty list" even though the annotation fully determines the
+// type - the only way to seed an accumulator that starts empty (e.g. for
+// use with append() in a loop).
+func TestCheck_LetEmptyListWithAnnotation_Allowed(t *testing.T) {
+	p := parser.New(`let xs: list[int] = []`, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	require.NoError(t, Check(prog, env))
+	got, ok := env.LookupVar("xs")
+	require.True(t, ok)
+	assert.True(t, got.Equal(List{Elem: Primitive("int")}))
+}
+
+// TestCheck_LetEmptyListWithoutAnnotation_StillErrors ensures the E2011
+// diagnostic is preserved when there's genuinely no way to infer the
+// element type.
+func TestCheck_LetEmptyListWithoutAnnotation_StillErrors(t *testing.T) {
+	p := parser.New(`let xs = []`, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	require.Error(t, err)
 }
 
 // TestCheck_BuiltinCallArgs_AreTypeChecked is a regression test: builtin

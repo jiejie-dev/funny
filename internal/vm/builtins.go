@@ -101,6 +101,26 @@ func (v *VM) execCallBuiltin(nameIdx int) error {
 		default:
 			v.stack = append(v.stack, reflect.ValueOf(val).Len())
 		}
+	case "append":
+		// append(lst, item) returns a *new* list with item added at the
+		// end; it never mutates the caller's list in place. funny has no
+		// other way to grow a list (no `lst[i] = x` on out-of-range
+		// indices, no `+` on lists), so without this builtin there was no
+		// way to build up a list from a loop at all - e.g. filtering or
+		// collecting per-line parse results into a `list[LogEntry]`.
+		if len(v.stack) < 2 {
+			return fmt.Errorf("vm: append() requires 2 arguments")
+		}
+		item := v.stack[len(v.stack)-1]
+		lst, ok := v.stack[len(v.stack)-2].([]bytecode.Value)
+		if !ok {
+			return fmt.Errorf("vm: append() first argument must be a list")
+		}
+		v.stack = v.stack[:len(v.stack)-2]
+		out := make([]bytecode.Value, len(lst)+1)
+		copy(out, lst)
+		out[len(lst)] = item
+		v.stack = append(v.stack, out)
 	case "to_str":
 		if len(v.stack) < 1 {
 			return fmt.Errorf("vm: to_str() requires 1 argument")

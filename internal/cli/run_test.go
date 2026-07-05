@@ -280,6 +280,32 @@ println(count_positive([1, -2, 3, -4, 5]))
 	assert.Equal(t, "5\n3\n", out)
 }
 
+// TestRun_AppendBuildsListFromEmptyAnnotatedLet is an end-to-end regression
+// test for two related gaps found while building the log-audit example:
+// (1) `let xs: list[T] = []` always failed type-checking with E2011
+// "cannot infer type of empty list", even with an explicit annotation,
+// because checkLet type-checked the RHS before ever looking at the
+// annotation; and (2) there was no `append` builtin at all, so there was
+// no way to grow a list from within a loop (no `lst[i] = x` past the end,
+// no `+` on lists) - meaning collecting per-iteration results into a
+// list was entirely impossible. See internal/types.checkLet and
+// internal/vm/builtins.go's "append" case for the fixes.
+func TestRun_AppendBuildsListFromEmptyAnnotatedLet(t *testing.T) {
+	src := `let evens: list[int] = []
+for n in [1, 2, 3, 4, 5, 6]:
+    if n % 2 == 0:
+        evens = append(evens, n)
+
+println(len(evens))
+for e in evens:
+    println(e)
+`
+	out := captureStdout(t, func() {
+		require.NoError(t, Run([]byte(src), "test.fn"))
+	})
+	assert.Equal(t, "3\n2\n4\n6\n", out)
+}
+
 func TestDescribe_Plan(t *testing.T) {
 	src := `meta:
     name: "demo"

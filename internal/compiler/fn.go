@@ -48,6 +48,7 @@ var builtinNames = map[string]bool{
 	"jwt_encode":    true,
 	"jwt_decode":    true,
 	"sql_open":      true,
+	"append":        true,
 }
 
 // compileFnDecl compiles a function declaration into a separate Function in

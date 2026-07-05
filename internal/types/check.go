@@ -212,6 +212,7 @@ var builtinTypeNames = map[string]bool{
 	"jwt_encode":    true,
 	"jwt_decode":    true,
 	"sql_open":      true,
+	"append":        true,
 }
 
 // builtinResultReturns lists builtins that return a Result, so the `?` operator
@@ -270,6 +271,22 @@ func builtinReturnType(name string, argTypes []Type) Type {
 		return Primitive("str")
 	case "str_contains", "regex_match", "file_exists":
 		return Primitive("bool")
+	case "str_split":
+		// Without this, `str_split(s, sep)[i]` and `for part in
+		// str_split(...)` both failed to type-check: checkIndexExpr and
+		// the for-loop's iterable check both require a concrete List
+		// type and reject Primitive("any"), even though the VM (see
+		// internal/vm/builtins.go) always returns a list of strings.
+		return List{Elem: Primitive("str")}
+	case "append":
+		// append(lst, item) returns the same list type it was given, so
+		// e.g. `let xs: list[int] = []` then `xs = append(xs, 1)` keeps
+		// its list[int] type instead of collapsing to Primitive("any").
+		if len(argTypes) == 2 {
+			if lt, ok := argTypes[0].(List); ok {
+				return lt
+			}
+		}
 	}
 	return Primitive("any")
 }
@@ -503,6 +520,25 @@ func checkStmt(s ast.Statement, env *Env) error {
 }
 
 func checkLet(n *ast.LetStmt, env *Env) error {
+	// `let xs: list[int] = []` (or `map[...]{}`) is the only way to seed an
+	// accumulator that starts empty - e.g. collecting valid entries while
+	// looping over parsed input with append(). checkListLiteral/
+	// checkMapLiteral raise E2011 "cannot infer type of empty list/map" for
+	// *any* empty literal, since they have no element to infer Elem/Value
+	// from; but here a declared annotation already says what the container
+	// should hold, so the empty literal can be trusted instead of rejected.
+	if n.TypeAnn != "" && isEmptyContainerLiteral(n.Value) {
+		declared, err := ParseType(n.TypeAnn)
+		if err != nil {
+			return New("E2012", fmt.Sprintf("invalid type annotation %q: %v", n.TypeAnn, err), n.NodePos)
+		}
+		declared = resolveNamedType(declared, env)
+		switch declared.(type) {
+		case List, Map:
+			env.DeclareVar(n.Name, declared)
+			return nil
+		}
+	}
 	valT, err := CheckExpr(n.Value, env)
 	if err != nil {
 		return err
@@ -522,6 +558,19 @@ func checkLet(n *ast.LetStmt, env *Env) error {
 	}
 	env.DeclareVar(n.Name, declared)
 	return nil
+}
+
+// isEmptyContainerLiteral reports whether n is an empty list/map literal
+// (`[]` or `{}`), which checkListLiteral/checkMapLiteral can't type-check
+// on their own since they have no element to infer from.
+func isEmptyContainerLiteral(n ast.Expression) bool {
+	switch v := n.(type) {
+	case *ast.ListExpr:
+		return len(v.Elements) == 0
+	case *ast.MapLiteralExpr:
+		return len(v.Keys) == 0
+	}
+	return false
 }
 
 func checkAssign(n *ast.AssignStmt, env *Env) error {

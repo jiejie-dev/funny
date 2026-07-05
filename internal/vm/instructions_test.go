@@ -284,6 +284,24 @@ func TestVM_BuildList(t *testing.T) {
 	assert.Equal(t, 3, list[2])
 }
 
+// TestVM_CallBuiltin_Append is a regression test: funny had no way to grow
+// a list at all (no `lst[i] = x` past the end, no `+` on lists), so a
+// loop could never collect its per-iteration results into a list. append
+// must also leave the original list untouched (it returns a new list).
+func TestVM_CallBuiltin_Append(t *testing.T) {
+	main := &bytecode.Function{Name: "main", Arity: 0}
+	main.Emit(bytecode.PUSH_INT, 0) // 1
+	main.Emit(bytecode.PUSH_INT, 1) // 2
+	main.Emit(bytecode.BUILD_LIST, 2)
+	main.Emit(bytecode.PUSH_INT, 2)    // 3
+	main.Emit(bytecode.CALL_BUILTIN, 3) // constant[3] = BuiltinInfo{"append",2}
+	main.Emit(bytecode.HALT, 0)
+	v := runModule(t, main, nil, 1, 2, 3, bytecode.BuiltinInfo{Name: "append", Arity: 2})
+	list, ok := v.([]bytecode.Value)
+	require.True(t, ok)
+	assert.Equal(t, []bytecode.Value{1, 2, 3}, list)
+}
+
 func TestVM_IndexList(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
 	main.Emit(bytecode.PUSH_INT, 0)
