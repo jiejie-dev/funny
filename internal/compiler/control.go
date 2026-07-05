@@ -8,17 +8,38 @@ import (
 	"github.com/jiejie-dev/funny/internal/bytecode"
 )
 
-// compileIf translates: `if cond: then else:?` into JUMP_IF_FALSE + then + JUMP + else.
+// compileIf translates: `if cond: then elif ...: ... else:? ...` into a
+// chain of JUMP_IF_FALSE/JUMP pairs.
+//
+// The parser (see parseIf in internal/parser/statement.go) desugars an
+// `elif` chain by parsing each `elif` as a nested *ast.IfStmt hanging off
+// n.ElseIf, but *hoists* the chain's ultimate `else:` block up onto the
+// outermost IfStmt's ElseBlock field (clearing it from every inner node)
+// - this flattening is what lets the formatter print `elif`/`else` back
+// out at a single indent level instead of nested `if/else: if/else: ...`.
+// That means a naive walk that only ever looks at nesting level n's own
+// n.ElseBlock (as this function used to) finds it non-nil the moment
+// *any* branch in the chain has a trailing else, and treats it as the
+// immediate else for `n.Cond` alone - silently skipping every
+// intermediate elif's condition and body entirely. E.g. `if A: .. elif
+// B: .. elif C: .. else: ..` compiled as just `if A: .. else: ..`,
+// dropping B and C. compileIfChain fixes this by threading the hoisted
+// final else block down through the recursion, only actually emitting it
+// once the chain genuinely runs out of elifs.
 //
 // Emitted layout:
 //   <compile cond>
-//   JUMP_IF_FALSE <thenEnd>     ; jump if false
+//   JUMP_IF_FALSE <next>       ; jump if false
 //   <compile then>
-//   JUMP <end>                  ; skip else
-//   thenEnd:
-//   <compile else (if any)>
+//   JUMP <end>                  ; skip elif/else chain
+//   next:
+//   <compile elif (recursively) or final else, if any>
 //   end:
 func (c *Compiler) compileIf(n *ast.IfStmt) error {
+	return c.compileIfChain(n, n.ElseBlock)
+}
+
+func (c *Compiler) compileIfChain(n *ast.IfStmt, finalElse *ast.Block) error {
 	if _, err := c.compileExpr(n.Cond); err != nil {
 		return err
 	}
@@ -29,24 +50,34 @@ func (c *Compiler) compileIf(n *ast.IfStmt) error {
 		return err
 	}
 
-	if n.ElseBlock == nil {
+	if n.ElseIf == nil && finalElse == nil {
 		// Patch: JUMP_IF_FALSE target = current end
 		c.fn.Code[jumpIfFalseIdx].Arg = len(c.fn.Code)
 		return nil
 	}
 
-	// Has else: emit JUMP over else
+	// Has elif and/or a final else: emit JUMP over it
 	jumpOverElseIdx := len(c.fn.Code)
 	c.fn.Emit(bytecode.JUMP, 0) // placeholder
 
-	// Patch: JUMP_IF_FALSE target = current position (start of else)
+	// Patch: JUMP_IF_FALSE target = current position (start of elif/else)
 	c.fn.Code[jumpIfFalseIdx].Arg = len(c.fn.Code)
 
-	if err := c.compileBlock(n.ElseBlock); err != nil {
-		return err
+	if n.ElseIf != nil {
+		// n.ElseIf.ElseBlock is always nil by construction (the parser
+		// clears it during hoisting) - finalElse is threaded through
+		// instead so the chain's real else is only compiled once, at
+		// whichever elif actually falls through.
+		if err := c.compileIfChain(n.ElseIf, finalElse); err != nil {
+			return err
+		}
+	} else if finalElse != nil {
+		if err := c.compileBlock(finalElse); err != nil {
+			return err
+		}
 	}
 
-	// Patch: JUMP over else target = current end
+	// Patch: JUMP over elif/else target = current end
 	c.fn.Code[jumpOverElseIdx].Arg = len(c.fn.Code)
 	return nil
 }

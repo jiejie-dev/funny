@@ -28,15 +28,29 @@ func (c *Compiler) compileList(n *ast.ListExpr) (valueType, error) {
 }
 
 // compileIndex compiles a[b] (object on stack, then index, then INDEX).
+//
+// Returns the same valueType as the indexed object itself. That looks
+// backwards at first, but matches the convention set by
+// compileList/annotationValueType: since this compiler has no distinct
+// "list" valueType, a list-valued expression's tracked valueType is
+// already its *element* type - so indexing into it naturally reproduces
+// that same valueType. Before this returned a hardcoded valNil, so e.g.
+// `entries[0].response_ms` or `xs[i] + 1` lost all type information the
+// moment an index was taken, even though the compiler knew the element
+// type going in. (String indexing also produces a same-type result: one
+// character back as a string - see internal/vm/instructions.go's
+// execIndex. Map values aren't tracked by this compiler at all, so
+// map-typed objects report valNil either way, same as before.)
 func (c *Compiler) compileIndex(n *ast.IndexExpr) (valueType, error) {
-	if _, err := c.compileExpr(n.Object); err != nil {
+	objType, err := c.compileExpr(n.Object)
+	if err != nil {
 		return "", err
 	}
 	if _, err := c.compileExpr(n.Index); err != nil {
 		return "", err
 	}
 	c.fn.Emit(bytecode.INDEX, 0)
-	return valNil, nil
+	return objType, nil
 }
 
 // compileField compiles a.b (push object, push field name as string, GET_FIELD).

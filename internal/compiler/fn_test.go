@@ -208,6 +208,78 @@ count_positive([1, -2, 3, -4, 5])
 	assert.Equal(t, 3, got)
 }
 
+// TestCompile_ElifChain_AllBranchesReachable_RunsOnVM is a regression
+// test: compileIf used to never look at ast.IfStmt.ElseIf at all. The
+// parser hoists an elif chain's trailing `else:` block onto the
+// *outermost* IfStmt's ElseBlock (see parseIf's comment and
+// compileIfChain's doc comment for why), so the old code - which only
+// ever compiled n.Then and n.ElseBlock - treated any "if/elif.../else"
+// chain as just "if cond: then else: <final else>", silently skipping
+// every elif's condition and body entirely.
+func TestCompile_ElifChain_AllBranchesReachable_RunsOnVM(t *testing.T) {
+	src := `fn classify(status: int) -> str:
+    if status < 300:
+        return "2xx"
+    elif status < 400:
+        return "3xx"
+    elif status < 500:
+        return "4xx"
+    elif status < 600:
+        return "5xx"
+    else:
+        return "other"
+
+classify(404)
+`
+	mod := compileExpr(t, src)
+	got, err := vm.New(mod).Run()
+	require.NoError(t, err)
+	assert.Equal(t, "4xx", got)
+}
+
+// TestCompile_ElifChain_NoTrailingElse_RunsOnVM covers an elif chain with
+// no final `else:` at all, which must fall through to nothing (not error,
+// not the wrong branch) when every condition is false.
+func TestCompile_ElifChain_NoTrailingElse_RunsOnVM(t *testing.T) {
+	src := `let status = 999
+let label = "unset"
+if status < 300:
+    label = "2xx"
+elif status < 400:
+    label = "3xx"
+elif status < 500:
+    label = "4xx"
+label
+`
+	mod := compileExpr(t, src)
+	got, err := vm.New(mod).Run()
+	require.NoError(t, err)
+	assert.Equal(t, "unset", got)
+}
+
+// TestCompile_IndexIntoListParam_PreservesElementType_RunsOnVM is a
+// regression test: compileIndex used to always report valNil regardless
+// of the indexed object's tracked type, even though this compiler
+// already tracks a list-valued expression's type as its *element* type
+// (see compileList/annotationValueType) - so `xs[0]` losing that type
+// broke anything built on top of it, like `xs[0].field` or `xs[i] + 1`.
+func TestCompile_IndexIntoListParam_PreservesElementType_RunsOnVM(t *testing.T) {
+	src := `struct Point:
+    x: int
+    y: int
+
+fn first_x(pts: list[Point]) -> int:
+    let p = pts[0]
+    return p.x + 1
+
+first_x([Point(x: 10, y: 20), Point(x: 99, y: 0)])
+`
+	mod := compileExpr(t, src)
+	got, err := vm.New(mod).Run()
+	require.NoError(t, err)
+	assert.Equal(t, 11, got)
+}
+
 func TestBuiltinValueType(t *testing.T) {
 	cases := []struct {
 		name     string

@@ -327,6 +327,38 @@ println(to_float("2.5") + 0.5)
 	assert.Equal(t, "25\n3\n", out)
 }
 
+// TestRun_ElifChain_AllBranchesReachable is an end-to-end regression test
+// for a critical compiler bug: `elif` chains compiled to bytecode
+// silently skipped every branch except the first `if` and the final
+// `else`, because compileIf never looked at ast.IfStmt.ElseIf at all (the
+// parser hoists a chain's trailing `else:` onto the *outermost* IfStmt,
+// which made the old code treat "if/elif.../else" as plain "if/else").
+// See internal/compiler/control.go's compileIfChain for the fix.
+func TestRun_ElifChain_AllBranchesReachable(t *testing.T) {
+	src := `fn classify(status: int) -> str:
+    if status < 300:
+        return "2xx"
+    elif status < 400:
+        return "3xx"
+    elif status < 500:
+        return "4xx"
+    elif status < 600:
+        return "5xx"
+    else:
+        return "other"
+
+println(classify(200))
+println(classify(301))
+println(classify(404))
+println(classify(500))
+println(classify(999))
+`
+	out := captureStdout(t, func() {
+		require.NoError(t, Run([]byte(src), "test.fn"))
+	})
+	assert.Equal(t, "2xx\n3xx\n4xx\n5xx\nother\n", out)
+}
+
 func TestDescribe_Plan(t *testing.T) {
 	src := `meta:
     name: "demo"
