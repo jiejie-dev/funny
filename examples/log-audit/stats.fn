@@ -1,0 +1,127 @@
+import "./models.fn"
+
+# stats.fn — aggregation and reporting math over parsed log entries.
+
+# Buckets entries into 2xx/3xx/4xx/5xx/other, in a fixed, readable order.
+pub fn count_by_status_class(entries: list[LogEntry]) -> list[StatusBucket]:
+    let c2xx = 0
+    let c3xx = 0
+    let c4xx = 0
+    let c5xx = 0
+    let cother = 0
+    for e in entries:
+        if e.status >= 200 and e.status < 300:
+            c2xx = c2xx + 1
+        elif e.status >= 300 and e.status < 400:
+            c3xx = c3xx + 1
+        elif e.status >= 400 and e.status < 500:
+            c4xx = c4xx + 1
+        elif e.status >= 500 and e.status < 600:
+            c5xx = c5xx + 1
+        else:
+            cother = cother + 1
+    let buckets: list[StatusBucket] = []
+    buckets = append(buckets, StatusBucket(label: "2xx success", count: c2xx))
+    buckets = append(buckets, StatusBucket(label: "3xx redirect", count: c3xx))
+    buckets = append(buckets, StatusBucket(label: "4xx client error", count: c4xx))
+    buckets = append(buckets, StatusBucket(label: "5xx server error", count: c5xx))
+    buckets = append(buckets, StatusBucket(label: "other", count: cother))
+    return buckets
+
+# Fraction of requests that returned a 4xx or 5xx status, in [0.0, 1.0].
+pub fn error_rate(entries: list[LogEntry]) -> float:
+    if len(entries) == 0:
+        return 0.0
+    let errors = 0
+    for e in entries:
+        if e.status >= 400:
+            errors = errors + 1
+    return to_float(errors) / to_float(len(entries))
+
+# Arithmetic mean response time, in milliseconds.
+pub fn avg_response_ms(entries: list[LogEntry]) -> float:
+    if len(entries) == 0:
+        return 0.0
+    let total = 0
+    for e in entries:
+        total = total + e.response_ms
+    return to_float(total) / to_float(len(entries))
+
+# Population standard deviation of response time, given the precomputed
+# average (avoids recomputing it when callers already have it).
+pub fn stddev_response_ms(entries: list[LogEntry], avg: float) -> float:
+    if len(entries) == 0:
+        return 0.0
+    let sum_sq = 0.0
+    for e in entries:
+        let diff = to_float(e.response_ms) - avg
+        sum_sq = sum_sq + diff * diff
+    return sqrt(sum_sq / to_float(len(entries)))
+
+# Returns the entry with the highest response time. Assumes entries is
+# non-empty; callers should check len(entries) > 0 first.
+pub fn slowest(entries: list[LogEntry]) -> LogEntry:
+    let worst = entries[0]
+    for e in entries:
+        if e.response_ms > worst.response_ms:
+            worst = e
+    return worst
+
+# Returns the `n` slowest entries, worst first - a small "top offenders"
+# leaderboard for the report, complementing the single `slowest()` entry.
+#
+# Implemented as repeated selection (find the current max, move it from
+# `pool` to `result`, repeat) rather than a full sort, since funny has no
+# sort() builtin yet. `while` (rather than `for`) drives the outer loop
+# because the number of iterations depends on runtime data (min(n,
+# len(entries))), not a fixed collection being walked once.
+pub fn top_n_slowest(entries: list[LogEntry], n: int) -> list[LogEntry]:
+    let pool: list[LogEntry] = []
+    for e in entries:
+        pool = append(pool, e)
+    let result: list[LogEntry] = []
+    let taken = 0
+    while taken < n and len(pool) > 0:
+        let best_idx = 0
+        let i = 0
+        for e in pool:
+            if e.response_ms > pool[best_idx].response_ms:
+                best_idx = i
+            i = i + 1
+        result = append(result, pool[best_idx])
+        let rest: list[LogEntry] = []
+        let j = 0
+        for e in pool:
+            if j != best_idx:
+                rest = append(rest, e)
+            j = j + 1
+        pool = rest
+        taken = taken + 1
+    return result
+
+# Builds the full Stats summary in one pass over the (already-parsed)
+# entries, reusing the helpers above so each statistic stays independently
+# testable.
+pub fn summarize(entries: list[LogEntry]) -> Stats:
+    let n = len(entries)
+    let avg = avg_response_ms(entries)
+    let stddev = stddev_response_ms(entries, avg)
+    let err_count = 0
+    for e in entries:
+        if e.status >= 400:
+            err_count = err_count + 1
+    let worst_path = ""
+    let worst_ms = 0
+    if n > 0:
+        let worst = slowest(entries)
+        worst_path = worst.path
+        worst_ms = worst.response_ms
+    return Stats(
+        total: n,
+        errors: err_count,
+        error_rate: error_rate(entries),
+        avg_response_ms: avg,
+        stddev_response_ms: stddev,
+        slowest_path: worst_path,
+        slowest_ms: worst_ms,
+    )

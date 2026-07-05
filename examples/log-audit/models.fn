@@ -1,0 +1,29 @@
+# models.fn — shared data types for the log-audit example.
+#
+# Only `struct`/`pub fn` declarations survive an `import` (see
+# "Modules and Imports" in docs/language-manual.md), so this file exists
+# purely as a small struct library for the other modules to build on.
+
+# One parsed line from the access log.
+struct LogEntry:
+    timestamp: int
+    ip: str
+    method: str
+    path: str
+    status: int
+    response_ms: int
+
+# One row of the "requests per status class" breakdown in the report.
+struct StatusBucket:
+    label: str
+    count: int
+
+# Response-time statistics for a batch of entries.
+struct Stats:
+    total: int
+    errors: int
+    error_rate: float
+    avg_response_ms: float
+    stddev_response_ms: float
+    slowest_path: str
+    slowest_ms: int

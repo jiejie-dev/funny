@@ -1,0 +1,25 @@
+# net_check.fn — optional live upstream health check.
+#
+# Demonstrates http_get()'s Result-based error handling: a network
+# failure (offline sandbox, DNS down, timeout, non-2xx body, ...) never
+# raises - it's just an `err(...)` Result the caller reports and moves on
+# from, which matters for an audit tool that should still finish and
+# print its report even when the network is unavailable.
+
+# Attempts an HTTP GET against `url` and returns a short human-readable
+# status line - never a Result, so main.fn can always print exactly one
+# line here whether or not the network call succeeded.
+pub fn check_endpoint(url: str) -> str:
+    let result = http_get(url)
+    if result.tag == "ok":
+        return "reachable (" + to_str(len(result.val)) + " bytes)"
+    return "unreachable (" + result.val + ")"
+
+# Reads the health-check target from the HEALTH_CHECK_URL environment
+# variable, defaulting to a well-known always-up endpoint. Set
+# HEALTH_CHECK_URL="" (or run offline) to see the failure path.
+pub fn health_check_url() -> str:
+    let configured = env_get("HEALTH_CHECK_URL")
+    if len(configured) > 0:
+        return configured
+    return "https://httpbin.org/status/200"

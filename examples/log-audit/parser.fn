@@ -1,0 +1,64 @@
+import "./models.fn"
+
+# parser.fn — turns raw log text into typed `LogEntry` values.
+#
+# The sample log format is a simple pipe-delimited line (see sample.log):
+#
+#   <unix_timestamp>|<ip>|<METHOD>|</path>|<status>|<response_ms>
+#
+# e.g. 1735808400|203.0.113.5|GET|/api/users|200|42
+#
+# A real ingestion pipeline would point this at nginx/Apache combined
+# log format instead; the pipe format keeps regex_match/str_split (funny
+# has no dedicated date/time parser yet) front and center without
+# fighting quoting.
+
+# Parses a single log line. Returns Result[LogEntry, str]: `ok(entry)` on
+# a well-formed line, `err(reason)` for anything that doesn't match the
+# expected shape (so callers can decide whether to skip or abort).
+#
+# Note: only `pub fn`/`struct` declarations in an imported file survive
+# the merge into the importing program (see "Modules and Imports" in
+# docs/language-manual.md) - a top-level `let` here would silently
+# vanish, so the pattern is inlined into the function instead of shared
+# as a module-level constant.
+pub fn parse_log_line(line: str) -> Result:
+    let pattern = "^[0-9]+\\|[0-9.]+\\|[A-Z]+\\|/[^|]*\\|[0-9]+\\|[0-9]+$"
+    if not regex_match(pattern, line):
+        return err("malformed log line: " + line)?
+    let parts = str_split(line, "|")
+    let entry = LogEntry(
+        timestamp: to_int(parts[0]),
+        ip: parts[1],
+        method: parts[2],
+        path: parts[3],
+        status: to_int(parts[4]),
+        response_ms: to_int(parts[5]),
+    )
+    return ok(entry)?
+
+# Parses a whole log file's contents, skipping blank lines and
+# accumulating malformed-line reasons instead of failing the whole
+# batch - a single bad line shouldn't stop an audit run.
+pub fn parse_log(content: str) -> list[LogEntry]:
+    let lines = str_split(content, "\n")
+    let entries: list[LogEntry] = []
+    for line in lines:
+        if len(line) > 0:
+            let result = parse_log_line(line)
+            if result.tag == "ok":
+                entries = append(entries, result.val)
+    return entries
+
+# Same as parse_log, but also returns the reasons any lines were
+# rejected - used by `funny run main.fn` to report data-quality issues
+# alongside the audit itself.
+pub fn parse_log_errors(content: str) -> list[str]:
+    let lines = str_split(content, "\n")
+    let errors: list[str] = []
+    for line in lines:
+        if len(line) > 0:
+            let result = parse_log_line(line)
+            if result.tag == "err":
+                errors = append(errors, result.val)
+    return errors

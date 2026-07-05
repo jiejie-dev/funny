@@ -1,0 +1,81 @@
+# workflow.fn — the audit expressed as a `plan` (funny's agent protocol),
+# showcasing every step kind and `with` option the DSL currently
+# supports: tool, transform, branch, guard, parallel, and delay, plus
+# retry+backoff and a step timeout.
+#
+# Step bodies run on internal/agent.Engine, which is a *separate*
+# tree-walking evaluator from the bytecode VM `funny run` uses for
+# main.fn - and, as of this writing, only implements funny's core
+# builtins (print/println/len/to_str/to_int/type_of/ok/err), not the
+# extended stdlib (file/http/regex/crypto/jwt) main.fn relies on. So this
+# plan works over a small embedded batch of status codes instead of
+# reading sample.log directly; main.fn's imperative pipeline is the
+# fully-featured version. See README.md's "Known limitations" for why.
+#
+# What runs this file today:
+#
+#   funny describe workflow.fn   # meta + step names, as JSON
+#   funny ast workflow.fn        # the full step tree (kinds, retry/
+#                                 # backoff/timeout, guard bodies, ...)
+#
+# and, over LSP, the `funny/planGraph` extension turns the same tree into
+# a renderable node/edge graph. There is currently no CLI subcommand that
+# *executes* a plan (internal/agent.Engine is exercised from Go code -
+# see internal/agent/engine_test.go - not yet wired to `funny run` or the
+# funny-mcp `run_skill` tool).
+meta:
+    name = "log-audit-workflow"
+    version = "1.0"
+
+plan "log-audit-workflow":
+    # `tool`: runs once, retried up to 2 times (with a constant delay
+    # between attempts) if the body raises or returns `err(...)`. Its
+    # final bare-expression value is published as `__result` for later
+    # steps to read.
+    step "load_batch" -> tool with retry max=2 backoff=constant:
+        [200, 200, 404, 500, 200, 503, 200, 201]
+
+    # `transform`: identical execution to `tool` - the distinction is
+    # purely documentation of intent (reshaping data vs. performing an
+    # effect).
+    step "count_requests" -> transform:
+        len(__result)
+
+    # `branch`: also identical to `tool` - there's no dedicated
+    # branch-case syntax, so conditional logic is just an ordinary
+    # if/else in the body.
+    step "classify" -> branch:
+        if __result > 5:
+            "large batch"
+        else:
+            "small batch"
+
+    # `guard`: the body's last expression is treated as an assertion -
+    # falsy (or an `err(...)` Result) fails the step (triggering retry,
+    # if configured) instead of just producing a value.
+    step "healthy_batch" -> guard with timeout="2s":
+        __result != "unknown"
+
+    # `parallel`: every statement in the body runs concurrently (one
+    # goroutine each); the step completes once all finish, or fails on
+    # the first error. There's no nested named-substep syntax - each
+    # top-level statement in the body *is* a concurrent unit of work.
+    step "notify" -> parallel:
+        println("audit pipeline: batch loaded")
+        println("audit pipeline: notifying on-call channel")
+
+    # `delay`: sleeps for the given duration before running its (often
+    # empty) body - useful for rate-limiting a retry loop or giving a
+    # downstream system time to settle.
+    #
+    # Note: `pass` (seen as a placeholder in docs/language-manual.md's
+    # own canonical example) is *not* an actual no-op statement - funny
+    # has no such keyword, so it parses as a bare reference to an
+    # undefined variable named `pass`. That's silently unreachable under
+    # `funny run` (plan/step bodies aren't compiled or type-checked at
+    # all - see compileStmt's `case *ast.PlanBlock: return nil`), but
+    # fails outright the moment a step body actually runs through
+    # internal/agent.Engine, which evaluates it for real. `true` is used
+    # here instead as a genuine no-op expression.
+    step "cooldown" -> delay with timeout="50ms":
+        true

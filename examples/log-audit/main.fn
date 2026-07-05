@@ -1,0 +1,150 @@
+# main.fn — entry point for the log-audit example.
+#
+# Run it with (from this directory, since file_read()/file_exists() are
+# resolved relative to the current process working directory, not this
+# file's location):
+#
+#   funny run main.fn
+#
+# See README.md for the full walkthrough, configuration knobs, and a
+# tour of every language feature this example exercises.
+
+import "./models.fn"
+import "./parser.fn"
+import "./stats.fn"
+import "./security.fn"
+
+# Imported `as net` to demonstrate the aliased-import form: net_check.fn's
+# functions are only reachable as `net.check_endpoint(...)` /
+# `net.health_check_url()` here, not bare `check_endpoint(...)` - useful
+# when a module's names would otherwise collide with something local.
+import "./net_check.fn" as net
+
+# Reads the target log file's path from LOG_AUDIT_FILE, defaulting to
+# the bundled sample.log so `funny run main.fn` works out of the box.
+fn log_path() -> str:
+    let configured = env_get("LOG_AUDIT_FILE")
+    if len(configured) > 0:
+        return configured
+    return "sample.log"
+
+# Reads the signing secret from AUDIT_SECRET. Using a hardcoded fallback
+# secret is fine for this demo's own self-signed round-trip check, but a
+# real deployment must always set AUDIT_SECRET (or better, load it from a
+# proper secrets manager) rather than relying on this default.
+fn signing_secret() -> str:
+    let configured = env_get("AUDIT_SECRET")
+    if len(configured) > 0:
+        return configured
+    return "dev-secret-change-me"
+
+fn print_header(title: str) -> nil:
+    println("")
+    println("== " + title + " ==")
+
+fn print_status_buckets(entries: list[LogEntry]) -> nil:
+    print_header("Status code breakdown")
+    let buckets = count_by_status_class(entries)
+    for b in buckets:
+        if b.count > 0:
+            println(f"  {b.label:<18} {b.count:>4}")
+
+fn print_summary(summary: Stats) -> nil:
+    print_header("Summary")
+    println(f"  total requests      {summary.total:>6}")
+    println(f"  errors (4xx/5xx)    {summary.errors:>6}")
+    println(f"  error rate          {summary.error_rate:>9.1%}")
+    println(f"  avg response time   {summary.avg_response_ms:>9.1f} ms")
+    println(f"  stddev response     {summary.stddev_response_ms:>9.1f} ms")
+    if summary.total > 0:
+        println(f"  slowest request     {summary.slowest_path} ({summary.slowest_ms} ms)")
+
+fn print_top_slow(entries: list[LogEntry]) -> nil:
+    print_header("Top 3 slowest requests")
+    let worst = top_n_slowest(entries, 3)
+    let rank = 1
+    for e in worst:
+        println(f"  {rank}. {e.method:<5} {e.path:<28} {e.response_ms:>6} ms")
+        rank = rank + 1
+
+# A simple, transparent health rule: alert if more than 15% of requests
+# failed, or if the average response time is above 500ms. Real
+# thresholds should come from historical baselines, not a hardcoded
+# constant - this is deliberately simple to keep the example readable.
+fn print_health_verdict(summary: Stats) -> nil:
+    print_header("Health verdict")
+    if summary.error_rate > 0.15:
+        println(f"  FAIL  error rate {summary.error_rate:.1%} exceeds 15% threshold")
+    elif summary.avg_response_ms > 500.0:
+        println(f"  FAIL  avg response time {summary.avg_response_ms:.1f}ms exceeds 500ms threshold")
+    else:
+        println("  PASS  no threshold breached")
+
+fn print_data_quality(errors: list[str]) -> nil:
+    print_header("Data quality")
+    if len(errors) == 0:
+        println("  no malformed lines")
+        return nil
+    println(f"  {len(errors)} malformed line(s) skipped:")
+    for msg in errors:
+        println("    - " + msg)
+    return nil
+
+# Builds a compact, deterministic text report body (used as the input to
+# checksum()/sign_report()) - deliberately plain text rather than
+# to_json(Stats(...)) so a human can eyeball exactly what was signed.
+fn report_body(summary: Stats) -> str:
+    return f"total={summary.total};errors={summary.errors};error_rate={summary.error_rate:.4f};avg_ms={summary.avg_response_ms:.2f};stddev_ms={summary.stddev_response_ms:.2f}"
+
+fn print_signed_report(summary: Stats) -> nil:
+    print_header("Signed report")
+    let body = report_body(summary)
+    let sum = checksum(body)
+    println("  body:     " + body)
+    println("  sha256:   " + sum)
+
+    let secret = signing_secret()
+    let token = sign_report(body + "|" + sum, secret)
+    println("  token:    " + token)
+
+    let verified_ok = verify_report(token, secret)
+    let verified_bad = verify_report(token, "not-the-real-secret")
+    println(f"  verify with correct secret: {verified_ok}")
+    println(f"  verify with wrong secret:   {verified_bad}")
+    return nil
+
+fn print_health_check() -> nil:
+    print_header("Upstream health check (optional, network required)")
+    let url = net.health_check_url()
+    println("  target: " + url)
+    println("  result: " + net.check_endpoint(url))
+    return nil
+
+let path = log_path()
+println("funny log-audit")
+println("input file: " + path)
+
+if not file_exists(path):
+    println("")
+    println("ERROR: log file not found: " + path)
+    println("set LOG_AUDIT_FILE to point at a real access log, or run from")
+    println("the examples/log-audit directory to use the bundled sample.log")
+else:
+    let read_result = file_read(path)
+    if read_result.tag == "err":
+        println("")
+        println("ERROR: could not read log file: " + read_result.val)
+    else:
+        let content = read_result.val
+        let entries = parse_log(content)
+        let parse_errors = parse_log_errors(content)
+        let summary = summarize(entries)
+
+        print_status_buckets(entries)
+        print_summary(summary)
+        print_top_slow(entries)
+        print_health_verdict(summary)
+        print_data_quality(parse_errors)
+        print_signed_report(summary)
+        print_health_check()
+        println("")

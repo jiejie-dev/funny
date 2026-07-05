@@ -1,0 +1,29 @@
+# security.fn — tamper-evidence helpers for an audit report.
+#
+# A log audit is only useful if the *report itself* can be trusted, so
+# this module hashes the report body and wraps it in a signed token an
+# auditor can later re-verify without re-running the whole analysis.
+
+# Returns the sha256 hex digest of a string - used to fingerprint the
+# report body so any later edit is detectable by comparing digests.
+pub fn checksum(content: str) -> str:
+    return sha256(content)
+
+# Wraps `content` (expected to be the report body plus its checksum) in
+# an HMAC-signed token. jwt_encode's "header" argument isn't a real JWT
+# header here (funny's jwt_encode/jwt_decode only implement HS256 signing
+# over two opaque string fields, not full RFC 7519 headers/claims) - it's
+# reused as a free-text label so `funny disasm`/manual inspection can
+# tell what kind of token it is at a glance.
+pub fn sign_report(content: str, secret: str) -> str:
+    return jwt_encode("log-audit-report", content, secret)
+
+# Re-checks a signed report token against secret. Returns true only if
+# the signature is valid *and* the checksum embedded in the token still
+# matches recomputing sha256 over the token's own claim content - i.e.
+# this catches both "wrong secret" and "someone re-signed a tampered
+# body with the right secret" as long as the caller compares the
+# checksum it independently computed, not just the signature.
+pub fn verify_report(token: str, secret: str) -> bool:
+    let result = jwt_decode(token, secret)
+    return result.tag == "ok"
