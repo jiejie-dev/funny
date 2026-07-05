@@ -245,6 +245,41 @@ println(sum)
 	assert.Equal(t, "60\n", out)
 }
 
+// TestRun_StructFieldArithmeticAndListParams is an end-to-end regression
+// test combining three related compiler-level type-tracking fixes found
+// while building out the extended stdlib example: struct field access
+// used to be unconditionally (and wrongly) typed as a string, `list[T]`
+// parameter annotations weren't parsed at all, and builtin return types
+// were all opaquely "any" - each broke real, natural code patterns
+// (struct-field arithmetic, looping over a `list[T]` parameter with a
+// typed comparison, returning a builtin's result from a typed function)
+// under the default VM path. See internal/compiler and internal/types
+// regression tests for the isolated repros of each.
+func TestRun_StructFieldArithmeticAndListParams(t *testing.T) {
+	src := `struct Point:
+    x: int
+    y: int
+
+fn dist(p: Point) -> float:
+    return sqrt(to_int(p.x * p.x + p.y * p.y))
+
+println(dist(Point(x: 3, y: 4)))
+
+fn count_positive(xs: list[int]) -> int:
+    let c = 0
+    for x in xs:
+        if x > 0:
+            c = c + 1
+    return c
+
+println(count_positive([1, -2, 3, -4, 5]))
+`
+	out := captureStdout(t, func() {
+		require.NoError(t, Run([]byte(src), "test.fn"))
+	})
+	assert.Equal(t, "5\n3\n", out)
+}
+
 func TestDescribe_Plan(t *testing.T) {
 	src := `meta:
     name: "demo"

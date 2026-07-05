@@ -3,6 +3,7 @@ package compiler
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/jiejie-dev/funny/internal/ast"
 	"github.com/jiejie-dev/funny/internal/bytecode"
@@ -63,7 +64,7 @@ func (c *Compiler) compileFnDecl(n *ast.FnDecl) error {
 	fn := &bytecode.Function{Name: n.Name, Arity: len(n.Params)}
 	fnIdx := c.mod.AddFunction(fn)
 	c.functions[n.Name] = fnIdx
-	c.fnRetTypes[n.Name] = paramType(n.RetType)
+	c.fnRetTypes[n.Name] = annotationValueType(n.RetType, c.structFields)
 
 	outerFn := c.fn
 	outerScopes := c.scopes
@@ -73,7 +74,7 @@ func (c *Compiler) compileFnDecl(n *ast.FnDecl) error {
 	c.scopes = []map[string]int{{}}
 	c.varTypes = nil
 	for _, p := range n.Params {
-		c.declareLocal(p.Name, paramType(p.TypeAnn))
+		c.declareLocal(p.Name, annotationValueType(p.TypeAnn, c.structFields))
 	}
 	if err := c.compileBlock(n.Body); err != nil {
 		return err
@@ -86,10 +87,15 @@ func (c *Compiler) compileFnDecl(n *ast.FnDecl) error {
 	return nil
 }
 
-// paramType maps a parameter type annotation to a valueType so that
+// annotationValueType maps a type annotation string to a valueType so that
 // subsequent variable lookups produce the correct operand type for
-// type-sensitive operators like `+`.
-func paramType(ann string) valueType {
+// type-sensitive operators like `+`. Struct names resolve to a valueType
+// equal to the struct's own name (see compileField/compileStructLiteral),
+// so `p.x` on a `p: Point` parameter or `let p = Point(...)` can look up
+// Point's real field types instead of guessing. Anything else structurally
+// untracked (list[T], map[K,V], T?, an unrecognized name) falls back to
+// valNil ("unknown").
+func annotationValueType(ann string, structFields map[string]map[string]valueType) valueType {
 	switch ann {
 	case "int":
 		return valInt
@@ -99,6 +105,21 @@ func paramType(ann string) valueType {
 		return valStr
 	case "bool":
 		return valBool
+	}
+	// compileList reports a list value's tracked type as its *element*
+	// type (there's no distinct "list" valueType) so a `for` loop over it
+	// types its loop variable correctly - without this, a `list[int]`
+	// (or `list[Point]`, ...) parameter or return type fell back to
+	// valNil, and looping over it produced an untyped loop variable that
+	// failed to compile the moment it was used in a typed operator
+	// (`if x > 0:`).
+	if inner, ok := strings.CutPrefix(ann, "list["); ok {
+		if elem, ok := strings.CutSuffix(inner, "]"); ok {
+			return annotationValueType(elem, structFields)
+		}
+	}
+	if _, ok := structFields[ann]; ok {
+		return valueType(ann)
 	}
 	return valNil
 }

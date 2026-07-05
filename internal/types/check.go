@@ -240,9 +240,36 @@ func BuiltinNames() []string {
 	return names
 }
 
-func builtinReturnType(name string) Type {
+// builtinReturnType returns the type checker's view of a builtin call's
+// result type. Concrete types are reported for the builtins whose result
+// is always (or, for `abs`, argument-dependently) a single primitive -
+// without this, e.g. `fn f() -> float: return sqrt(x)` failed with a
+// spurious "expected float, got any" mismatch (Primitive("any") has no
+// special-cased compatibility with concrete types in Equal), even though
+// sqrt always returns a float. Falls back to Primitive("any") for
+// builtins whose result isn't a single primitive (list/map/no value) or
+// isn't narrowed here; mirrors internal/compiler.builtinValueType, which
+// solves the same problem for the bytecode compiler's static value typing.
+func builtinReturnType(name string, argTypes []Type) Type {
 	if builtinResultReturns[name] {
 		return Result{Ok: Primitive("any"), Err: Primitive("str")}
+	}
+	switch name {
+	case "len", "to_int", "now":
+		return Primitive("int")
+	case "sqrt", "pow":
+		return Primitive("float")
+	case "abs":
+		if len(argTypes) == 1 {
+			if Equal(argTypes[0], Primitive("int")) || Equal(argTypes[0], Primitive("float")) {
+				return argTypes[0]
+			}
+		}
+	case "to_str", "type_of", "str_upper", "str_lower", "regex_replace",
+		"env_get", "time_format", "md5", "sha256", "b64_encode":
+		return Primitive("str")
+	case "str_contains", "regex_match", "file_exists":
+		return Primitive("bool")
 	}
 	return Primitive("any")
 }
@@ -271,7 +298,20 @@ func checkCallExpr(n *ast.CallExpr, env *Env) (Type, error) {
 		return Result{Ok: Primitive("str"), Err: argT}, nil
 	}
 	if builtinTypeNames[varName.Name] {
-		return builtinReturnType(varName.Name), nil
+		// Builtin call arguments used to go completely unchecked (this
+		// branch returned before ever looking at n.Args), so something
+		// like sqrt(undefined_var) type-checked fine and only surfaced as
+		// a confusing "vm: unsupported op LOAD_GLOBAL" at runtime instead
+		// of a proper E2001 here.
+		argTypes := make([]Type, len(n.Args))
+		for i, arg := range n.Args {
+			t, err := CheckExpr(arg, env)
+			if err != nil {
+				return nil, err
+			}
+			argTypes[i] = t
+		}
+		return builtinReturnType(varName.Name, argTypes), nil
 	}
 	fn, ok := env.LookupFunc(varName.Name)
 	if !ok {

@@ -271,6 +271,51 @@ func TestCheck_ExtendedStdlibBuiltins_ResultReturnsSupportTry(t *testing.T) {
 	}
 }
 
+// TestCheck_BuiltinReturnType_ConcreteTypes is a regression test:
+// builtinReturnType used to report every non-Result builtin as
+// Primitive("any"), which has no special-cased compatibility with
+// concrete types in Equal - so e.g. `fn f() -> float: return sqrt(x)`
+// failed with a spurious "expected float, got any" mismatch even though
+// sqrt always returns a float.
+func TestCheck_BuiltinReturnType_ConcreteTypes(t *testing.T) {
+	cases := []struct {
+		src  string
+		want Type
+	}{
+		{`len("x")`, Primitive("int")},
+		{`to_int("1")`, Primitive("int")},
+		{`now()`, Primitive("int")},
+		{`sqrt(4.0)`, Primitive("float")},
+		{`pow(2.0, 3.0)`, Primitive("float")},
+		{`abs(-1)`, Primitive("int")},
+		{`abs(-1.5)`, Primitive("float")},
+		{`to_str(1)`, Primitive("str")},
+		{`type_of(1)`, Primitive("str")},
+		{`str_contains("a", "b")`, Primitive("bool")},
+		{`regex_match("a", "b")`, Primitive("bool")},
+		{`file_exists("x")`, Primitive("bool")},
+	}
+	for _, c := range cases {
+		env := NewEnv(nil)
+		got, err := CheckExpr(parseExpr(t, c.src), env)
+		require.NoError(t, err, c.src)
+		assert.True(t, got.Equal(c.want), "%s: got %s want %s", c.src, got, c.want)
+	}
+}
+
+// TestCheck_BuiltinCallArgs_AreTypeChecked is a regression test: builtin
+// call arguments used to never be visited by CheckExpr at all (the
+// builtinTypeNames branch returned before looking at n.Args), so
+// something like `sqrt(undefined_var)` type-checked fine and only
+// surfaced as a confusing "vm: unsupported op LOAD_GLOBAL" at runtime
+// instead of a proper E2001 here.
+func TestCheck_BuiltinCallArgs_AreTypeChecked(t *testing.T) {
+	env := NewEnv(nil)
+	_, err := CheckExpr(parseExpr(t, "sqrt(undefined_var_xyz)"), env)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "E2001")
+}
+
 func TestCheck_Index_List(t *testing.T) {
 	env := NewEnv(nil)
 	got, err := CheckExpr(parseExpr(t, "[1, 2, 3][0]"), env)

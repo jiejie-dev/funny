@@ -24,21 +24,39 @@ const (
 
 // Compiler translates a typed AST into bytecode.
 type Compiler struct {
-	mod        *bytecode.Module
-	fn         *bytecode.Function
-	scopes     []map[string]int
-	varTypes   []valueType          // indexed by local slot (parallel to NumLocals)
-	functions  map[string]int       // function name → index in mod.Functions
-	fnRetTypes map[string]valueType // function name → declared return value type
+	mod          *bytecode.Module
+	fn           *bytecode.Function
+	scopes       []map[string]int
+	varTypes     []valueType                     // indexed by local slot (parallel to NumLocals)
+	functions    map[string]int                  // function name → index in mod.Functions
+	fnRetTypes   map[string]valueType            // function name → declared return value type
+	structFields map[string]map[string]valueType // struct name → field name → value type
 }
 
 // Compile translates a typed Program into a Module.
 func Compile(prog *ast.Program, name string) (*bytecode.Module, error) {
 	c := &Compiler{
-		mod:        bytecode.NewModule(name),
-		scopes:     []map[string]int{{}},
-		functions:  map[string]int{},
-		fnRetTypes: map[string]valueType{},
+		mod:          bytecode.NewModule(name),
+		scopes:       []map[string]int{{}},
+		functions:    map[string]int{},
+		fnRetTypes:   map[string]valueType{},
+		structFields: map[string]map[string]valueType{},
+	}
+	// Two passes so struct A can have a field typed as struct B regardless
+	// of which one is declared first: pass 1 registers every struct name
+	// (so annotationValueType recognizes it as *some* struct), pass 2 fills
+	// in field types now that all names are known.
+	for _, s := range prog.Stmts {
+		if sd, ok := s.(*ast.StructDecl); ok {
+			c.structFields[sd.Name] = map[string]valueType{}
+		}
+	}
+	for _, s := range prog.Stmts {
+		if sd, ok := s.(*ast.StructDecl); ok {
+			for _, p := range sd.Fields {
+				c.structFields[sd.Name][p.Name] = annotationValueType(p.TypeAnn, c.structFields)
+			}
+		}
 	}
 	mainFn := &bytecode.Function{Name: "main", Arity: 0}
 	c.mod.AddFunction(mainFn)

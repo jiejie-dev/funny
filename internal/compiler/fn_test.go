@@ -154,6 +154,60 @@ println(abs(f) + 1.0)`, nil},
 	}
 }
 
+// TestCompile_StructFieldArithmetic_RunsOnVM is a regression test:
+// compileField used to unconditionally report every field access as
+// valStr regardless of the field's real type, so a non-string struct
+// field used in a typed operator (`p.x * p.x`, `item.price + tax`, ...)
+// failed to compile with a confusing "unsupported op * for str".
+func TestCompile_StructFieldArithmetic_RunsOnVM(t *testing.T) {
+	src := `struct Point:
+    x: int
+    y: int
+let p = Point(x: 3, y: 4)
+p.x * p.x + p.y * p.y
+`
+	mod := compileExpr(t, src)
+	got, err := vm.New(mod).Run()
+	require.NoError(t, err)
+	assert.Equal(t, 25, got)
+}
+
+// TestCompile_StructFieldStillWorksAsResultTag_RunsOnVM guards the
+// deliberate special case in compileField: a `.tag` access on an
+// object whose static type isn't a tracked struct (e.g. the Result
+// returned by ok()/err(), which the compiler doesn't model as a struct)
+// must still be treated as a string, since real-world code compares it
+// directly against a string literal (`r.tag == "err"`).
+func TestCompile_StructFieldStillWorksAsResultTag_RunsOnVM(t *testing.T) {
+	src := `let r = ok(42)
+r.tag == "ok"
+`
+	mod := compileExpr(t, src)
+	got, err := vm.New(mod).Run()
+	require.NoError(t, err)
+	assert.Equal(t, true, got)
+}
+
+// TestCompile_ListParamElementType_RunsOnVM is a regression test:
+// annotationValueType didn't parse `list[T]` annotations at all, so a
+// `list[int]` function parameter fell back to valNil ("unknown"), and a
+// `for` loop over it produced an untyped loop variable that failed to
+// compile the moment it was used in a typed operator like `x > 0`.
+func TestCompile_ListParamElementType_RunsOnVM(t *testing.T) {
+	src := `fn count_positive(xs: list[int]) -> int:
+    let c = 0
+    for x in xs:
+        if x > 0:
+            c = c + 1
+    return c
+count_positive([1, -2, 3, -4, 5])
+`
+	mod := compileExpr(t, src)
+	got, err := vm.New(mod).Run()
+	require.NoError(t, err)
+	assert.Equal(t, 3, got)
+}
+
 func TestBuiltinValueType(t *testing.T) {
 	cases := []struct {
 		name     string

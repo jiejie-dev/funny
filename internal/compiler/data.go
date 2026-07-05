@@ -40,17 +40,36 @@ func (c *Compiler) compileIndex(n *ast.IndexExpr) (valueType, error) {
 }
 
 // compileField compiles a.b (push object, push field name as string, GET_FIELD).
-// Without per-field static types we conservatively report valStr; this keeps
-// downstream comparisons like `r.tag == "err"` well-typed while letting
-// println accept the value (since println is untyped at compile time).
+// If the object's value type is a recognized struct name (see
+// annotationValueType/compileStructLiteral), looks up the field's real
+// declared type from c.structFields so it participates correctly in typed
+// arithmetic/comparisons (`item.price + tax`, `entry.count > 0`, ...) -
+// this used to unconditionally report valStr for *every* field access
+// regardless of the field's actual type, so any non-string struct field
+// used in a typed operator failed with a confusing "unsupported op * for
+// str" (or silently picked the wrong opcode for the rare cases where a
+// mismatch happened not to be caught). For object types we have no
+// schema for (a Result from ok()/err(), an untracked global, ...), `.tag`
+// is still always a string by construction (kept as a special case so
+// `r.tag == "err"` stays well-typed); anything else conservatively falls
+// back to valNil ("unknown") rather than guessing.
 func (c *Compiler) compileField(n *ast.FieldExpr) (valueType, error) {
-	if _, err := c.compileExpr(n.Object); err != nil {
+	objType, err := c.compileExpr(n.Object)
+	if err != nil {
 		return "", err
 	}
 	nameIdx := c.mod.AddConstant(n.Field)
 	c.fn.Emit(bytecode.PUSH_STR, nameIdx)
 	c.fn.Emit(bytecode.GET_FIELD, 0)
-	return valStr, nil
+	if fields, ok := c.structFields[string(objType)]; ok {
+		if ft, ok := fields[n.Field]; ok {
+			return ft, nil
+		}
+	}
+	if n.Field == "tag" {
+		return valStr, nil
+	}
+	return valNil, nil
 }
 
 // compileMapLiteral compiles {k: v, ...} into BUILD_MAP n. Empty map literals
@@ -69,6 +88,10 @@ func (c *Compiler) compileMapLiteral(n *ast.MapLiteralExpr) (valueType, error) {
 }
 
 // compileStructLiteral compiles Point(x: 1, y: 2) into BUILD_MAP + NEW_STRUCT.
+// Returns the struct's own name as its valueType (see annotationValueType),
+// so a `let p = Point(...)` local (or a struct-typed function
+// param/return) carries enough static type info for compileField to look
+// up its real field types later.
 func (c *Compiler) compileStructLiteral(n *ast.StructLiteralExpr) (valueType, error) {
 	if len(n.Fields) == 0 {
 		return "", fmt.Errorf("empty struct literal")
@@ -83,5 +106,5 @@ func (c *Compiler) compileStructLiteral(n *ast.StructLiteralExpr) (valueType, er
 	c.fn.Emit(bytecode.BUILD_MAP, len(n.Fields))
 	typeIdx := c.mod.AddConstant(n.TypeName)
 	c.fn.Emit(bytecode.NEW_STRUCT, typeIdx)
-	return valNil, nil
+	return valueType(n.TypeName), nil
 }
