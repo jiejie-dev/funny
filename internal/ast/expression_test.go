@@ -68,3 +68,26 @@ func TestLiteralExpr_String_StringLiteral(t *testing.T) {
 	e := &LiteralExpr{Value: "hi"}
 	assert.Equal(t, `"hi"`, e.String())
 }
+
+// Regression: a whole-number float like 500.0 used to print as "500" via
+// fmt's default %v formatting, indistinguishable from the int literal 500.
+// Since this String() is what the formatter re-emits as source, that
+// silently turned a float literal into what re-parses as an int token.
+func TestLiteralExpr_String_WholeNumberFloat(t *testing.T) {
+	e := &LiteralExpr{Value: 500.0}
+	assert.Equal(t, "500.0", e.String())
+}
+
+func TestLiteralExpr_String_FractionalFloat(t *testing.T) {
+	e := &LiteralExpr{Value: 3.5}
+	assert.Equal(t, "3.5", e.String())
+}
+
+// Regression: a bare Go nil interface used to print as the literal text
+// "<nil>" via fmt's default %v formatting, not funny's `nil` keyword - so
+// `return nil` round-tripped through the formatter came back out as the
+// syntactically invalid `return <nil>`.
+func TestLiteralExpr_String_Nil(t *testing.T) {
+	e := &LiteralExpr{Value: nil}
+	assert.Equal(t, "nil", e.String())
+}

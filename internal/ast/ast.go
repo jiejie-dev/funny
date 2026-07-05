@@ -1,6 +1,10 @@
 package ast
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
 
 type Pos struct {
 	File string
@@ -39,8 +43,30 @@ func (e *LiteralExpr) Pos() Pos    { return e.NodePos }
 func (e *LiteralExpr) exprMarker() {}
 func (e *LiteralExpr) nodeMarker() {}
 func (e *LiteralExpr) String() string {
-	if s, ok := e.Value.(string); ok {
-		return fmt.Sprintf("%q", s)
+	switch v := e.Value.(type) {
+	case nil:
+		// %v (via the default branch below) prints a bare Go nil
+		// interface as the literal text "<nil>", not funny's `nil`
+		// keyword - so `return nil` round-tripped through the formatter
+		// came back out as the syntactically invalid `return <nil>`.
+		return "nil"
+	case string:
+		return fmt.Sprintf("%q", v)
+	case float64:
+		// %v (via the default branch below) prints a whole-number float
+		// like 500.0 as just "500" - indistinguishable from the int
+		// literal 500. Since this String() is what the formatter
+		// (internal/formatter) re-emits as actual source code, that
+		// silently turned a float literal into what re-parses as an int
+		// token, changing the expression's static type on round-trip
+		// (e.g. `x > 500.0` reformatted to `x > 500`, breaking a
+		// float-typed comparison). Always keep at least one decimal
+		// digit so it round-trips as a float.
+		s := strconv.FormatFloat(v, 'g', -1, 64)
+		if !strings.ContainsAny(s, ".eEnN") { // "n"/"N" catches NaN/Inf
+			s += ".0"
+		}
+		return s
 	}
 	return fmt.Sprintf("%v", e.Value)
 }
