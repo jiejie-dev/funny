@@ -118,13 +118,19 @@ func (c *Compiler) compileFor(n *ast.ForStmt) error {
 	c.fn.Emit(bytecode.STORE_LOCAL, listSlot)
 	c.fn.Emit(bytecode.POP, 0)
 	idxSlot := c.declareLocal("__for_idx__", valInt)
-	c.fn.Emit(bytecode.PUSH_INT, 0)
+	// Regression: this used to hardcode Arg=0, which reads whatever value
+	// happens to sit at Constants[0] instead of the intended literal 0 -
+	// e.g. `for i in [1, 2, 3]:` puts the list's own first element (1) at
+	// Constants[0] (compileList's AddConstant call runs first), so the
+	// loop's index silently started at 1 and skipped the first item on
+	// every iterable whose first constant wasn't already the int 0.
+	c.fn.Emit(bytecode.PUSH_INT, c.mod.AddConstant(0))
 	c.fn.Emit(bytecode.STORE_LOCAL, idxSlot)
 	c.fn.Emit(bytecode.POP, 0)
 	loopStart := len(c.fn.Code)
 	c.fn.Emit(bytecode.LOAD_LOCAL, idxSlot)
 	c.fn.Emit(bytecode.LOAD_LOCAL, listSlot)
-	nameIdx := c.mod.AddConstant("len")
+	nameIdx := c.mod.AddConstant(bytecode.BuiltinInfo{Name: "len", Arity: 1})
 	c.fn.Emit(bytecode.CALL_BUILTIN, nameIdx)
 	c.fn.Emit(bytecode.LT_INT, 0)
 	exitJump := len(c.fn.Code)

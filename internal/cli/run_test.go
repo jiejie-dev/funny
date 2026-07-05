@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -8,6 +9,23 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// captureStdout redirects os.Stdout for the duration of fn (builtins like
+// print/println write straight to os.Stdout, not an injectable writer) and
+// returns everything written to it.
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+	orig := os.Stdout
+	os.Stdout = w
+	fn()
+	os.Stdout = orig
+	require.NoError(t, w.Close())
+	data, err := io.ReadAll(r)
+	require.NoError(t, err)
+	return string(data)
+}
 
 func TestRun_SimpleScript(t *testing.T) {
 	src := `let x = 1 + 2
@@ -207,6 +225,24 @@ println(sqrt(4.0) < 3.0)
 println(len("hello") > 0)
 `
 	require.NoError(t, Run([]byte(src), "test.fn"))
+}
+
+// TestRun_ForLoop_VisitsFirstElement is an end-to-end regression test for a
+// severe compileFor bug (see internal/compiler/control_test.go for the
+// full explanation): the loop index used to be initialized from
+// Constants[0] instead of the literal 0, so `for` silently skipped the
+// first element of its iterable under the default VM path.
+func TestRun_ForLoop_VisitsFirstElement(t *testing.T) {
+	dir := t.TempDir()
+	out := captureStdout(t, func() {
+		src := `let sum = 0
+for i in [10, 20, 30]:
+    sum = sum + i
+println(sum)
+`
+		require.NoError(t, Run([]byte(src), filepath.Join(dir, "main.fn")))
+	})
+	assert.Equal(t, "60\n", out)
 }
 
 func TestDescribe_Plan(t *testing.T) {
