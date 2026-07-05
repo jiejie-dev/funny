@@ -210,13 +210,33 @@ func (p *printer) metaBlock(n *ast.MetaBlock) {
 	p.depth--
 }
 
+// step prints a `step "name" -> kind with ...:` header.
+//
+// Before this, `n.Retry.Backoff` and `n.Timeout` were silently dropped -
+// `funny fmt` on `step "x" -> tool with retry max=2 backoff=exp:` (or any
+// step with a `timeout="..."`) reprinted it as just `step "x" with retry
+// max=2:`, permanently losing the backoff strategy, the timeout bound,
+// and even the explicit `-> tool` step kind's co-occurrence with retry
+// options the next time someone read the "formatted" file - a formatter
+// changing program behavior, not just style, on round-trip.
 func (p *printer) step(n *ast.Step) {
 	head := fmt.Sprintf("step %q", n.Name)
 	if n.Kind != "" && n.Kind != ast.StepTool {
 		head += " -> " + string(n.Kind)
 	}
+	var with []string
 	if n.Retry != nil {
-		head += fmt.Sprintf(" with retry max=%d", n.Retry.Max)
+		retry := fmt.Sprintf("retry max=%d", n.Retry.Max)
+		if n.Retry.Backoff != "" {
+			retry += " backoff=" + n.Retry.Backoff
+		}
+		with = append(with, retry)
+	}
+	if n.Timeout != "" {
+		with = append(with, fmt.Sprintf("timeout=%q", n.Timeout))
+	}
+	if len(with) > 0 {
+		head += " with " + strings.Join(with, " ")
 	}
 	p.writeLine(head + ":")
 	if n.Body != nil {

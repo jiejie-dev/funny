@@ -164,6 +164,45 @@ func TestFormat_StepWithKindAndRetry(t *testing.T) {
 	assert.Equal(t, src, out)
 }
 
+// Regression: n.Retry.Backoff and n.Timeout used to be silently dropped by
+// the formatter, and an explicit `-> tool` kind co-occurring with `with`
+// options was lost too - turning a step's retry/backoff/timeout semantics
+// into different behavior on round-trip through `funny fmt`.
+func TestFormat_StepWithBackoffAndTimeout(t *testing.T) {
+	// "tool" is the default kind, so it isn't re-emitted explicitly; only
+	// the retry/backoff/timeout options are checked for round-tripping.
+	src := "plan \"demo\":\n    step \"one\" with retry max=2 backoff=exp timeout=\"5s\":\n        println(1)\n"
+	out, err := Format([]byte(src), "t")
+	require.NoError(t, err)
+	assert.Equal(t, src, out)
+}
+
+func TestFormat_StepWithTimeoutOnly(t *testing.T) {
+	src := "plan \"demo\":\n    step \"one\" with timeout=\"2s\":\n        println(1)\n"
+	out, err := Format([]byte(src), "t")
+	require.NoError(t, err)
+	assert.Equal(t, src, out)
+}
+
+// Regression: whole-number float literals (e.g. 500.0) used to be
+// reformatted as "500", which re-parses as an int literal, not a float -
+// silently changing a function's return/comparison type on round-trip.
+func TestFormat_WholeNumberFloatLiteral(t *testing.T) {
+	src := "fn f() -> float:\n    return 500.0\n"
+	out, err := Format([]byte(src), "t")
+	require.NoError(t, err)
+	assert.Equal(t, src, out)
+}
+
+// Regression: `return nil` used to be reformatted as the syntactically
+// invalid `return <nil>`.
+func TestFormat_NilLiteral(t *testing.T) {
+	src := "fn f() -> str:\n    return nil\n"
+	out, err := Format([]byte(src), "t")
+	require.NoError(t, err)
+	assert.Equal(t, src, out)
+}
+
 func TestFormat_NestedBlocksIdempotent(t *testing.T) {
 	src := "fn f(x:int)->int:\n    if x>0:\n        for i in x:\n            println(i)\n    return x\n"
 	out1, err := Format([]byte(src), "t")
