@@ -282,6 +282,36 @@ first_x([Point(x: 10, y: 20), Point(x: 99, y: 0)])
 	assert.Equal(t, 11, got)
 }
 
+// TestCompile_EmptyListLetAnnotation_PreservesElementType_RunsOnVM is a
+// regression test: compileLet ignored n.TypeAnn entirely and derived a
+// local's tracked type purely from compiling its RHS expression - so
+// `let xs: list[Point] = []` (RHS is an empty list literal, which
+// compileList can't infer an element type for) left `xs` permanently
+// valNil, even though the type checker already trusts the annotation for
+// exactly this case. Every later struct field access through `xs`
+// (`xs[i].x`, or a `for p in xs: p.x`) then also came out valNil, so
+// comparing two such untracked values (e.g. `pool[i].score >
+// pool[j].score` while building up a result list from an initially empty
+// one) failed to compile with "unsupported op > for nil".
+func TestCompile_EmptyListLetAnnotation_PreservesElementType_RunsOnVM(t *testing.T) {
+	src := `struct Point:
+    x: int
+    y: int
+
+fn build() -> int:
+    let pts: list[Point] = []
+    pts = append(pts, Point(x: 1, y: 2))
+    pts = append(pts, Point(x: 5, y: 9))
+    return pts[0].x + pts[1].x
+
+build()
+`
+	mod := compileExpr(t, src)
+	got, err := vm.New(mod).Run()
+	require.NoError(t, err)
+	assert.Equal(t, 6, got)
+}
+
 // TestCompile_ConcreteTypePlusUntrackedResultVal_RunsOnVM is a
 // regression test: compileBinary used to hard-reject combining a
 // concretely-typed operand with a valNil ("statically untracked", not

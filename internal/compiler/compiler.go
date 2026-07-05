@@ -173,6 +173,21 @@ func (c *Compiler) compileLet(n *ast.LetStmt) error {
 	if err != nil {
 		return err
 	}
+	// compileExpr reports valNil ("untracked") for things like an empty
+	// list/map literal (`let xs: list[LogEntry] = []`) that carry no
+	// element-type information of their own to infer from. The type
+	// checker already trusts the explicit annotation for exactly this
+	// case (see checkLet's isEmptyContainerLiteral handling), so fall
+	// back to it here too rather than leaving `xs` permanently valNil:
+	// otherwise every later `xs[i].field` or `for e in xs` derived type
+	// silently degrades to "untracked", which used to make comparisons
+	// like `e.response_ms > xs[i].response_ms` fail to compile at all
+	// ("unsupported op > for nil") once both sides ended up untracked.
+	if vt == valNil && n.TypeAnn != "" {
+		if at := annotationValueType(n.TypeAnn, c.structFields); at != valNil {
+			vt = at
+		}
+	}
 	slot := c.declareLocal(n.Name, vt)
 	c.fn.Emit(bytecode.STORE_LOCAL, slot)
 	c.fn.Emit(bytecode.POP, 0)
