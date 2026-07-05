@@ -2,6 +2,8 @@
 package compiler
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/jiejie-dev/funny/internal/bytecode"
@@ -278,6 +280,35 @@ first_x([Point(x: 10, y: 20), Point(x: 99, y: 0)])
 	got, err := vm.New(mod).Run()
 	require.NoError(t, err)
 	assert.Equal(t, 11, got)
+}
+
+// TestCompile_ConcreteTypePlusUntrackedResultVal_RunsOnVM is a
+// regression test: compileBinary used to hard-reject combining a
+// concretely-typed operand with a valNil ("statically untracked", not
+// necessarily an actual nil) one - e.g. `str + result.val` where
+// result.val comes off a Result this compiler doesn't model field types
+// for. The type checker (a separate, authoritative pass) already accepts
+// this - http_get's Ok payload is a real string at runtime - so the
+// compiler's stricter same-valueType-on-both-sides check broke code the
+// type checker had already approved.
+func TestCompile_ConcreteTypePlusUntrackedResultVal_RunsOnVM(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("hi"))
+	}))
+	defer srv.Close()
+
+	src := `fn describe(url: str) -> str:
+    let result = http_get(url)
+    if result.tag == "ok":
+        return "ok: " + result.val
+    return "unreachable: " + result.val
+
+describe("` + srv.URL + `")
+`
+	mod := compileExpr(t, src)
+	got, err := vm.New(mod).Run()
+	require.NoError(t, err)
+	assert.Equal(t, "ok: hi", got)
 }
 
 func TestBuiltinValueType(t *testing.T) {

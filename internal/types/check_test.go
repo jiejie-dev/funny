@@ -296,6 +296,7 @@ func TestCheck_BuiltinReturnType_ConcreteTypes(t *testing.T) {
 		{`file_exists("x")`, Primitive("bool")},
 		{`str_split("a,b", ",")`, List{Elem: Primitive("str")}},
 		{`to_float("3.14")`, Primitive("float")},
+		{`jwt_encode("h", "c", "s")`, Primitive("str")},
 	}
 	for _, c := range cases {
 		env := NewEnv(nil)
@@ -352,6 +353,36 @@ func TestCheck_LetEmptyListWithoutAnnotation_StillErrors(t *testing.T) {
 	env := NewEnv(nil)
 	err = Check(prog, env)
 	require.Error(t, err)
+}
+
+// TestCheck_ResultReturningBuiltins_ConcreteOkType is a regression test:
+// file_read/http_get/b64_decode's Result Ok payload is always a string
+// in practice (file contents / response body / decoded bytes as text),
+// but was reported as Primitive("any") - so the extremely common
+// "unwrap and use the body as a string" pattern (`result.val + "..."`,
+// or returning it from a `-> str` function) failed to type-check with
+// "expected str, got any". jwt_decode's Ok payload is a genuine claims
+// map, so it's deliberately left at "any".
+func TestCheck_ResultReturningBuiltins_ConcreteOkType(t *testing.T) {
+	cases := []struct {
+		src     string
+		wantOk  Type
+		wantErr Type
+	}{
+		{`file_read("x")`, Primitive("str"), Primitive("str")},
+		{`http_get("x")`, Primitive("str"), Primitive("str")},
+		{`b64_decode("x")`, Primitive("str"), Primitive("str")},
+		{`jwt_decode("x", "y")`, Primitive("any"), Primitive("str")},
+	}
+	for _, c := range cases {
+		env := NewEnv(nil)
+		got, err := CheckExpr(parseExpr(t, c.src), env)
+		require.NoError(t, err, c.src)
+		r, ok := got.(Result)
+		require.True(t, ok, "%s: expected Result, got %T", c.src, got)
+		assert.True(t, r.Ok.Equal(c.wantOk), "%s: Ok = %s want %s", c.src, r.Ok, c.wantOk)
+		assert.True(t, r.Err.Equal(c.wantErr), "%s: Err = %s want %s", c.src, r.Err, c.wantErr)
+	}
 }
 
 // TestCheck_BuiltinCallArgs_AreTypeChecked is a regression test: builtin

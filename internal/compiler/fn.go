@@ -200,7 +200,7 @@ func builtinValueType(name string, argTypes []valueType) valueType {
 			}
 		}
 	case "to_str", "type_of", "str_upper", "str_lower", "regex_replace",
-		"env_get", "time_format", "md5", "sha256", "b64_encode":
+		"env_get", "time_format", "md5", "sha256", "b64_encode", "jwt_encode":
 		return valStr
 	case "str_contains", "regex_match", "file_exists":
 		return valBool

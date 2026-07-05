@@ -254,7 +254,20 @@ func BuiltinNames() []string {
 // solves the same problem for the bytecode compiler's static value typing.
 func builtinReturnType(name string, argTypes []Type) Type {
 	if builtinResultReturns[name] {
-		return Result{Ok: Primitive("any"), Err: Primitive("str")}
+		// file_read/http_get/b64_decode's Ok payload is always a string
+		// in practice (file contents, response body, decoded bytes as
+		// text) - reporting it as Primitive("any") made the extremely
+		// common "unwrap and use the body as a string" pattern (e.g.
+		// `result.val + " suffix"`, or passing it to a `-> str`
+		// function) fail type-checking with "expected str, got any".
+		// jwt_decode's Ok payload is a genuine claims map, so it's left
+		// at Primitive("any") since there's no concrete Type for it here.
+		okType := Type(Primitive("any"))
+		switch name {
+		case "file_read", "http_get", "b64_decode":
+			okType = Primitive("str")
+		}
+		return Result{Ok: okType, Err: Primitive("str")}
 	}
 	switch name {
 	case "len", "to_int", "now":
@@ -269,6 +282,16 @@ func builtinReturnType(name string, argTypes []Type) Type {
 		}
 	case "to_str", "type_of", "str_upper", "str_lower", "regex_replace",
 		"env_get", "time_format", "md5", "sha256", "b64_encode":
+		return Primitive("str")
+	case "jwt_encode":
+		// jwt_encode only fails (returning a Result instead) if HMAC
+		// signing itself errors, which practically never happens for
+		// HS256 with a valid secret - typing it as a plain str (its
+		// actual success shape, like md5/sha256/b64_encode above) is far
+		// more useful than Primitive("any"), which made it impossible to
+		// use jwt_encode's result in a `-> str`-returning function or any
+		// other typed string context. See builtinResultReturns' comment
+		// for why it's *not* listed as a Result-returning builtin.
 		return Primitive("str")
 	case "str_contains", "regex_match", "file_exists":
 		return Primitive("bool")

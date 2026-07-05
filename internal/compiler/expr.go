@@ -127,21 +127,42 @@ func (c *Compiler) compileBinary(n *ast.BinaryExpr) (valueType, error) {
 	if err != nil {
 		return "", err
 	}
+	// valNil is this compiler's catch-all for "statically untracked"
+	// (e.g. a `.val` field pulled off a Result, or anything else
+	// compileField/compileIndex/builtinValueType couldn't resolve to a
+	// concrete type) - it does *not* mean the runtime value is
+	// guaranteed to be the nil literal. Before this, combining a
+	// concretely-typed operand with an untracked one - e.g.
+	// `"status: " + result.val` where result.val came from an http_get
+	// Result typed str at the type-checker level but untracked here -
+	// always hard-failed to compile with a "type mismatch X vs nil"
+	// error, even though the actual runtime values are perfectly
+	// compatible and the (separate, authoritative) type checker already
+	// accepted the expression. Only a mismatch between two *concretely*
+	// tracked types (e.g. int vs str) is still rejected here.
+	opType := leftOp
 	if leftOp != rightOp {
-		return "", fmt.Errorf("compileBinary: type mismatch %s vs %s for op %s", leftOp, rightOp, n.Op)
+		switch {
+		case leftOp == valNil && rightOp != valNil:
+			opType = rightOp
+		case rightOp == valNil && leftOp != valNil:
+			opType = leftOp
+		default:
+			return "", fmt.Errorf("compileBinary: type mismatch %s vs %s for op %s", leftOp, rightOp, n.Op)
+		}
 	}
 	// `!=` has no dedicated opcode family of its own; it reuses whichever
 	// EQ_* opcode `==` would pick for this operand type and negates it.
 	if n.Op == "!=" {
-		op, err := pickBinaryOp("==", leftOp)
+		op, err := pickBinaryOp("==", opType)
 		if err != nil {
-			return "", fmt.Errorf("compileBinary: unsupported op != for %s", leftOp)
+			return "", fmt.Errorf("compileBinary: unsupported op != for %s", opType)
 		}
 		c.fn.Emit(op, 0)
 		c.fn.Emit(bytecode.NOT_BOOL, 0)
 		return valBool, nil
 	}
-	op, err := pickBinaryOp(n.Op, leftOp)
+	op, err := pickBinaryOp(n.Op, opType)
 	if err != nil {
 		return "", err
 	}
@@ -151,7 +172,7 @@ func (c *Compiler) compileBinary(n *ast.BinaryExpr) (valueType, error) {
 	// operand type.
 	switch n.Op {
 	case "+", "-", "*", "/", "%":
-		return leftOp, nil
+		return opType, nil
 	case "==", "<", ">", "<=", ">=", "and", "or":
 		return valBool, nil
 	}
