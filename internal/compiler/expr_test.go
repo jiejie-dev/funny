@@ -243,3 +243,33 @@ p.x
 	}
 	assert.True(t, hasGetField)
 }
+
+func TestCompile_InList_EmitsOpcode(t *testing.T) {
+	mod := compileExpr(t, `3 in [1, 2, 3]`)
+	fn := mod.Functions[0]
+	var hasInList bool
+	for _, instr := range fn.Code {
+		if instr.Op == bytecode.IN_LIST {
+			hasInList = true
+			break
+		}
+	}
+	assert.True(t, hasInList)
+}
+
+func TestCompile_InList_RunsOnVM(t *testing.T) {
+	mod := compileExpr(t, `3 in [1, 2, 3]`)
+	got, err := vm.New(mod).Run()
+	require.NoError(t, err)
+	assert.Equal(t, true, got)
+
+	mod2 := compileExpr(t, `"b" in ["a", "b", "c"]`)
+	got2, err := vm.New(mod2).Run()
+	require.NoError(t, err)
+	assert.Equal(t, true, got2)
+
+	mod3 := compileExpr(t, `5 in [1, 2, 3]`)
+	got3, err := vm.New(mod3).Run()
+	require.NoError(t, err)
+	assert.Equal(t, false, got3)
+}

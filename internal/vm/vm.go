@@ -101,6 +101,9 @@ func (v *VM) execute() (bytecode.Value, error) {
 				return nil, err
 			}
 			v.stack = append(v.stack, res)
+		case bytecode.IN_LIST:
+			elem, list := v.pop2()
+			v.stack = append(v.stack, v.execInList(elem, list))
 		case bytecode.NEG_INT, bytecode.NEG_FLOAT, bytecode.NOT_BOOL:
 			a := v.pop()
 			res, err := v.execUnary(instr.Op, a)

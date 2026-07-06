@@ -119,6 +119,16 @@ func (c *Compiler) compileVariable(n *ast.VariableExpr) (valueType, error) {
 }
 
 func (c *Compiler) compileBinary(n *ast.BinaryExpr) (valueType, error) {
+	if n.Op == "in" {
+		if _, err := c.compileExpr(n.Left); err != nil {
+			return "", err
+		}
+		if _, err := c.compileExpr(n.Right); err != nil {
+			return "", err
+		}
+		c.fn.Emit(bytecode.IN_LIST, 0)
+		return valBool, nil
+	}
 	leftOp, err := c.compileExpr(n.Left)
 	if err != nil {
 		return "", err

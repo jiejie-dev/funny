@@ -56,6 +56,7 @@ const (
 	NOT_BOOL OpCode = "NOT_BOOL"
 	AND_BOOL OpCode = "AND_BOOL"
 	OR_BOOL  OpCode = "OR_BOOL"
+	IN_LIST  OpCode = "IN_LIST"
 
 	// Control flow
 	JUMP          OpCode = "JUMP"

@@ -102,7 +102,6 @@ The VM remains ~3.5× faster than the tree-walking interpreter. The spec's 5× t
 ## Known limitations (v2.1.x follow-ups)
 
 - 5× interpreter performance target not yet met (currently 3.5×)
-- `x in list` works under `FUNNY_INTERPRET=1` but not under the default VM path
 - `FUNNY_INTERPRET=1` fallback only implements the original 8 M1 builtins
 - Bare top-level expression statements (e.g. `println(...)`) are not type-checked
 - Struct fields are immutable after construction (`p.x = 99` is `E2010`)

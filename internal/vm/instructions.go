@@ -85,6 +85,20 @@ func (v *VM) execCmp(op bytecode.OpCode, a, b bytecode.Value) (bool, error) {
 	return false, fmt.Errorf("vm: unsupported cmp op %s", op)
 }
 
+// execInList implements `elem in list`. Pops list (top) then elem.
+func (v *VM) execInList(elem, list bytecode.Value) bool {
+	items, ok := list.([]any)
+	if !ok {
+		return false
+	}
+	for _, item := range items {
+		if item == elem {
+			return true
+		}
+	}
+	return false
+}
+
 // execUnary handles unary operations on the top stack value.
 func (v *VM) execUnary(op bytecode.OpCode, a bytecode.Value) (bytecode.Value, error) {
 	switch op {

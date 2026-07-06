@@ -118,6 +118,21 @@ func TestVM_EQStr(t *testing.T) {
 	assert.Equal(t, true, runVM(t, fn, "hello"))
 }
 
+func TestVM_InList(t *testing.T) {
+	fn := &bytecode.Function{Name: "main", Arity: 0}
+	fn.Emit(bytecode.PUSH_INT, 0) // element
+	fn.Emit(bytecode.PUSH_INT, 1) // list
+	fn.Emit(bytecode.IN_LIST, 0)
+	fn.Emit(bytecode.HALT, 0)
+	assert.Equal(t, true, runModule(t, fn, nil, 2, []any{1, 2, 3}))
+	fn2 := &bytecode.Function{Name: "main", Arity: 0}
+	fn2.Emit(bytecode.PUSH_INT, 0)
+	fn2.Emit(bytecode.PUSH_INT, 1)
+	fn2.Emit(bytecode.IN_LIST, 0)
+	fn2.Emit(bytecode.HALT, 0)
+	assert.Equal(t, false, runModule(t, fn2, nil, 5, []any{1, 2, 3}))
+}
+
 func TestVM_JumpIfFalse_Taken(t *testing.T) {
 	fn := &bytecode.Function{Name: "main", Arity: 0}
 	fn.Emit(bytecode.PUSH_BOOL, 0)     // push false
