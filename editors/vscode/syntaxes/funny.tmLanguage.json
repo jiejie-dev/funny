@@ -1,0 +1,280 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Funny",
+  "scopeName": "source.funny",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#keywords" },
+    { "include": "#types" },
+    { "include": "#step-kinds" },
+    { "include": "#operators" },
+    { "include": "#punctuation" },
+    { "include": "#identifiers" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.documentation.funny",
+          "match": "^\\s*(##).*",
+          "captures": {
+            "1": { "name": "punctuation.definition.comment.funny" }
+          }
+        },
+        {
+          "name": "comment.line.number-sign.funny",
+          "match": "#.*$"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        { "include": "#fstring-double" },
+        { "include": "#fstring-single" },
+        { "include": "#string-double" },
+        { "include": "#string-single" }
+      ]
+    },
+    "fstring-double": {
+      "name": "string.quoted.double.fstring.funny",
+      "begin": "f\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.funny",
+          "match": "\\\\."
+        },
+        {
+          "name": "meta.embedded.line.funny",
+          "begin": "\\{\\{",
+          "end": "\\}\\}",
+          "patterns": [
+            {
+              "name": "constant.character.escape.brace.funny",
+              "match": "."
+            }
+          ]
+        },
+        {
+          "name": "meta.embedded.line.funny",
+          "begin": "\\{",
+          "end": "\\}",
+          "patterns": [
+            { "include": "#fstring-format-spec" },
+            { "include": "$self" }
+          ]
+        }
+      ]
+    },
+    "fstring-single": {
+      "name": "string.quoted.single.fstring.funny",
+      "begin": "f'",
+      "end": "'",
+      "patterns": [
+        {
+          "name": "constant.character.escape.funny",
+          "match": "\\\\."
+        },
+        {
+          "name": "meta.embedded.line.funny",
+          "begin": "\\{\\{",
+          "end": "\\}\\}",
+          "patterns": [
+            {
+              "name": "constant.character.escape.brace.funny",
+              "match": "."
+            }
+          ]
+        },
+        {
+          "name": "meta.embedded.line.funny",
+          "begin": "\\{",
+          "end": "\\}",
+          "patterns": [
+            { "include": "#fstring-format-spec" },
+            { "include": "$self" }
+          ]
+        }
+      ]
+    },
+    "fstring-format-spec": {
+      "patterns": [
+        {
+          "name": "keyword.operator.format-spec.funny",
+          "match": ":",
+          "captures": {
+            "0": { "name": "punctuation.separator.format-spec.funny" }
+          }
+        },
+        {
+          "name": "constant.numeric.format-spec.funny",
+          "match": "[0-9]+"
+        },
+        {
+          "name": "keyword.other.format-spec.funny",
+          "match": "[<>\\^+0]|\\.[0-9]+|[dfxXobs%]"
+        }
+      ]
+    },
+    "string-double": {
+      "name": "string.quoted.double.funny",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.funny",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "string-single": {
+      "name": "string.quoted.single.funny",
+      "begin": "'",
+      "end": "'",
+      "patterns": [
+        {
+          "name": "constant.character.escape.funny",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.hex.funny",
+          "match": "\\b0[xX][0-9a-fA-F]+\\b"
+        },
+        {
+          "name": "constant.numeric.float.funny",
+          "match": "\\b\\d+\\.\\d+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.funny",
+          "match": "\\b\\d+\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.flow.funny",
+          "match": "\\b(if|elif|else|for|while|match|break|continue|return)\\b"
+        },
+        {
+          "name": "keyword.declaration.funny",
+          "match": "\\b(let|fn|struct|import|as|pub|meta|plan|step)\\b"
+        },
+        {
+          "name": "keyword.operator.word.funny",
+          "match": "\\b(and|or|not|in)\\b"
+        },
+        {
+          "name": "constant.language.funny",
+          "match": "\\b(true|false|nil)\\b"
+        },
+        {
+          "name": "keyword.other.with.funny",
+          "match": "\\bwith\\b"
+        },
+        {
+          "name": "keyword.other.retry-options.funny",
+          "match": "\\b(retry|backoff|max|timeout|constant|linear|exponential)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "storage.type.primitive.funny",
+          "match": "\\b(int|float|bool|str|nil|list|map|Result)\\b"
+        },
+        {
+          "name": "storage.type.generic.funny",
+          "match": "\\b(list|map|Result)\\s*(?=<)"
+        },
+        {
+          "name": "punctuation.definition.generic.begin.funny",
+          "match": "<"
+        },
+        {
+          "name": "punctuation.definition.generic.end.funny",
+          "match": ">"
+        },
+        {
+          "name": "keyword.operator.optional.funny",
+          "match": "\\?"
+        }
+      ]
+    },
+    "step-kinds": {
+      "patterns": [
+        {
+          "name": "entity.name.tag.step-kind.funny",
+          "match": "(?<=-\\>)\\s*(tool|transform|guard|parallel|branch|delay)\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.arrow.funny",
+          "match": "->|=>"
+        },
+        {
+          "name": "keyword.operator.comparison.funny",
+          "match": "==|!=|<=|>="
+        },
+        {
+          "name": "keyword.operator.assignment.funny",
+          "match": "="
+        },
+        {
+          "name": "keyword.operator.arithmetic.funny",
+          "match": "\\+|-|\\*|/|%"
+        },
+        {
+          "name": "keyword.operator.relational.funny",
+          "match": "<|>"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.separator.colon.funny",
+          "match": ":"
+        },
+        {
+          "name": "punctuation.separator.comma.funny",
+          "match": ","
+        },
+        {
+          "name": "punctuation.accessor.funny",
+          "match": "\\."
+        },
+        {
+          "name": "punctuation.section.brackets.funny",
+          "match": "[\\[\\]\\(\\)\\{\\}]"
+        }
+      ]
+    },
+    "identifiers": {
+      "patterns": [
+        {
+          "name": "entity.name.function.funny",
+          "match": "(?<=\\bfn\\s+)\\w+"
+        },
+        {
+          "name": "entity.name.type.struct.funny",
+          "match": "(?<=\\bstruct\\s+)\\w+"
+        },
+        {
+          "name": "variable.other.funny",
+          "match": "\\b[a-zA-Z_]\\w*\\b"
+        }
+      ]
+    }
+  }
+}

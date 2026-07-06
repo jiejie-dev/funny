@@ -1,0 +1,146 @@
+{
+  "Function Definition": {
+    "prefix": "fn",
+    "body": [
+      "fn ${1:name}(${2:params}) -> ${3:ret}:",
+      "    ${4:pass}"
+    ],
+    "description": "Define a function"
+  },
+  "Public Function": {
+    "prefix": "pubfn",
+    "body": [
+      "pub fn ${1:name}(${2:params}) -> ${3:ret}:",
+      "    ${4:pass}"
+    ],
+    "description": "Define a public function"
+  },
+  "Struct Definition": {
+    "prefix": "struct",
+    "body": [
+      "struct ${1:Name}:",
+      "    ${2:field}: ${3:type}"
+    ],
+    "description": "Define a struct"
+  },
+  "Let Binding": {
+    "prefix": "let",
+    "body": [
+      "let ${1:name}${2:: ${3:type}} = ${4:value}"
+    ],
+    "description": "Declare a variable"
+  },
+  "If Statement": {
+    "prefix": "if",
+    "body": [
+      "if ${1:cond}:",
+      "    ${2:pass}",
+      "else:",
+      "    ${3:pass}"
+    ],
+    "description": "If / else block"
+  },
+  "For Loop": {
+    "prefix": "for",
+    "body": [
+      "for ${1:item} in ${2:iter}:",
+      "    ${3:pass}"
+    ],
+    "description": "For-in loop"
+  },
+  "While Loop": {
+    "prefix": "while",
+    "body": [
+      "while ${1:cond}:",
+      "    ${2:pass}"
+    ],
+    "description": "While loop"
+  },
+  "Match Statement": {
+    "prefix": "match",
+    "body": [
+      "match ${1:expr}:",
+      "    ${2:pattern} => ${3:body}",
+      "    _ => ${4:default}"
+    ],
+    "description": "Pattern match"
+  },
+  "Import Module": {
+    "prefix": "import",
+    "body": [
+      "import \"${1:path.fn}\"${2: as ${3:alias}}"
+    ],
+    "description": "Import a module file"
+  },
+  "Meta Block": {
+    "prefix": "meta",
+    "body": [
+      "meta:",
+      "    name = \"${1:skill-name}\"",
+      "    version = \"${2:1.0}\""
+    ],
+    "description": "Agent metadata block"
+  },
+  "Plan Block": {
+    "prefix": "plan",
+    "body": [
+      "plan \"${1:name}\":",
+      "    step \"${2:step-name}\" -> tool:",
+      "        ${3:pass}"
+    ],
+    "description": "Agent plan block with a tool step"
+  },
+  "Plan Step Tool": {
+    "prefix": "step-tool",
+    "body": [
+      "step \"${1:name}\" -> tool${2: with retry max=${3:3} backoff=${4|constant,linear,exponential|}}:",
+      "    ${5:pass}"
+    ],
+    "description": "Plan step (tool kind)"
+  },
+  "Plan Step Guard": {
+    "prefix": "step-guard",
+    "body": [
+      "step \"${1:name}\" -> guard${2: with timeout=\"${3:5s}\"}:",
+      "    ${4:assertion}"
+    ],
+    "description": "Plan step (guard kind)"
+  },
+  "Plan Step Parallel": {
+    "prefix": "step-parallel",
+    "body": [
+      "step \"${1:name}\" -> parallel:",
+      "    ${2:task1}",
+      "    ${3:task2}"
+    ],
+    "description": "Plan step (parallel kind)"
+  },
+  "F-string": {
+    "prefix": "fstr",
+    "body": [
+      "f\"${1:text} {${2:expr}}\""
+    ],
+    "description": "Format string interpolation"
+  },
+  "Result Ok": {
+    "prefix": "ok",
+    "body": [
+      "ok(${1:value})"
+    ],
+    "description": "Construct an ok Result"
+  },
+  "Result Err": {
+    "prefix": "err",
+    "body": [
+      "err(${1:message})"
+    ],
+    "description": "Construct an err Result"
+  },
+  "Println": {
+    "prefix": "println",
+    "body": [
+      "println(${1:value})"
+    ],
+    "description": "Print with newline"
+  }
+}

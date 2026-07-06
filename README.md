@@ -25,4 +25,5 @@ funny-lsp                   # start LSP server (for editors/IDEs)
 - Plan engine: `tool`/`transform`/`guard`/`delay`/`parallel` step kinds with real retry+backoff, timeout, and guard-assertion semantics (`branch` is currently `tool` plus ordinary `if`/`else` — no dedicated case-list syntax yet)
 - MCP server with 6 tools for LLM integration
 - LSP server: diagnostics, hover, completion, signature help, go-to-definition, document symbols, formatting, find-references, rename, and a custom `funny/planGraph` plan-visualization request
+- VS Code extension (`editors/vscode/`): syntax highlighting, snippets, LSP integration, run/format commands, plan graph view
 - Standard library: json, time, math, str, regex, env, file, http, crypto, jwt, sql

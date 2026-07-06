@@ -1,0 +1,159 @@
+{
+  "name": "funny-vscode",
+  "displayName": "Funny",
+  "description": "Language support for Funny — syntax highlighting, LSP (completion, hover, diagnostics, formatting, rename, references), snippets, and plan graph visualization.",
+  "version": "2.1.0",
+  "publisher": "jiejie-dev",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jiejie-dev/funny"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Formatters",
+    "Linters"
+  ],
+  "keywords": [
+    "funny",
+    "fn",
+    "scripting",
+    "ai-native",
+    "lsp"
+  ],
+  "activationEvents": [
+    "onLanguage:funny"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "funny",
+        "aliases": [
+          "Funny",
+          "funny"
+        ],
+        "extensions": [
+          ".fn",
+          ".funny"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/funny.svg",
+          "dark": "./icons/funny.svg"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "funny",
+        "scopeName": "source.funny",
+        "path": "./syntaxes/funny.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "funny",
+        "path": "./snippets/funny.code-snippets"
+      }
+    ],
+    "configuration": {
+      "title": "Funny",
+      "properties": {
+        "funny.lsp.path": {
+          "type": "string",
+          "default": "funny-lsp",
+          "description": "Path to the funny-lsp executable. Must be on PATH or an absolute path."
+        },
+        "funny.executablePath": {
+          "type": "string",
+          "default": "funny",
+          "description": "Path to the funny CLI executable for run/format commands."
+        },
+        "funny.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Traces communication between VS Code and the Funny language server."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "funny.runFile",
+        "title": "Funny: Run Current File",
+        "icon": "$(play)"
+      },
+      {
+        "command": "funny.formatFile",
+        "title": "Funny: Format Document"
+      },
+      {
+        "command": "funny.showPlanGraph",
+        "title": "Funny: Show Plan Graph",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "funny.restartLanguageServer",
+        "title": "Funny: Restart Language Server"
+      }
+    ],
+    "menus": {
+      "editor/title/run": [
+        {
+          "command": "funny.runFile",
+          "when": "resourceLangId == funny",
+          "group": "navigation@1"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "funny.runFile",
+          "when": "resourceLangId == funny",
+          "group": "navigation@1"
+        },
+        {
+          "command": "funny.showPlanGraph",
+          "when": "resourceLangId == funny",
+          "group": "navigation@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "funny.runFile",
+          "when": "editorLangId == funny"
+        },
+        {
+          "command": "funny.formatFile",
+          "when": "editorLangId == funny"
+        },
+        {
+          "command": "funny.showPlanGraph",
+          "when": "editorLangId == funny"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  }
+}
