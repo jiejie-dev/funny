@@ -17,7 +17,7 @@ import (
 // `-ldflags "-X main.version=2.1.0"` so `funny --version` matches the tag
 // actually released, instead of drifting from CHANGELOG.md/RELEASE_NOTES.md
 // like the old hardcoded "0.1.0" did.
-var version = "2.1.6"
+var version = "2.1.7"
 
 var rootCmd = &cobra.Command{
 	Use:     "funny",
@@ -146,6 +146,39 @@ var disasmCmd = &cobra.Command{
 	},
 }
 
+var pkgCmd = &cobra.Command{
+	Use:   "pkg",
+	Short: "Manage project dependencies (funny.pkg / funny.lock)",
+}
+
+var pkgInstallCmd = &cobra.Command{
+	Use:   "install [name...]",
+	Short: "Install dependencies from funny.pkg into .funny/packages/",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		dir, _ := cmd.Flags().GetString("project")
+		if dir == "" {
+			dir = "."
+		}
+		if err := cli.PkgInstall(dir, args); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return nil
+	},
+}
+
+var pkgListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List packages recorded in funny.lock",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		dir, _ := cmd.Flags().GetString("project")
+		if dir == "" {
+			dir = "."
+		}
+		return cli.PkgList(dir)
+	},
+}
+
 var lspCmd = &cobra.Command{
 	Use:   "lsp",
 	Short: "Start the LSP server over stdio (for editors/IDEs)",
@@ -166,7 +199,9 @@ func init() {
 	fmtCmd.Flags().BoolP("write", "w", false, "write result to the source file instead of stdout")
 	debugCmd.Flags().Bool("source-map", false, "emit JSON source map and exit")
 	debugCmd.Flags().StringArrayP("break", "b", nil, "breakpoint at line or file:line (repeatable)")
-	rootCmd.AddCommand(runCmd, astCmd, fmtCmd, describeCmd, disasmCmd, debugCmd, lspCmd, mcpCmd)
+	pkgCmd.PersistentFlags().String("project", ".", "project root containing funny.pkg")
+	pkgCmd.AddCommand(pkgInstallCmd, pkgListCmd)
+	rootCmd.AddCommand(runCmd, astCmd, fmtCmd, describeCmd, disasmCmd, debugCmd, pkgCmd, lspCmd, mcpCmd)
 }
 
 func main() {

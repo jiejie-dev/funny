@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.7 (2026-07-07)
+
+### Features
+- **Package manager prototype** — `funny.pkg` manifest, `funny.lock` with SHA-256 checksums, `funny pkg install` / `funny pkg list`, and `import "pkg:name"` resolution into `.funny/packages/` (supports `path:`, `https://`, and `git+` sources)
+
 ## v2.1.6 (2026-07-07)
 
 ### Features

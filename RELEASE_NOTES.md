@@ -1,4 +1,4 @@
-# Release Notes — v2.1.6
+# Release Notes — v2.1.7
 
 **Release date:** 2026-07-07
 **Module:** `github.com/jiejie-dev/funny/v2`
@@ -9,16 +9,20 @@
 
 ## Overview
 
-**v2.1.6** adds the bytecode debugger from the v2.1 roadmap: compile-time source maps, `funny debug` for breakpoints and single-stepping, and JSON source-map export. `funny disasm` now shows source locations per instruction.
+**v2.1.7** adds the package-manager prototype from the M4 roadmap: `funny.pkg` dependency manifest, `funny pkg install` with `funny.lock` checksum locks, and `import "pkg:name"` resolution into `.funny/packages/`.
 
 ## Quick start
 
 ```bash
 # Install this release
-go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.6
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.7
 
 # Run a script
 funny run script.fn
+
+# Package dependencies
+funny pkg install
+funny pkg list
 
 # Debug (interactive)
 funny debug script.fn
@@ -35,6 +39,18 @@ funny fmt script.fn -w
 funny lsp                   # LSP over stdio
 funny mcp                   # MCP over stdio
 ```
+
+## What's new in v2.1.7
+
+### Package manager (`funny pkg`)
+
+- **`funny.pkg`** — JSON manifest declaring dependencies and `source` URLs/paths
+- **`funny pkg install`** — installs into `.funny/packages/<name>/` and writes `funny.lock` with SHA-256 checksums
+- **`funny pkg list`** — shows locked packages
+- **`import "pkg:name"`** — module resolver maps pkg imports via `funny.lock`
+- **Sources** — `path:` (local file/dir), `https://` (single `.fn`), `git+<url>@<ref>` (shallow clone)
+
+See `CHANGELOG.md` for the full itemized list.
 
 ## What's new in v2.1.6
 
@@ -130,6 +146,8 @@ funny fmt <script> [-w]     Format source (stdout, or in-place with -w)
 funny describe <script>     Print plan + metadata as JSON
 funny disasm <script>       Print bytecode disassembly
 funny debug <script>        Interactive bytecode debugger (-b, --source-map)
+funny pkg install [name]    Install dependencies from funny.pkg
+funny pkg list              List packages in funny.lock
 funny mcp                   Start the MCP server over stdio
 funny lsp                   Start the LSP server over stdio
 ```
@@ -159,6 +177,14 @@ The VM remains ~3.5× faster than the tree-walking interpreter. The spec's 5× t
 
 - 5× interpreter performance target not yet met (currently 3.5×)
 - AI-friendliness benchmark harness is ready; community LLM runs are still needed
+
+## Upgrading from v2.1.6
+
+No breaking changes. Reinstall the binary:
+
+```bash
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.7
+```
 
 ## Upgrading from v2.1.5
 
