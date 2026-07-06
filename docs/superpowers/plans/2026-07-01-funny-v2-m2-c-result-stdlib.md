@@ -91,7 +91,7 @@ Expected: FAIL
 // v2/internal/vm/result.go
 package vm
 
-import "github.com/jiejie-dev/funny/v2/internal/bytecode"
+import "github.com/jiejie-dev/funny/internal/bytecode"
 
 // makeResult constructs a Result runtime value: map{tag, val}.
 func makeResult(tag string, val bytecode.Value) bytecode.Value {
@@ -236,7 +236,7 @@ case lexer.QUESTION:
     return &ast.TryExpr{NodePos: pos, Inner: left}, nil
 ```
 
-This requires importing `github.com/jiejie-dev/funny/v2/internal/ast` in `expression.go` if not already present (it is).
+This requires importing `github.com/jiejie-dev/funny/internal/ast` in `expression.go` if not already present (it is).
 
 - [ ] **Step 5: Add `TryExpr` to `compileExpr` switch** in `v2/internal/compiler/expr.go`:
 
@@ -596,7 +596,7 @@ import (
     "fmt"
     "reflect"
 
-    "github.com/jiejie-dev/funny/v2/internal/bytecode"
+    "github.com/jiejie-dev/funny/internal/bytecode"
 )
 ```
 
@@ -685,7 +685,7 @@ import (
     "reflect"
     "time"
 
-    "github.com/jiejie-dev/funny/v2/internal/bytecode"
+    "github.com/jiejie-dev/funny/internal/bytecode"
 )
 ```
 
@@ -821,7 +821,7 @@ import (
     "reflect"
     "time"
 
-    "github.com/jiejie-dev/funny/v2/internal/bytecode"
+    "github.com/jiejie-dev/funny/internal/bytecode"
 )
 ```
 
@@ -956,7 +956,7 @@ import (
     "strings"
     "time"
 
-    "github.com/jiejie-dev/funny/v2/internal/bytecode"
+    "github.com/jiejie-dev/funny/internal/bytecode"
 )
 ```
 

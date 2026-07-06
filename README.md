@@ -8,6 +8,8 @@ The complete Funny v2 stack is shipping. See `CHANGELOG.md` for the full release
 
 ### Install
 
+Go module: `github.com/jiejie-dev/funny`
+
 One binary covers the CLI, LSP server, and MCP server:
 
 ```bash

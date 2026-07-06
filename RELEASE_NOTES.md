@@ -171,7 +171,7 @@ v2 is a complete rewrite, not a backwards-compatible release. v1 source files (`
 
 ## Migration guide
 
-1. Replace `module github.com/jerloo/funny` with `module github.com/jiejie-dev/funny` in your v1 code that imports v1 internal packages (v1 has been removed in the v2.0.0 release).
+1. Use Go module `github.com/jiejie-dev/funny` for all v2 imports and tooling (`go install github.com/jiejie-dev/funny/cmd/funny@latest`).
 2. Rename any v1 keyword-only syntactic features you used (v2's `let` with explicit type annotation is now required for function parameters).
 3. Re-test your scripts with `funny run`.
 4. Optionally enable strict typing by adding `: Type` annotations to all `let` declarations.

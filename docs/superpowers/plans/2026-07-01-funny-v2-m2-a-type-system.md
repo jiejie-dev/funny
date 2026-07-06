@@ -613,7 +613,7 @@ import (
     "testing"
 
     "github.com/stretchr/testify/assert"
-    "github.com/jiejie-dev/funny/v2/internal/ast"
+    "github.com/jiejie-dev/funny/internal/ast"
 )
 
 func TestError_Format(t *testing.T) {
@@ -652,7 +652,7 @@ Expected: FAIL
 package types
 
 import "fmt"
-import "github.com/jiejie-dev/funny/v2/internal/ast"
+import "github.com/jiejie-dev/funny/internal/ast"
 
 // Error is a type-checking error.
 type Error struct {
@@ -1230,8 +1230,8 @@ package types
 import (
     "testing"
 
-    "github.com/jiejie-dev/funny/v2/internal/ast"
-    "github.com/jiejie-dev/funny/v2/internal/parser"
+    "github.com/jiejie-dev/funny/internal/ast"
+    "github.com/jiejie-dev/funny/internal/parser"
     "github.com/stretchr/testify/assert"
     "github.com/stretchr/testify/require"
 )
@@ -1295,7 +1295,7 @@ package types
 import (
     "fmt"
 
-    "github.com/jiejie-dev/funny/v2/internal/ast"
+    "github.com/jiejie-dev/funny/internal/ast"
 )
 
 // CheckExpr type-checks an expression and returns its type.
@@ -2056,9 +2056,9 @@ package cli
 import (
     "encoding/json"
 
-    "github.com/jiejie-dev/funny/v2/internal/evaluator"
-    "github.com/jiejie-dev/funny/v2/internal/parser"
-    "github.com/jiejie-dev/funny/v2/internal/types"
+    "github.com/jiejie-dev/funny/internal/evaluator"
+    "github.com/jiejie-dev/funny/internal/parser"
+    "github.com/jiejie-dev/funny/internal/types"
 )
 
 func Run(src []byte, file string) error {

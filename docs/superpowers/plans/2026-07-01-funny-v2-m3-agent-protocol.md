@@ -219,8 +219,8 @@ package agent
 import (
     "testing"
 
-    "github.com/jiejie-dev/funny/v2/internal/ast"
-    "github.com/jiejie-dev/funny/v2/internal/parser"
+    "github.com/jiejie-dev/funny/internal/ast"
+    "github.com/jiejie-dev/funny/internal/parser"
     "github.com/stretchr/testify/assert"
     "github.com/stretchr/testify/require"
 )
@@ -280,8 +280,8 @@ package agent
 import (
     "fmt"
 
-    "github.com/jiejie-dev/funny/v2/internal/ast"
-    "github.com/jiejie-dev/funny/v2/internal/evaluator"
+    "github.com/jiejie-dev/funny/internal/ast"
+    "github.com/jiejie-dev/funny/internal/evaluator"
 )
 
 // Engine executes plan blocks step-by-step.

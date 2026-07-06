@@ -400,9 +400,9 @@ package compiler
 import (
     "testing"
 
-    "github.com/jiejie-dev/funny/v2/internal/ast"
-    "github.com/jiejie-dev/funny/v2/internal/parser"
-    "github.com/jiejie-dev/funny/v2/internal/types"
+    "github.com/jiejie-dev/funny/internal/ast"
+    "github.com/jiejie-dev/funny/internal/parser"
+    "github.com/jiejie-dev/funny/internal/types"
     "github.com/stretchr/testify/assert"
     "github.com/stretchr/testify/require"
 )
@@ -475,9 +475,9 @@ package compiler
 import (
     "fmt"
 
-    "github.com/jiejie-dev/funny/v2/internal/ast"
-    "github.com/jiejie-dev/funny/v2/internal/bytecode"
-    "github.com/jiejie-dev/funny/v2/internal/types"
+    "github.com/jiejie-dev/funny/internal/ast"
+    "github.com/jiejie-dev/funny/internal/bytecode"
+    "github.com/jiejie-dev/funny/internal/types"
 )
 
 // Compiler translates a typed AST into bytecode.
@@ -555,8 +555,8 @@ package compiler
 import (
     "fmt"
 
-    "github.com/jiejie-dev/funny/v2/internal/ast"
-    "github.com/jiejie-dev/funny/v2/internal/bytecode"
+    "github.com/jiejie-dev/funny/internal/ast"
+    "github.com/jiejie-dev/funny/internal/bytecode"
 )
 
 func (c *Compiler) compileExpr(e ast.Expression) (bytecode.OpCode, error) {
@@ -756,7 +756,7 @@ package vm
 import (
     "testing"
 
-    "github.com/jiejie-dev/funny/v2/internal/bytecode"
+    "github.com/jiejie-dev/funny/internal/bytecode"
     "github.com/stretchr/testify/assert"
     "github.com/stretchr/testify/require"
 )
@@ -828,7 +828,7 @@ package vm
 import (
     "fmt"
 
-    "github.com/jiejie-dev/funny/v2/internal/bytecode"
+    "github.com/jiejie-dev/funny/internal/bytecode"
 )
 
 // Frame is a function call frame.
@@ -916,7 +916,7 @@ package vm
 import (
     "testing"
 
-    "github.com/jiejie-dev/funny/v2/internal/bytecode"
+    "github.com/jiejie-dev/funny/internal/bytecode"
     "github.com/stretchr/testify/assert"
 )
 
@@ -1003,7 +1003,7 @@ package vm
 import (
     "fmt"
 
-    "github.com/jiejie-dev/funny/v2/internal/bytecode"
+    "github.com/jiejie-dev/funny/internal/bytecode"
 )
 
 func (v *VM) execArith(op bytecode.OpCode, a, b bytecode.Value) (bytecode.Value, error) {
@@ -1268,7 +1268,7 @@ package compiler
 import (
     "testing"
 
-    "github.com/jiejie-dev/funny/v2/internal/bytecode"
+    "github.com/jiejie-dev/funny/internal/bytecode"
     "github.com/stretchr/testify/assert"
 )
 
@@ -1397,8 +1397,8 @@ package compiler
 import (
     "fmt"
 
-    "github.com/jiejie-dev/funny/v2/internal/ast"
-    "github.com/jiejie-dev/funny/v2/internal/bytecode"
+    "github.com/jiejie-dev/funny/internal/ast"
+    "github.com/jiejie-dev/funny/internal/bytecode"
 )
 
 func (c *Compiler) compileIf(n *ast.IfStmt) error {
@@ -1504,12 +1504,12 @@ import (
     "fmt"
     "os"
 
-    "github.com/jiejie-dev/funny/v2/internal/bytecode"
-    "github.com/jiejie-dev/funny/v2/internal/compiler"
-    "github.com/jiejie-dev/funny/v2/internal/evaluator"
-    "github.com/jiejie-dev/funny/v2/internal/parser"
-    "github.com/jiejie-dev/funny/v2/internal/types"
-    "github.com/jiejie-dev/funny/v2/internal/vm"
+    "github.com/jiejie-dev/funny/internal/bytecode"
+    "github.com/jiejie-dev/funny/internal/compiler"
+    "github.com/jiejie-dev/funny/internal/evaluator"
+    "github.com/jiejie-dev/funny/internal/parser"
+    "github.com/jiejie-dev/funny/internal/types"
+    "github.com/jiejie-dev/funny/internal/vm"
 )
 
 func Run(src []byte, file string) error {
@@ -1646,8 +1646,8 @@ import (
     "os"
     "testing"
 
-    "github.com/jiejie-dev/funny/v2/internal/bytecode"
-    "github.com/jiejie-dev/funny/v2/internal/cli"
+    "github.com/jiejie-dev/funny/internal/bytecode"
+    "github.com/jiejie-dev/funny/internal/cli"
 )
 
 func BenchmarkFib_VM(b *testing.B) {

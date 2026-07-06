@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | Draft (awaiting user review) |
 | **Date** | 2026-07-01 |
-| **Author** | jerloo (with opencode assistance) |
+| **Author** | jiejie-dev (with opencode assistance) |
 | **Target Version** | v2.0.0 |
 | **Implementation** | Go (locked) |
 | **Scope** | Complete rewrite of funny language |
@@ -136,7 +136,7 @@ fn parse(s: str) -> Result[int, str]:
 ```
 # v1 (forbidden)
 person = {
-    name = 'jerloo'
+    name = 'jiejie-dev'
     isAdult() { return this.age >= 18 }
 }
 
@@ -336,7 +336,7 @@ meta:
     name: "user_login"           # skill unique identifier
     version: "1.0.0"             # semver
     description: "Demo user login flow"
-    author: "jerloo"
+    author: "jiejie-dev"
     tags: ["auth", "demo"]
     runtime: "funny v2.0"        # interpreter version requirement
 
@@ -544,8 +544,7 @@ LLM calls `funny_run_skill("user_login", {"username": "x", "password": "y"})` an
 ```
 funny/
 ├── cmd/
-│   ├── funny/          # CLI entry
-│   └── funny-mcp/      # MCP server entry
+│   └── funny/          # CLI entry (run, ast, fmt, mcp, lsp, ...)
 ├── internal/
 │   ├── lexer/          # ①
 │   ├── parser/         # ②
