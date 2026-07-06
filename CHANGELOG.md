@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.1.4 (2026-07-07)
+
+### Features
+- **Typed errors** — struct literals tag runtime values with `__type` so `return err(NetworkError(message: "…"))` carries a logical error type name (plain strings remain type `str`)
+- **Plan `retry.on`** — `with retry max=N on=NetworkError,str` retries only when the failure's error type matches; non-matching errors fail immediately without consuming remaining attempts
+
 ## v2.1.3 (2026-07-07)
 
 ### Features
