@@ -8,6 +8,7 @@ import (
 
 	"github.com/jiejie-dev/funny/v2/internal/ast"
 	"github.com/jiejie-dev/funny/v2/internal/errs"
+	"github.com/jiejie-dev/funny/v2/internal/typederror"
 	"github.com/jiejie-dev/funny/v2/internal/strfmt"
 )
 
@@ -137,7 +138,7 @@ func (e *Evaluator) Eval(node ast.Expression) (any, error) {
 			}
 			fields[k] = val
 		}
-		return fields, nil
+		return typederror.TagStruct(n.TypeName, fields), nil
 	case *ast.MapLiteralExpr:
 		return e.evalMapLiteral(n)
 	}

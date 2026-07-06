@@ -22,6 +22,16 @@ func checkPlanBlock(n *ast.PlanBlock, env *Env) error {
 	for _, stmt := range n.Body.Statements {
 		switch s := stmt.(type) {
 		case *ast.Step:
+			if s.Retry != nil {
+				for _, typ := range s.Retry.On {
+					if typ == "str" {
+						continue
+					}
+					if _, ok := env.LookupStruct(typ); !ok {
+						return New("E2112", "unknown error type "+typ+" in retry on=", s.NodePos)
+					}
+				}
+			}
 			for _, c := range s.BranchCases {
 				if !stepNames[c.Target] {
 					return New("E2111", "branch target "+c.Target+" not found in plan", s.NodePos)

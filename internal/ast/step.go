@@ -60,26 +60,21 @@ func (s *Step) String() string {
 type Retry struct {
 	Max     int
 	Backoff string // "constant" | "linear" | "exp"
-	// On is reserved for filtering retries to specific error types, but
-	// Funny doesn't have a typed error system yet (errors are just the
-	// string passed to err(...)), so there's no clean value to put here.
-	// The parser never populates it; it stays for forward compatibility
-	// with a future typed-error design instead of inventing a fragile
-	// string-matching stand-in now.
+	// On lists error type names to retry on (struct names, or "str" for
+	// string errors). Empty means retry every failure.
 	On []string
 }
 
 func (r *Retry) String() string {
 	out := "max=" + itoa(r.Max) + " backoff=" + r.Backoff
 	if len(r.On) > 0 {
-		out += " on=["
+		out += " on="
 		for i, s := range r.On {
 			if i > 0 {
-				out += ", "
+				out += ","
 			}
 			out += s
 		}
-		out += "]"
 	}
 	return out
 }

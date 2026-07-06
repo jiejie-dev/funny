@@ -230,6 +230,9 @@ func (p *printer) step(n *ast.Step) {
 		if n.Retry.Backoff != "" {
 			retry += " backoff=" + n.Retry.Backoff
 		}
+		if len(n.Retry.On) > 0 {
+			retry += " on=" + strings.Join(n.Retry.On, ",")
+		}
 		with = append(with, retry)
 	}
 	if n.Timeout != "" {

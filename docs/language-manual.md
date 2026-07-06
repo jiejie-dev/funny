@@ -292,15 +292,18 @@ omitted) and its `with` options are executed by `internal/agent.Engine` as follo
 - **`with ... backoff=<constant|linear|exp>`**: adds a delay between retry attempts
   (constant, `N`× the base unit, or `2^(N-1)`× the base unit); omitting `backoff`
   retries immediately, matching pre-v2.1 behavior.
+- **`with ... on=<Type1>,<Type2>`**: only retry when the failure's error type matches
+  one of the listed names. Struct-typed errors use the struct name (e.g.
+  `return err(NetworkError(message: "timeout"))`); plain string errors use `str`.
+  Omitting `on` retries every failure.
 - **`with ... timeout="<duration>"`** (e.g. `"500ms"`, `"5s"`): bounds a single attempt's
   wall-clock time. Since the tree-walking evaluator has no preemption point, a step that's
   genuinely stuck (e.g. an infinite loop) keeps running in the background after the
   timeout error is returned — `timeout` is a best-effort control-flow signal for
   eventually-terminating work (like a slow HTTP call), not a hard isolation guarantee.
 
-`retry.on` (retry only for specific error types) is deferred: Funny doesn't have a typed
-error system yet (`err(...)` just carries a string), so there's no clean value to filter on
-without inventing a fragile string-matching stand-in.
+Struct instances created via struct literals carry a runtime `__type` field with the
+struct name so plan `retry.on` can distinguish typed errors from plain strings.
 
 ## Builtin Functions
 

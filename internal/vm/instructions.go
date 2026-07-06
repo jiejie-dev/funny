@@ -6,6 +6,7 @@ import (
 
 	"github.com/jiejie-dev/funny/v2/internal/bytecode"
 	"github.com/jiejie-dev/funny/v2/internal/strfmt"
+	"github.com/jiejie-dev/funny/v2/internal/typederror"
 )
 
 // execArith handles arithmetic operations on the top two stack values.
@@ -303,10 +304,18 @@ func (v *VM) execGetField() error {
 	return nil
 }
 
-// execNewStruct handles NEW_STRUCT. For M2-B.5, this is a no-op tag.
-// The map is already on the stack; we just leave it as-is.
-func (v *VM) execNewStruct() {
-	// no-op for M2-B.5; structs are just maps.
+// execNewStruct tags the map on top of the stack with its struct type name.
+func (v *VM) execNewStruct(typeIdx int) {
+	if len(v.stack) < 1 {
+		return
+	}
+	m, ok := v.stack[len(v.stack)-1].(map[string]any)
+	if !ok {
+		return
+	}
+	if typeName, ok := v.mod.Constants[typeIdx].(string); ok {
+		m[typederror.StructTypeField] = typeName
+	}
 }
 
 // execFormatValue handles FORMAT_VALUE specIdx. Pops a value, formats it

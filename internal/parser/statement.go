@@ -540,8 +540,15 @@ func (p *Parser) parseStep() (ast.Statement, error) {
 				}
 				step.Timeout = p.cur.Data
 				p.advance()
+			case "on":
+				types, err := p.parseRetryOnList()
+				if err != nil {
+					return nil, err
+				}
+				retry.On = types
+				sawRetryOption = true
 			default:
-				return nil, errs.New("E1049", fmt.Sprintf("unknown step option %q (expected max, backoff, or timeout)", key), errPos(p.cur.Pos), "")
+				return nil, errs.New("E1049", fmt.Sprintf("unknown step option %q (expected max, backoff, timeout, or on)", key), errPos(p.cur.Pos), "")
 			}
 		}
 		if sawRetryOption {
@@ -646,6 +653,28 @@ func (p *Parser) parseBlockFromIndentedStatements() (*ast.Block, error) {
 		p.advance()
 	}
 	return block, nil
+}
+
+func (p *Parser) parseRetryOnList() ([]string, error) {
+	if p.cur.Kind != lexer.NAME {
+		return nil, errs.New("E1052", "expected error type name after on=", errPos(p.cur.Pos), "")
+	}
+	var types []string
+	for {
+		types = append(types, p.cur.Data)
+		p.advance()
+		if p.cur.Kind != lexer.COMMA {
+			break
+		}
+		p.advance()
+		if p.cur.Kind != lexer.NAME {
+			return nil, errs.New("E1052", "expected error type name after comma in on=", errPos(p.cur.Pos), "")
+		}
+	}
+	if len(types) == 0 {
+		return nil, errs.New("E1052", "on= requires at least one error type name", errPos(p.cur.Pos), "")
+	}
+	return types, nil
 }
 
 func (p *Parser) parseImport() (ast.Statement, error) {

@@ -188,7 +188,7 @@ func (v *VM) execute() (bytecode.Value, error) {
 				return nil, err
 			}
 		case bytecode.NEW_STRUCT:
-			v.execNewStruct()
+			v.execNewStruct(instr.Arg)
 		case bytecode.FORMAT_VALUE:
 			if err := v.execFormatValue(instr.Arg); err != nil {
 				return nil, err

@@ -8,6 +8,7 @@ import (
 
 	"github.com/jiejie-dev/funny/v2/internal/ast"
 	"github.com/jiejie-dev/funny/v2/internal/evaluator"
+	"github.com/jiejie-dev/funny/v2/internal/typederror"
 )
 
 // retryBackoffBase is the unit delay `backoff` strategies scale from. It's
@@ -138,7 +139,7 @@ func (e *Engine) execReturn(n *ast.ReturnStmt) (any, bool, error) {
 	}
 	if m, ok := v.(map[string]any); ok {
 		if tag, _ := m["tag"].(string); tag == "err" {
-			return nil, false, fmt.Errorf("%v", m["val"])
+			return nil, false, typederror.FromValue(m["val"])
 		}
 	}
 	return v, true, nil
@@ -189,6 +190,9 @@ func (e *Engine) execBlockRetry(s *ast.Step) error {
 		}
 		lastErr = err
 		if attempt < maxAttempts {
+			if !typederror.MatchesOn(s.Retry.On, err) {
+				return fmt.Errorf("step %q failed: %w", s.Name, err)
+			}
 			if d := backoffDelay(s.Retry, attempt); d > 0 {
 				time.Sleep(d)
 			}
@@ -219,6 +223,11 @@ func (e *Engine) runStepBodyOnce(s *ast.Step, timeout time.Duration) (any, bool,
 		return nil, false, err
 	}
 	if s.Kind == ast.StepGuard && has {
+		if m, ok := v.(map[string]any); ok {
+			if tag, _ := m["tag"].(string); tag == "err" {
+				return nil, false, typederror.FromValue(m["val"])
+			}
+		}
 		if reason := guardFailureReason(v); reason != "" {
 			return nil, false, fmt.Errorf("guard failed: %s", reason)
 		}
@@ -287,7 +296,7 @@ func guardFailureReason(v any) string {
 		tag, _ := m["tag"].(string)
 		switch tag {
 		case "err":
-			return fmt.Sprintf("%v", m["val"])
+			return typederror.FromValue(m["val"]).Error()
 		case "ok":
 			return ""
 		}

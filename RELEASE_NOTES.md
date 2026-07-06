@@ -117,7 +117,6 @@ The VM remains ~3.5× faster than the tree-walking interpreter. The spec's 5× t
 
 - 5× interpreter performance target not yet met (currently 3.5×)
 - Struct fields are immutable after construction (`p.x = 99` is `E2010`)
-- `retry.on` deferred until Funny has typed errors
 - AI-friendliness benchmark harness is ready; community LLM runs are still needed
 
 ## Upgrading from v2.1.2
