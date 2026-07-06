@@ -2,9 +2,9 @@
 
 AI-native scripting language. See `docs/superpowers/plans/` for design and planning documents.
 
-**Status: v2.0.0 — RELEASED; v2.1.0 — in progress on `main`**
+**Status: v2.1.0 — RELEASED**
 
-The complete Funny v2 stack is shipping. See `CHANGELOG.md` for the full release notes (including unreleased v2.1 work).
+The complete Funny v2 stack is shipping. See `CHANGELOG.md` and `RELEASE_NOTES.md` for release notes.
 
 ### Install
 

@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.1.0 (unreleased)
+## v2.1.0 (2026-07-07)
 
 ### Features
 - **F-string interpolation**: full `f"...{expr:spec}..."` support (lexer/parser/type checker/evaluator/bytecode VM) with a Python/Rust-flavored format-spec mini-language (`internal/strfmt`)
@@ -29,7 +29,16 @@
 - Bytecode compiler crash (`vm: unsupported op LOAD_GLOBAL`) for any script that declares a top-level `fn` in between declaring and later referencing a top-level variable (e.g. `let p = ...` / `fn foo(): ...` / `println(p)`). `compileFnDecl` was resetting the compiler's local-scope table to a brand-new empty map after compiling each function body instead of saving/restoring the enclosing scope, permanently losing track of every local declared before that point; it also never isolated `varTypes` (local slot → value type) per function, so a variable and an unrelated function parameter sharing the same slot number could silently corrupt each other's recorded type and mis-codegen type-sensitive operators like `+`
 - Lexer reported the wrong column (and byte offset) for every token except the first on a given line: `Position` was only captured once per line, during indentation handling, and silently reused for every later token on that line instead of being refreshed per-token. Every consumer that only ever looked at line numbers (error messages, `ast` output) was unaffected, but this made column-accurate tooling like the new LSP server impossible until fixed; caught while implementing hover/completion/go-to-definition, which need real per-token columns
 
-## v2.0.0 (2026-07-XX)
+### Limitations (v2.1.x follow-ups)
+- 5× interpreter performance target not yet met (currently 3.5×)
+- `match` parses but has no type-checker/evaluator/compiler backend yet
+- `break`/`continue` parse but are not implemented in loops
+- `x in list` works under `FUNNY_INTERPRET=1` but not under the default VM path
+- Tree-walking evaluator fallback still only implements the original 8 M1 builtins
+- Bare top-level expression statements (e.g. `println(...)`) are not type-checked
+- AI-friendliness benchmark harness exists; real LLM evaluation is left to community runs
+
+## v2.0.0 (2026-07-01)
 
 ### Highlights
 - Complete v2 stack: lexer, parser, type checker, bytecode VM, stdlib
