@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jiejie-dev/funny/internal/ast"
-	"github.com/jiejie-dev/funny/internal/errs"
-	"github.com/jiejie-dev/funny/internal/strfmt"
+	"github.com/jiejie-dev/funny/v2/internal/ast"
+	"github.com/jiejie-dev/funny/v2/internal/errs"
+	"github.com/jiejie-dev/funny/v2/internal/strfmt"
 )
 
 type Evaluator struct {

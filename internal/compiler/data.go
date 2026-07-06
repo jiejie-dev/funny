@@ -4,8 +4,8 @@ package compiler
 import (
 	"fmt"
 
-	"github.com/jiejie-dev/funny/internal/ast"
-	"github.com/jiejie-dev/funny/internal/bytecode"
+	"github.com/jiejie-dev/funny/v2/internal/ast"
+	"github.com/jiejie-dev/funny/v2/internal/bytecode"
 )
 
 // compileList compiles a list literal into BUILD_LIST n.

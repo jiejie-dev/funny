@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jiejie-dev/funny/internal/ast"
-	"github.com/jiejie-dev/funny/internal/bytecode"
+	"github.com/jiejie-dev/funny/v2/internal/ast"
+	"github.com/jiejie-dev/funny/v2/internal/bytecode"
 )
 
 // builtinNames lists functions that compile to CALL_BUILTIN instead of CALL.

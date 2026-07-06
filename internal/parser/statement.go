@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jiejie-dev/funny/internal/ast"
-	"github.com/jiejie-dev/funny/internal/errs"
-	"github.com/jiejie-dev/funny/internal/lexer"
+	"github.com/jiejie-dev/funny/v2/internal/ast"
+	"github.com/jiejie-dev/funny/v2/internal/errs"
+	"github.com/jiejie-dev/funny/v2/internal/lexer"
 )
 
 // tokenLiteral returns the source-level text representation of a token,

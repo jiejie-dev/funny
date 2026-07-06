@@ -3,7 +3,7 @@ package lsp
 import (
 	"strings"
 
-	"github.com/jiejie-dev/funny/internal/formatter"
+	"github.com/jiejie-dev/funny/v2/internal/formatter"
 )
 
 // formatting delegates to the shared formatter and returns a single edit

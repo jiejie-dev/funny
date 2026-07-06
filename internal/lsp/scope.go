@@ -1,6 +1,6 @@
 package lsp
 
-import "github.com/jiejie-dev/funny/internal/ast"
+import "github.com/jiejie-dev/funny/v2/internal/ast"
 
 // localSym describes a local binding (function parameter, `let`, or `for`
 // loop variable) visible at some cursor position.

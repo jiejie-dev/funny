@@ -4,8 +4,8 @@ package compiler
 import (
 	"fmt"
 
-	"github.com/jiejie-dev/funny/internal/ast"
-	"github.com/jiejie-dev/funny/internal/bytecode"
+	"github.com/jiejie-dev/funny/v2/internal/ast"
+	"github.com/jiejie-dev/funny/v2/internal/bytecode"
 )
 
 // compileIf translates: `if cond: then elif ...: ... else:? ...` into a

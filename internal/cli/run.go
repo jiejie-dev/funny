@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jiejie-dev/funny/internal/ast"
-	"github.com/jiejie-dev/funny/internal/compiler"
-	"github.com/jiejie-dev/funny/internal/evaluator"
-	"github.com/jiejie-dev/funny/internal/formatter"
-	"github.com/jiejie-dev/funny/internal/module"
-	"github.com/jiejie-dev/funny/internal/parser"
-	"github.com/jiejie-dev/funny/internal/types"
-	"github.com/jiejie-dev/funny/internal/vm"
+	"github.com/jiejie-dev/funny/v2/internal/ast"
+	"github.com/jiejie-dev/funny/v2/internal/compiler"
+	"github.com/jiejie-dev/funny/v2/internal/evaluator"
+	"github.com/jiejie-dev/funny/v2/internal/formatter"
+	"github.com/jiejie-dev/funny/v2/internal/module"
+	"github.com/jiejie-dev/funny/v2/internal/parser"
+	"github.com/jiejie-dev/funny/v2/internal/types"
+	"github.com/jiejie-dev/funny/v2/internal/vm"
 )
 
 // Run parses, type-checks, and executes the given source.

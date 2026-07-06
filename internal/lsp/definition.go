@@ -1,8 +1,8 @@
 package lsp
 
 import (
-	"github.com/jiejie-dev/funny/internal/ast"
-	"github.com/jiejie-dev/funny/internal/lexer"
+	"github.com/jiejie-dev/funny/v2/internal/ast"
+	"github.com/jiejie-dev/funny/v2/internal/lexer"
 )
 
 // definition resolves the identifier at pos to its declaration site. For

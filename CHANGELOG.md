@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.1 (2026-07-07)
+
+### Fixes
+- **Go module path** — module is now `github.com/jiejie-dev/funny/v2` so `go install ...@v2.1.1` works with semver tags (v2.x requires the `/v2` suffix per Go module rules)
+
 ## v2.1.0 (2026-07-07)
 
 ### Features

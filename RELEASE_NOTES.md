@@ -1,7 +1,7 @@
-# Release Notes — v2.1.0
+# Release Notes — v2.1.1
 
 **Release date:** 2026-07-07
-**Module:** `github.com/jiejie-dev/funny`
+**Module:** `github.com/jiejie-dev/funny/v2`
 **License:** MIT
 **Binaries:** `funny` (CLI, MCP via `funny mcp`, LSP via `funny lsp`)
 
@@ -9,13 +9,13 @@
 
 ## Overview
 
-Funny v2.1 is a major tooling and language-completeness release on top of the v2.0 stack. It ships real f-string interpolation, a source formatter, module imports, map literals and indexing, a full LSP server, VS Code extension support, and real plan-engine semantics for `guard`, `delay`, retry backoff, and step timeouts — plus a large set of VM/compiler fixes that make the default bytecode path match what v2.0 documentation already promised.
+Funny v2.1 is a major tooling and language-completeness release on top of the v2.0 stack. **v2.1.1** fixes the Go module path (`github.com/jiejie-dev/funny/v2`) so semver installs work; feature content matches v2.1.0.
 
 ## Quick start
 
 ```bash
 # Install this release
-go install github.com/jiejie-dev/funny/cmd/funny@v2.1.0
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.1
 
 # Run a script
 funny run script.fn
@@ -117,7 +117,7 @@ The VM remains ~3.5× faster than the tree-walking interpreter. The spec's 5× t
 No breaking changes to the language surface shipped in v2.0. Install the new binary:
 
 ```bash
-go install github.com/jiejie-dev/funny/cmd/funny@v2.1.0
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.1
 ```
 
 If you previously used a standalone `funny-mcp` binary, switch to `funny mcp`. Editor configs should use `funny lsp` (see `editors/vscode/`).

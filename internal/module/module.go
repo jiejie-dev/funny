@@ -39,9 +39,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/jiejie-dev/funny/internal/ast"
-	"github.com/jiejie-dev/funny/internal/errs"
-	"github.com/jiejie-dev/funny/internal/parser"
+	"github.com/jiejie-dev/funny/v2/internal/ast"
+	"github.com/jiejie-dev/funny/v2/internal/errs"
+	"github.com/jiejie-dev/funny/v2/internal/parser"
 )
 
 // resolvedModule is the fully-processed result of resolving one dependency

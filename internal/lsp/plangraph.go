@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/jiejie-dev/funny/internal/ast"
+	"github.com/jiejie-dev/funny/v2/internal/ast"
 )
 
 // planGraphs implements the custom funny/planGraph request: it turns every

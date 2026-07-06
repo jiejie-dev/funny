@@ -3,8 +3,8 @@ package lsp
 import (
 	"fmt"
 
-	"github.com/jiejie-dev/funny/internal/ast"
-	"github.com/jiejie-dev/funny/internal/lexer"
+	"github.com/jiejie-dev/funny/v2/internal/ast"
+	"github.com/jiejie-dev/funny/v2/internal/lexer"
 )
 
 // renameTarget resolves the identifier at pos and reports whether it can be

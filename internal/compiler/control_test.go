@@ -4,8 +4,8 @@ package compiler
 import (
 	"testing"
 
-	"github.com/jiejie-dev/funny/internal/bytecode"
-	"github.com/jiejie-dev/funny/internal/vm"
+	"github.com/jiejie-dev/funny/v2/internal/bytecode"
+	"github.com/jiejie-dev/funny/v2/internal/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

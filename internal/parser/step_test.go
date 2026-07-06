@@ -3,7 +3,7 @@ package parser
 import (
 	"testing"
 
-	"github.com/jiejie-dev/funny/internal/ast"
+	"github.com/jiejie-dev/funny/v2/internal/ast"
 	"github.com/stretchr/testify/require"
 )
 

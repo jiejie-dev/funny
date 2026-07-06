@@ -3,7 +3,7 @@ package lsp
 import (
 	"testing"
 
-	"github.com/jiejie-dev/funny/internal/formatter"
+	"github.com/jiejie-dev/funny/v2/internal/formatter"
 	"github.com/stretchr/testify/require"
 )
 

@@ -7,9 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jiejie-dev/funny/internal/cli"
-	"github.com/jiejie-dev/funny/internal/lsp"
-	"github.com/jiejie-dev/funny/internal/mcp"
+	"github.com/jiejie-dev/funny/v2/internal/cli"
+	"github.com/jiejie-dev/funny/v2/internal/lsp"
+	"github.com/jiejie-dev/funny/v2/internal/mcp"
 )
 
 // version is a fallback for non-release builds; `go build`/`go run` don't
@@ -17,7 +17,7 @@ import (
 // `-ldflags "-X main.version=2.1.0"` so `funny --version` matches the tag
 // actually released, instead of drifting from CHANGELOG.md/RELEASE_NOTES.md
 // like the old hardcoded "0.1.0" did.
-var version = "2.1.0"
+var version = "2.1.1"
 
 var rootCmd = &cobra.Command{
 	Use:     "funny",

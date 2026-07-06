@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jiejie-dev/funny/internal/ast"
-	"github.com/jiejie-dev/funny/internal/evaluator"
+	"github.com/jiejie-dev/funny/v2/internal/ast"
+	"github.com/jiejie-dev/funny/v2/internal/evaluator"
 )
 
 // retryBackoffBase is the unit delay `backoff` strategies scale from. It's

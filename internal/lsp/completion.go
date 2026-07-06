@@ -4,8 +4,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/jiejie-dev/funny/internal/ast"
-	"github.com/jiejie-dev/funny/internal/types"
+	"github.com/jiejie-dev/funny/v2/internal/ast"
+	"github.com/jiejie-dev/funny/v2/internal/types"
 )
 
 var keywordCompletions = []string{

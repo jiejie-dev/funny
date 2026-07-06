@@ -22,7 +22,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	_ "modernc.org/sqlite"
 
-	"github.com/jiejie-dev/funny/internal/bytecode"
+	"github.com/jiejie-dev/funny/v2/internal/bytecode"
 )
 
 // convertJSON converts a generic Go value (from json.Unmarshal) into a funny

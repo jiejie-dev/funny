@@ -4,11 +4,11 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/jiejie-dev/funny/internal/ast"
-	"github.com/jiejie-dev/funny/internal/errs"
-	"github.com/jiejie-dev/funny/internal/module"
-	"github.com/jiejie-dev/funny/internal/parser"
-	"github.com/jiejie-dev/funny/internal/types"
+	"github.com/jiejie-dev/funny/v2/internal/ast"
+	"github.com/jiejie-dev/funny/v2/internal/errs"
+	"github.com/jiejie-dev/funny/v2/internal/module"
+	"github.com/jiejie-dev/funny/v2/internal/parser"
+	"github.com/jiejie-dev/funny/v2/internal/types"
 )
 
 // document holds one open buffer plus the result of its most recent

@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jiejie-dev/funny/internal/cli"
+	"github.com/jiejie-dev/funny/v2/internal/cli"
 )
 
 func BenchmarkFibRecursive_VM(b *testing.B) {

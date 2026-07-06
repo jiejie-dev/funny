@@ -3,9 +3,9 @@ package parser
 import (
 	"fmt"
 
-	"github.com/jiejie-dev/funny/internal/ast"
-	"github.com/jiejie-dev/funny/internal/errs"
-	"github.com/jiejie-dev/funny/internal/lexer"
+	"github.com/jiejie-dev/funny/v2/internal/ast"
+	"github.com/jiejie-dev/funny/v2/internal/errs"
+	"github.com/jiejie-dev/funny/v2/internal/lexer"
 )
 
 type Parser struct {

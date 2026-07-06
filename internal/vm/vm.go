@@ -4,7 +4,7 @@ package vm
 import (
 	"fmt"
 
-	"github.com/jiejie-dev/funny/internal/bytecode"
+	"github.com/jiejie-dev/funny/v2/internal/bytecode"
 )
 
 // Frame is a function call frame.

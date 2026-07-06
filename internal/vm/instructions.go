@@ -4,8 +4,8 @@ package vm
 import (
 	"fmt"
 
-	"github.com/jiejie-dev/funny/internal/bytecode"
-	"github.com/jiejie-dev/funny/internal/strfmt"
+	"github.com/jiejie-dev/funny/v2/internal/bytecode"
+	"github.com/jiejie-dev/funny/v2/internal/strfmt"
 )
 
 // execArith handles arithmetic operations on the top two stack values.

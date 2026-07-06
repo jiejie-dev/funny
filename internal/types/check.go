@@ -3,8 +3,8 @@ package types
 import (
 	"fmt"
 
-	"github.com/jiejie-dev/funny/internal/ast"
-	"github.com/jiejie-dev/funny/internal/strfmt"
+	"github.com/jiejie-dev/funny/v2/internal/ast"
+	"github.com/jiejie-dev/funny/v2/internal/strfmt"
 )
 
 // CheckExpr type-checks an expression and returns its type.

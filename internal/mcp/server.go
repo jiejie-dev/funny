@@ -11,11 +11,11 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/jiejie-dev/funny/internal/ast"
-	"github.com/jiejie-dev/funny/internal/cli"
-	"github.com/jiejie-dev/funny/internal/module"
-	"github.com/jiejie-dev/funny/internal/parser"
-	"github.com/jiejie-dev/funny/internal/types"
+	"github.com/jiejie-dev/funny/v2/internal/ast"
+	"github.com/jiejie-dev/funny/v2/internal/cli"
+	"github.com/jiejie-dev/funny/v2/internal/module"
+	"github.com/jiejie-dev/funny/v2/internal/parser"
+	"github.com/jiejie-dev/funny/v2/internal/types"
 )
 
 // Run starts the funny MCP server on stdio and blocks until ctx is canceled

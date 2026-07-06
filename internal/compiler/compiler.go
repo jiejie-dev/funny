@@ -4,8 +4,8 @@ package compiler
 import (
 	"fmt"
 
-	"github.com/jiejie-dev/funny/internal/ast"
-	"github.com/jiejie-dev/funny/internal/bytecode"
+	"github.com/jiejie-dev/funny/v2/internal/ast"
+	"github.com/jiejie-dev/funny/v2/internal/bytecode"
 )
 
 // valueType is the runtime value type produced by an expression.

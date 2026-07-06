@@ -3,8 +3,8 @@ package lsp
 import (
 	"strings"
 
-	"github.com/jiejie-dev/funny/internal/lexer"
-	"github.com/jiejie-dev/funny/internal/types"
+	"github.com/jiejie-dev/funny/v2/internal/lexer"
+	"github.com/jiejie-dev/funny/v2/internal/types"
 )
 
 // signatureHelp finds the call expression enclosing pos (via bracket

@@ -1,6 +1,6 @@
 package lsp
 
-import "github.com/jiejie-dev/funny/internal/ast"
+import "github.com/jiejie-dev/funny/v2/internal/ast"
 
 // symbolKind classifies what a resolved identifier refers to, driving how
 // far referencesTo searches for other occurrences of the same name.
