@@ -61,6 +61,7 @@ func TestOpCode_String(t *testing.T) {
 		{SET_INDEX, "SET_INDEX"},
 		{BUILD_MAP, "BUILD_MAP"},
 		{GET_FIELD, "GET_FIELD"},
+		{SET_FIELD, "SET_FIELD"},
 		{NEW_STRUCT, "NEW_STRUCT"},
 		{HALT, "HALT"},
 	}

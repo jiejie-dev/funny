@@ -187,6 +187,10 @@ func (v *VM) execute() (bytecode.Value, error) {
 			if err := v.execGetField(); err != nil {
 				return nil, err
 			}
+		case bytecode.SET_FIELD:
+			if err := v.execSetField(); err != nil {
+				return nil, err
+			}
 		case bytecode.NEW_STRUCT:
 			v.execNewStruct(instr.Arg)
 		case bytecode.FORMAT_VALUE:

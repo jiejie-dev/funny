@@ -207,6 +207,9 @@ func (c *Compiler) compileLet(n *ast.LetStmt) error {
 }
 
 func (c *Compiler) compileAssign(n *ast.AssignStmt) error {
+	if fe, ok := n.Target.(*ast.FieldExpr); ok {
+		return c.compileFieldAssign(fe, n.Value)
+	}
 	if idx, ok := n.Target.(*ast.IndexExpr); ok {
 		return c.compileIndexAssign(idx, n.Value)
 	}
@@ -240,6 +243,22 @@ func (c *Compiler) compileIndexAssign(idx *ast.IndexExpr, value ast.Expression) 
 		return err
 	}
 	c.fn.Emit(bytecode.SET_INDEX, 0)
+	c.fn.Emit(bytecode.POP, 0)
+	return nil
+}
+
+// compileFieldAssign compiles `obj.field = value` into SET_FIELD. Stack layout
+// (bottom to top): value, object, field name — mirroring SET_INDEX.
+func (c *Compiler) compileFieldAssign(fe *ast.FieldExpr, value ast.Expression) error {
+	if _, err := c.compileExpr(value); err != nil {
+		return err
+	}
+	if _, err := c.compileExpr(fe.Object); err != nil {
+		return err
+	}
+	nameIdx := c.mod.AddConstant(fe.Field)
+	c.fn.Emit(bytecode.PUSH_STR, nameIdx)
+	c.fn.Emit(bytecode.SET_FIELD, 0)
 	c.fn.Emit(bytecode.POP, 0)
 	return nil
 }

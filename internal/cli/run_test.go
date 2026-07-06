@@ -377,3 +377,20 @@ plan "demo":
 	assert.Contains(t, s, "s1")
 	assert.Contains(t, s, "s2")
 }
+
+func TestRun_MutFieldAssign(t *testing.T) {
+	src := `struct Counter:
+    mut count: int
+    label: str
+
+let c = Counter(count: 0, label: "hits")
+c.count = c.count + 1
+c.count = c.count + 2
+println(c.count)
+println(c.label)
+`
+	out := captureStdout(t, func() {
+		require.NoError(t, Run([]byte(src), "test.fn"))
+	})
+	assert.Equal(t, "3\nhits\n", out)
+}

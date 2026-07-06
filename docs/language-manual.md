@@ -139,6 +139,19 @@ let u = User(name: "alice", age: 30)
 println(u.name)  # field access
 ```
 
+Fields are immutable by default. Mark a field with `mut` to allow assignment
+after construction:
+
+```
+struct Counter:
+    mut count: int
+    label: str
+
+let c = Counter(count: 0, label: "hits")
+c.count = c.count + 1   # OK
+c.label = "other"       # compile error: field is not mutable
+```
+
 ### Modules and Imports
 
 `import "path/to/file.fn"` loads real declarations from another file on

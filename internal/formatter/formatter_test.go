@@ -145,6 +145,12 @@ func TestFormat_StructDecl(t *testing.T) {
 	assert.Equal(t, "pub struct Point:\n    x: int\n    y: int\n", out)
 }
 
+func TestFormat_StructDecl_MutFields(t *testing.T) {
+	out, err := Format([]byte("struct Counter:\n    mut count:int\n    label:str\n"), "t")
+	require.NoError(t, err)
+	assert.Equal(t, "struct Counter:\n    mut count: int\n    label: str\n", out)
+}
+
 func TestFormat_MetaBlock(t *testing.T) {
 	out, err := Format([]byte("meta:\n    name=\"demo\"\n    version=\"1.0\"\n"), "t")
 	require.NoError(t, err)

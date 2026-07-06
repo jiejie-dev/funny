@@ -60,6 +60,7 @@ const (
 	LET      Kind = "let"
 	MATCH    Kind = "match"
 	META     Kind = "meta"
+	MUT      Kind = "mut"
 	NIL      Kind = "nil"
 	NOT      Kind = "not"
 	OR       Kind = "or"
@@ -76,7 +77,7 @@ var keywordSet = map[string]Kind{
 	"and": AND, "as": AS, "break": BREAK, "continue": CONTINUE,
 	"elif": ELIF, "else": ELSE, "false": FALSE, "fn": FN,
 	"for": FOR, "if": IF, "import": IMPORT, "in": IN, "let": LET,
-	"match": MATCH, "meta": META, "nil": NIL, "not": NOT, "or": OR,
+	"match": MATCH, "meta": META, "mut": MUT, "nil": NIL, "not": NOT, "or": OR,
 	"plan": PLAN, "pub": PUB, "return": RETURN, "step": STEP,
 	"struct": STRUCT, "true": TRUE, "while": WHILE,
 }

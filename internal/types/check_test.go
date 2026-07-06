@@ -567,6 +567,39 @@ func TestCheck_StructDecl_FieldMissingType(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestCheck_MutFieldAssign_Ok(t *testing.T) {
+	src := `struct Counter:
+    mut count: int
+    label: str
+
+let c = Counter(count: 0, label: "hits")
+c.count = c.count + 1
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	assert.NoError(t, err)
+}
+
+func TestCheck_MutFieldAssign_ImmutableRejected(t *testing.T) {
+	src := `struct Counter:
+    mut count: int
+    label: str
+
+let c = Counter(count: 0, label: "hits")
+c.label = "other"
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not mutable")
+}
+
 func TestIntegration_TypeCheck_Basic(t *testing.T) {
 	src := `let x: int = 42
 let y: float = 3.14

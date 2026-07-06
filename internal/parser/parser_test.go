@@ -203,6 +203,20 @@ func TestParser_StructDecl(t *testing.T) {
 	assert.Len(t, s.Fields, 2)
 }
 
+func TestParser_StructDecl_MutFields(t *testing.T) {
+	src := "struct Counter:\n    mut count: int\n    label: str\n"
+	p := New(src, "")
+	prog, err := p.Parse()
+	assert.NoError(t, err)
+	s := prog.Stmts[0].(*ast.StructDecl)
+	assert.Equal(t, "Counter", s.Name)
+	require.Len(t, s.Fields, 2)
+	assert.True(t, s.Fields[0].Mut)
+	assert.Equal(t, "count", s.Fields[0].Name)
+	assert.False(t, s.Fields[1].Mut)
+	assert.Equal(t, "label", s.Fields[1].Name)
+}
+
 func TestParser_PubFn(t *testing.T) {
 	src := "pub fn hello() -> int:\n    return 1\n"
 	p := New(src, "")

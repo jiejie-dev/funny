@@ -89,6 +89,25 @@ func TestType_Struct_Equal(t *testing.T) {
 	assert.False(t, a.Equal(c))
 }
 
+func TestType_Struct_Equal_Mutability(t *testing.T) {
+	a := Struct{
+		Name: "Counter",
+		Fields: map[string]Type{
+			"count": Primitive("int"),
+		},
+		Mutable: map[string]bool{"count": true},
+	}
+	b := Struct{
+		Name: "Counter",
+		Fields: map[string]Type{
+			"count": Primitive("int"),
+		},
+	}
+	assert.False(t, a.Equal(b))
+	assert.True(t, a.IsMutable("count"))
+	assert.False(t, b.IsMutable("count"))
+}
+
 func TestType_Struct_Field(t *testing.T) {
 	s := Struct{
 		Name:   "User",

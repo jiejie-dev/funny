@@ -613,6 +613,9 @@ func isEmptyContainerLiteral(n ast.Expression) bool {
 }
 
 func checkAssign(n *ast.AssignStmt, env *Env) error {
+	if fe, ok := n.Target.(*ast.FieldExpr); ok {
+		return checkFieldAssign(fe, n.Value, n.NodePos, env)
+	}
 	valT, err := CheckExpr(n.Value, env)
 	if err != nil {
 		return err
@@ -623,6 +626,32 @@ func checkAssign(n *ast.AssignStmt, env *Env) error {
 	}
 	if !Equal(valT, targetT) {
 		return NewMismatch(n.NodePos, targetT, valT)
+	}
+	return nil
+}
+
+func checkFieldAssign(fe *ast.FieldExpr, value ast.Expression, pos ast.Pos, env *Env) error {
+	objT, err := CheckExpr(fe.Object, env)
+	if err != nil {
+		return err
+	}
+	s, ok := objT.(Struct)
+	if !ok {
+		return New("E2051", fmt.Sprintf("field assignment requires struct, got %s", objT), pos)
+	}
+	if !s.IsMutable(fe.Field) {
+		return New("E2010", fmt.Sprintf("field %s.%s is not mutable; declare with mut", s.Name, fe.Field), pos)
+	}
+	fieldT, ok := s.Field(fe.Field)
+	if !ok {
+		return New("E2052", fmt.Sprintf("struct %s has no field %q", s.Name, fe.Field), pos)
+	}
+	valT, err := CheckExpr(value, env)
+	if err != nil {
+		return err
+	}
+	if !Equal(valT, fieldT) {
+		return NewMismatch(pos, fieldT, valT)
 	}
 	return nil
 }
@@ -770,6 +799,7 @@ func checkFnDecl(n *ast.FnDecl, env *Env) error {
 
 func checkStructDecl(n *ast.StructDecl, env *Env) error {
 	fields := map[string]Type{}
+	mutable := map[string]bool{}
 	for _, f := range n.Fields {
 		if f.TypeAnn == "" {
 			return New("E2013", fmt.Sprintf("struct field %q missing type annotation", f.Name), n.NodePos)
@@ -779,8 +809,11 @@ func checkStructDecl(n *ast.StructDecl, env *Env) error {
 			return New("E2012", fmt.Sprintf("invalid type for field %q: %v", f.Name, err), n.NodePos)
 		}
 		fields[f.Name] = resolveNamedType(ft, env)
+		if f.Mut {
+			mutable[f.Name] = true
+		}
 	}
-	env.DeclareStruct(n.Name, Struct{Name: n.Name, Fields: fields})
+	env.DeclareStruct(n.Name, Struct{Name: n.Name, Fields: fields, Mutable: mutable})
 	return nil
 }
 

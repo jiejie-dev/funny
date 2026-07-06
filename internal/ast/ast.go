@@ -450,13 +450,18 @@ func (s *ExprStmt) String() string { return s.X.String() }
 type Param struct {
 	Name    string
 	TypeAnn string
+	Mut     bool // struct fields only: `mut count: int`
 }
 
 func (p Param) String() string {
-	if p.TypeAnn != "" {
-		return fmt.Sprintf("%s: %s", p.Name, p.TypeAnn)
+	prefix := ""
+	if p.Mut {
+		prefix = "mut "
 	}
-	return p.Name
+	if p.TypeAnn != "" {
+		return fmt.Sprintf("%s%s: %s", prefix, p.Name, p.TypeAnn)
+	}
+	return prefix + p.Name
 }
 
 type FnDecl struct {

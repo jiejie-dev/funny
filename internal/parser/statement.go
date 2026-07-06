@@ -412,6 +412,11 @@ func (p *Parser) parseStructDecl() (ast.Statement, error) {
 		if p.cur.Kind == lexer.DEDENT || p.cur.Kind == lexer.EOF {
 			break
 		}
+		mut := false
+		if p.cur.Kind == lexer.MUT {
+			p.advance()
+			mut = true
+		}
 		if p.cur.Kind != lexer.NAME {
 			return nil, errs.New("E1034", "expected field name in struct", errPos(p.cur.Pos), "")
 		}
@@ -422,7 +427,7 @@ func (p *Parser) parseStructDecl() (ast.Statement, error) {
 			p.advance()
 			ftype = p.consumeTypeAnn(lexer.NEWLINE)
 		}
-		fields = append(fields, ast.Param{Name: fname, TypeAnn: ftype})
+		fields = append(fields, ast.Param{Name: fname, TypeAnn: ftype, Mut: mut})
 	}
 	if p.cur.Kind == lexer.DEDENT {
 		p.advance()

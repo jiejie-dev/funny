@@ -180,6 +180,23 @@ func (e *Evaluator) assignIndex(n *ast.IndexExpr, val any) error {
 	return errs.New("E2050", "cannot index-assign into non-list/map", toErrPos(n.NodePos), "")
 }
 
+// assignField evaluates `obj.field = val` on a struct (map[string]any).
+func (e *Evaluator) assignField(n *ast.FieldExpr, val any) error {
+	obj, err := e.Eval(n.Object)
+	if err != nil {
+		return err
+	}
+	m, ok := obj.(map[string]any)
+	if !ok {
+		return errs.New("E2060", "field assignment requires map/struct", toErrPos(n.NodePos), "")
+	}
+	if _, ok := m[n.Field]; !ok {
+		return errs.New("E2061", fmt.Sprintf("no field %q", n.Field), toErrPos(n.NodePos), "")
+	}
+	m[n.Field] = val
+	return nil
+}
+
 // evalMapLiteral evaluates a `{key: value, ...}` literal into a
 // map[string]any, coercing non-string keys the same way the VM's BUILD_MAP
 // instruction does, so both execution paths agree on runtime representation.
@@ -438,6 +455,12 @@ func (e *Evaluator) execStmt(s ast.Statement) (any, bool, error) {
 		v, err := e.Eval(n.Value)
 		if err != nil {
 			return nil, false, err
+		}
+		if fe, ok := n.Target.(*ast.FieldExpr); ok {
+			if err := e.assignField(fe, v); err != nil {
+				return nil, false, err
+			}
+			return nil, false, nil
 		}
 		if idx, ok := n.Target.(*ast.IndexExpr); ok {
 			if err := e.assignIndex(idx, v); err != nil {

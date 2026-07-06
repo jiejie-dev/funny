@@ -71,8 +71,9 @@ func (m Map) typeMarker() {}
 
 // Struct is a user-defined struct type with named fields.
 type Struct struct {
-	Name   string
-	Fields map[string]Type
+	Name    string
+	Fields  map[string]Type
+	Mutable map[string]bool // field name → declared with `mut`
 }
 
 func (s Struct) String() string {
@@ -93,8 +94,16 @@ func (s Struct) Equal(other Type) bool {
 		if !ok || !Equal(v, ov) {
 			return false
 		}
+		if s.Mutable[k] != o.Mutable[k] {
+			return false
+		}
 	}
 	return true
+}
+
+// IsMutable reports whether field name was declared with `mut`.
+func (s Struct) IsMutable(name string) bool {
+	return s.Mutable[name]
 }
 
 func (s Struct) typeMarker() {}

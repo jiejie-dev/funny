@@ -473,6 +473,26 @@ func TestVM_GetField(t *testing.T) {
 	assert.Equal(t, 99, v)
 }
 
+func TestVM_SetField(t *testing.T) {
+	fn := &bytecode.Function{Name: "main", Arity: 0, NumLocals: 1}
+	fn.Emit(bytecode.PUSH_STR, 0) // "count"
+	fn.Emit(bytecode.PUSH_INT, 1) // 0
+	fn.Emit(bytecode.BUILD_MAP, 1)
+	fn.Emit(bytecode.STORE_LOCAL, 0)
+	fn.Emit(bytecode.POP, 0)
+	fn.Emit(bytecode.PUSH_INT, 2) // value 5
+	fn.Emit(bytecode.LOAD_LOCAL, 0)
+	fn.Emit(bytecode.PUSH_STR, 0) // "count"
+	fn.Emit(bytecode.SET_FIELD, 0)
+	fn.Emit(bytecode.POP, 0)
+	fn.Emit(bytecode.LOAD_LOCAL, 0)
+	fn.Emit(bytecode.PUSH_STR, 0) // "count"
+	fn.Emit(bytecode.GET_FIELD, 0)
+	fn.Emit(bytecode.HALT, 0)
+	v := runModule(t, fn, nil, "count", 0, 5)
+	assert.Equal(t, 5, v)
+}
+
 func TestVM_NewStruct(t *testing.T) {
 	main := &bytecode.Function{Name: "main", Arity: 0}
 	main.Emit(bytecode.PUSH_STR, 0) // "k"

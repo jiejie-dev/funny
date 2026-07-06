@@ -262,6 +262,32 @@ func (v *VM) execSetIndex() error {
 	return fmt.Errorf("vm: SET_INDEX on non-list/map")
 }
 
+// execSetField handles SET_FIELD for `obj.field = value`. Stack layout on
+// entry (bottom to top): value, object, field name. Pops field name and object,
+// leaves value on top for the compiler's trailing POP.
+func (v *VM) execSetField() error {
+	if len(v.stack) < 3 {
+		return fmt.Errorf("vm: SET_FIELD requires 3 stack values")
+	}
+	fname := v.stack[len(v.stack)-1]
+	obj := v.stack[len(v.stack)-2]
+	val := v.stack[len(v.stack)-3]
+	v.stack = v.stack[:len(v.stack)-2]
+	fs, ok := fname.(string)
+	if !ok {
+		return fmt.Errorf("vm: SET_FIELD field name not string")
+	}
+	switch o := obj.(type) {
+	case map[string]bytecode.Value:
+		if _, ok := o[fs]; !ok {
+			return fmt.Errorf("vm: SET_FIELD no field %q", fs)
+		}
+		o[fs] = val
+		return nil
+	}
+	return fmt.Errorf("vm: SET_FIELD on non-map/struct")
+}
+
 // execBuildMap handles BUILD_MAP n. Pops 2n values (alternating key, value), pushes map.
 func (v *VM) execBuildMap(n int) {
 	m := make(map[string]bytecode.Value, n)

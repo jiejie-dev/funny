@@ -75,6 +75,7 @@ const (
 	SET_INDEX  OpCode = "SET_INDEX"
 	BUILD_MAP  OpCode = "BUILD_MAP"
 	GET_FIELD  OpCode = "GET_FIELD"
+	SET_FIELD  OpCode = "SET_FIELD"
 	NEW_STRUCT OpCode = "NEW_STRUCT"
 
 	// Halt
