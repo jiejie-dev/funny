@@ -276,8 +276,11 @@ omitted) and its `with` options are executed by `internal/agent.Engine` as follo
   Result or anything falsy fails the step (triggering retry, if configured); an `ok(...)`
   Result always passes regardless of its payload. A body that ends in `let`/`assign`
   (nothing to assert) always passes.
-- **`branch`**: identical to `tool` — there's no dedicated branch-case syntax yet, so
-  conditional logic is just an ordinary `if`/`else` inside the body.
+- **`branch`**: evaluates a case-list and runs exactly one named target step
+  (`cond => "step_name"`, with `_ => "fallback"` as the default arm). Target
+  steps are skipped during normal sequential plan execution and only run when
+  selected. A legacy `if`/`else` body is still accepted for backward
+  compatibility.
 - **`delay`**: requires `with timeout="<duration>"`; sleeps for that duration before
   running the body (which is typically empty or just `pass`).
 - **`parallel`**: every statement directly in the body runs concurrently, one goroutine

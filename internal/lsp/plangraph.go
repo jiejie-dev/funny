@@ -25,9 +25,9 @@ import (
 //     engine semantics (see internal/agent/engine.go), but none of them
 //     change the *graph shape* — a guard's pass/fail assertion and a
 //     delay's sleep both happen inside a single node, they don't fan out
-//     into separate nodes/edges. `branch` still has no dedicated
-//     case-list syntax (it's just `tool` with ordinary if/else inside the
-//     body), so this graph does not invent branching edges for it.
+//     into separate nodes/edges. A `branch` step with a case-list fans out
+//     to its target step nodes via "branch" edges; target steps are skipped
+//     in the linear "sequence" chain (they only run when selected).
 func (d *document) planGraphs() PlanGraphResult {
 	result := PlanGraphResult{Plans: []PlanGraph{}}
 	if d.prog == nil {
@@ -54,26 +54,44 @@ func buildPlanGraph(plan *ast.PlanBlock) PlanGraph {
 		return g
 	}
 
+	branchTargets := planBranchTargets(plan)
+	nameToID := map[string]string{}
+	for i, stmt := range plan.Body.Statements {
+		if step, ok := stmt.(*ast.Step); ok {
+			nameToID[step.Name] = fmt.Sprintf("step-%d", i)
+		}
+	}
+
 	var prevID string
 	for i, stmt := range plan.Body.Statements {
 		step, ok := stmt.(*ast.Step)
 		if !ok {
-			continue // a plan body may in principle hold other statements; only `step`s are graphed
+			continue
 		}
 		id := fmt.Sprintf("step-%d", i)
-		node := PlanNode{
+		g.Nodes = append(g.Nodes, PlanNode{
 			ID:      id,
 			Label:   step.Name,
 			Kind:    step.Kind.String(),
 			Range:   stepRange(step),
 			Timeout: step.Timeout,
 			Retry:   retryInfo(step.Retry),
-		}
-		g.Nodes = append(g.Nodes, node)
-		if prevID != "" {
+		})
+
+		isTarget := branchTargets[step.Name]
+		if !isTarget && prevID != "" {
 			g.Edges = append(g.Edges, PlanEdge{From: prevID, To: id, Kind: "sequence"})
 		}
-		prevID = id
+		if step.Kind == ast.StepBranch && len(step.BranchCases) > 0 {
+			for _, c := range step.BranchCases {
+				if targetID, ok := nameToID[c.Target]; ok {
+					g.Edges = append(g.Edges, PlanEdge{From: id, To: targetID, Kind: "branch"})
+				}
+			}
+		}
+		if !isTarget {
+			prevID = id
+		}
 
 		if step.Kind == ast.StepParallel && step.Body != nil {
 			for j, taskStmt := range step.Body.Statements {
@@ -90,6 +108,23 @@ func buildPlanGraph(plan *ast.PlanBlock) PlanGraph {
 		}
 	}
 	return g
+}
+
+func planBranchTargets(plan *ast.PlanBlock) map[string]bool {
+	targets := map[string]bool{}
+	if plan.Body == nil {
+		return targets
+	}
+	for _, stmt := range plan.Body.Statements {
+		step, ok := stmt.(*ast.Step)
+		if !ok {
+			continue
+		}
+		for _, c := range step.BranchCases {
+			targets[c.Target] = true
+		}
+	}
+	return targets
 }
 
 func retryInfo(r *ast.Retry) *RetryInfo {

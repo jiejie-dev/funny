@@ -30,8 +30,8 @@ func New() *Engine {
 // statement (if any) is stored in scope as __result, so later steps can
 // read what the previous one produced (e.g. `println(__result)`).
 func (e *Engine) RunPlan(plan *ast.PlanBlock, file string) error {
-	_, _, err := e.execBlock(plan.Body)
-	return err
+	pc := buildPlanContext(plan)
+	return e.execPlanStatements(pc)
 }
 
 // execBlock runs every statement in b in order and returns the value of

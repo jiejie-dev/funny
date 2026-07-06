@@ -21,8 +21,19 @@ type Step struct {
 	Name    string
 	Kind    StepKind
 	Body    *Block
-	Retry   *Retry
-	Timeout string // raw duration string e.g. "5s"
+	// BranchCases holds the case-list for `-> branch` steps:
+	//   cond => "target_step"
+	// When non-empty, the engine dispatches to a named plan step instead of
+	// running Body. Body remains for backward-compatible if/else fallback.
+	BranchCases []BranchCase
+	Retry       *Retry
+	Timeout     string // raw duration string e.g. "5s"
+}
+
+// BranchCase maps a condition to a target step name in the same plan.
+type BranchCase struct {
+	Cond   Expression
+	Target string
 }
 
 func (s *Step) Pos() Pos    { return s.NodePos }
@@ -35,6 +46,9 @@ func (s *Step) String() string {
 	}
 	if s.Timeout != "" {
 		out += "    timeout: " + s.Timeout + "\n"
+	}
+	for _, c := range s.BranchCases {
+		out += "    " + c.Cond.String() + " => \"" + c.Target + "\"\n"
 	}
 	if s.Body != nil {
 		out += s.Body.String()

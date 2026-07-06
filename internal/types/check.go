@@ -543,7 +543,9 @@ func checkStmt(s ast.Statement, env *Env) error {
 		return checkContinue(n, env)
 	case *ast.ExprStmt:
 		return checkExprStmt(n, env)
-	case *ast.PlanBlock, *ast.ImportDecl, *ast.CommentStmt:
+	case *ast.PlanBlock:
+		return checkPlanBlock(n, env)
+	case *ast.ImportDecl, *ast.CommentStmt:
 		return nil
 	case *ast.MetaBlock:
 		return checkMeta(n, env)

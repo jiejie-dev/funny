@@ -239,6 +239,9 @@ func (p *printer) step(n *ast.Step) {
 		head += " with " + strings.Join(with, " ")
 	}
 	p.writeLine(head + ":")
+	for _, c := range n.BranchCases {
+		p.writeLine("    " + p.expr(c.Cond) + " => \"" + c.Target + "\"")
+	}
 	if n.Body != nil {
 		p.block(n.Body)
 	}

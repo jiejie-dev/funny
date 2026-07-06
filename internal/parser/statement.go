@@ -551,12 +551,101 @@ func (p *Parser) parseStep() (ast.Statement, error) {
 	if _, err := p.expect(lexer.COLON); err != nil {
 		return nil, err
 	}
+	if step.Kind == ast.StepBranch {
+		if err := p.parseBranchStepTail(step); err != nil {
+			return nil, err
+		}
+		return step, nil
+	}
 	body, err := p.parseBlock()
 	if err != nil {
 		return nil, err
 	}
 	step.Body = body
 	return step, nil
+}
+
+// parseBranchStepTail parses either a case-list (`cond => "step"`) or a
+// legacy statement body (`if`/`else` ...) after `-> branch:`.
+func (p *Parser) parseBranchStepTail(step *ast.Step) error {
+	if p.cur.Kind == lexer.NEWLINE {
+		p.advance()
+	}
+	if _, err := p.expect(lexer.INDENT); err != nil {
+		return err
+	}
+	if p.cur.Kind == lexer.IF {
+		block, err := p.parseBlockFromIndentedStatements()
+		if err != nil {
+			return err
+		}
+		step.Body = block
+		return nil
+	}
+	cases, err := p.parseBranchCasesBody()
+	if err != nil {
+		return err
+	}
+	step.BranchCases = cases
+	return nil
+}
+
+func (p *Parser) parseBranchCasesBody() ([]ast.BranchCase, error) {
+	var cases []ast.BranchCase
+	for p.cur.Kind != lexer.DEDENT && p.cur.Kind != lexer.EOF {
+		for p.cur.Kind == lexer.NEWLINE {
+			p.advance()
+		}
+		if p.cur.Kind == lexer.DEDENT {
+			break
+		}
+		cond, err := p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		if _, err := p.expect(lexer.FATARROW); err != nil {
+			return nil, err
+		}
+		if p.cur.Kind != lexer.STR {
+			return nil, errs.New("E1051", "expected target step name as string after =>", errPos(p.cur.Pos), "")
+		}
+		target := p.cur.Data
+		p.advance()
+		cases = append(cases, ast.BranchCase{Cond: cond, Target: target})
+	}
+	if len(cases) == 0 {
+		return nil, errs.New("E1051", "branch step requires at least one case (cond => \"step\")", errPos(p.cur.Pos), "")
+	}
+	if p.cur.Kind == lexer.DEDENT {
+		p.advance()
+	}
+	return cases, nil
+}
+
+// parseBlockFromIndentedStatements parses statements until DEDENT when the
+// INDENT token has already been consumed (used by branch legacy bodies).
+func (p *Parser) parseBlockFromIndentedStatements() (*ast.Block, error) {
+	pos := astPos(p.cur.Pos)
+	block := &ast.Block{NodePos: pos}
+	for p.cur.Kind != lexer.DEDENT && p.cur.Kind != lexer.EOF {
+		for p.cur.Kind == lexer.NEWLINE {
+			p.advance()
+		}
+		if p.cur.Kind == lexer.DEDENT || p.cur.Kind == lexer.EOF {
+			break
+		}
+		s, err := p.parseStatement()
+		if err != nil {
+			return nil, err
+		}
+		if s != nil {
+			block.Statements = append(block.Statements, s)
+		}
+	}
+	if p.cur.Kind == lexer.DEDENT {
+		p.advance()
+	}
+	return block, nil
 }
 
 func (p *Parser) parseImport() (ast.Statement, error) {

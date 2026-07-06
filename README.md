@@ -38,7 +38,7 @@ funny lsp                   # start LSP server (for editors/IDEs)
 - AI-native design: indentation-based syntax, strong typing, agent protocol
 - Bytecode VM (default) + tree-walking evaluator fallback (VM is ~3.5× faster; set `FUNNY_INTERPRET=1` to use the interpreter instead)
 - `Result` + `?` operator for error propagation
-- Plan engine: `tool`/`transform`/`guard`/`delay`/`parallel` step kinds with real retry+backoff, timeout, and guard-assertion semantics (`branch` is currently `tool` plus ordinary `if`/`else` — no dedicated case-list syntax yet)
+- Plan engine: `tool`/`transform`/`guard`/`delay`/`parallel` step kinds with real retry+backoff, timeout, and guard-assertion semantics; `branch` supports a case-list (`cond => "step"`) that dispatches to named plan steps (legacy `if`/`else` bodies still accepted)
 - MCP server with 6 tools for LLM integration
 - LSP server: diagnostics, hover, completion, signature help, go-to-definition, document symbols, formatting, find-references, rename, and a custom `funny/planGraph` plan-visualization request
 - VS Code extension (`editors/vscode/`): syntax highlighting, snippets, LSP integration, run/format commands, plan graph view
