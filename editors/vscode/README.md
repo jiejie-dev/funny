@@ -7,32 +7,30 @@ Language support for [Funny](https://github.com/jiejie-dev/funny), an AI-native 
 | Feature | Source |
 |---|---|
 | Syntax highlighting | TextMate grammar (`.fn`, `.funny`) |
-| Diagnostics | `funny-lsp` |
-| Hover / type info | `funny-lsp` |
-| Autocomplete | `funny-lsp` |
-| Signature help | `funny-lsp` |
-| Go to definition | `funny-lsp` |
-| Find references | `funny-lsp` |
-| Rename | `funny-lsp` |
-| Document symbols (outline) | `funny-lsp` |
-| Format document | `funny-lsp` (same as `funny fmt`) |
+| Diagnostics | `funny lsp` |
+| Hover / type info | `funny lsp` |
+| Autocomplete | `funny lsp` |
+| Signature help | `funny lsp` |
+| Go to definition | `funny lsp` |
+| Find references | `funny lsp` |
+| Rename | `funny lsp` |
+| Document symbols (outline) | `funny lsp` |
+| Format document | `funny lsp` (same as `funny fmt`) |
 | Code snippets | Built-in |
 | Run current file | `funny run` command |
 | Plan graph visualization | Custom `funny/planGraph` LSP request |
 
 ## Prerequisites
 
-Install the Funny toolchain and ensure `funny-lsp` and `funny` are on your `PATH`:
+Install the Funny toolchain — one binary covers the CLI, LSP, and MCP servers:
 
 ```bash
-go install github.com/jiejie-dev/funny/cmd/funny-lsp@latest
 go install github.com/jiejie-dev/funny/cmd/funny@latest
 ```
 
-Or build from this repository:
+Ensure `$HOME/go/bin` is on your `PATH`. Or build from this repository:
 
 ```bash
-go build -o funny-lsp ./cmd/funny-lsp
 go build -o funny ./cmd/funny
 ```
 
@@ -58,7 +56,8 @@ code --install-extension funny-vscode-*.vsix
 
 | Setting | Default | Description |
 |---|---|---|
-| `funny.lsp.path` | `funny-lsp` | Path to the language server |
+| `funny.lsp.path` | `funny` | Path to the executable that starts the language server |
+| `funny.lsp.args` | `["lsp"]` | Arguments passed to start the language server |
 | `funny.executablePath` | `funny` | Path to the CLI for run commands |
 | `funny.trace.server` | `off` | LSP trace level (`off` / `messages` / `verbose`) |
 

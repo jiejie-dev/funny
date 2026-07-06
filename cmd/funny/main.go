@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 
 	"github.com/jiejie-dev/funny/internal/cli"
+	"github.com/jiejie-dev/funny/internal/lsp"
+	"github.com/jiejie-dev/funny/internal/mcp"
 )
 
 // version is a fallback for non-release builds; `go build`/`go run` don't
@@ -116,9 +119,25 @@ var disasmCmd = &cobra.Command{
 	},
 }
 
+var lspCmd = &cobra.Command{
+	Use:   "lsp",
+	Short: "Start the LSP server over stdio (for editors/IDEs)",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return lsp.Run(context.Background())
+	},
+}
+
+var mcpCmd = &cobra.Command{
+	Use:   "mcp",
+	Short: "Start the MCP server over stdio (for LLM clients)",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return mcp.Run(context.Background())
+	},
+}
+
 func init() {
 	fmtCmd.Flags().BoolP("write", "w", false, "write result to the source file instead of stdout")
-	rootCmd.AddCommand(runCmd, astCmd, fmtCmd, describeCmd, disasmCmd)
+	rootCmd.AddCommand(runCmd, astCmd, fmtCmd, describeCmd, disasmCmd, lspCmd, mcpCmd)
 }
 
 func main() {

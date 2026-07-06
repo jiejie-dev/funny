@@ -189,7 +189,7 @@ compiled or type-checked by the bytecode VM at all (`funny run`
 silently no-ops a top-level `plan` block); they execute on a *separate*
 tree-walking engine (`internal/agent.Engine`) that is currently only
 exercised from Go code (see `internal/agent/engine_test.go`) and isn't
-yet wired up to any CLI subcommand or to the `funny-mcp` server's
+yet wired up to any CLI subcommand or to the `funny mcp` server's
 `run_skill` tool. That engine also only implements funny's small core
 builtin set (`print`/`println`/`len`/`to_str`/`to_int`/`type_of`/`ok`/`err`),
 not the extended stdlib (`file_*`/`http_get`/`regex_match`/`sha256`/
@@ -268,6 +268,6 @@ implemented:
   via repeated selection instead of sort-then-slice.
 - No date/time parsing builtin — timestamps are carried as raw
   `int` (Unix seconds) rather than a real datetime type.
-- `plan` blocks don't run under `funny run`/`funny-mcp`'s `run_skill`
+- `plan` blocks don't run under `funny run`/`funny mcp`'s `run_skill`
   yet (see [Plans](#plans-agent-protocol-workflowfn) above) — hence
   `workflow.fn` being a parallel, non-executed demonstration.

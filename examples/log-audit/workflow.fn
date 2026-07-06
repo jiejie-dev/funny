@@ -22,7 +22,7 @@
 # a renderable node/edge graph. There is currently no CLI subcommand that
 # *executes* a plan (internal/agent.Engine is exercised from Go code -
 # see internal/agent/engine_test.go - not yet wired to `funny run` or the
-# funny-mcp `run_skill` tool).
+# `funny mcp` `run_skill` tool).
 meta:
     name = "log-audit-workflow"
     version = "1.0"

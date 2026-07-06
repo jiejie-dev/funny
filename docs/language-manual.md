@@ -329,24 +329,29 @@ funny fmt script.fn         # print canonically-formatted source to stdout
 funny fmt script.fn -w      # reformat the file in place
 funny describe script.fn    # JSON plan/metadata
 funny disasm script.fn      # print bytecode disassembly
-funny-mcp                   # start MCP server
-funny-lsp                   # start LSP server
+funny mcp                   # start MCP server
+funny lsp                   # start LSP server
+```
+
+Install the single `funny` binary (CLI + MCP + LSP):
+
+```bash
+go install github.com/jiejie-dev/funny/cmd/funny@latest
 ```
 
 ## MCP Server
 
-The `funny-mcp` binary exposes 6 tools over stdio:
+The `funny mcp` subcommand exposes 6 tools over stdio:
 - `ast`: parse source, return JSON AST
 - `format`: format source code (canonical 4-space indentation, preserves comments)
 - `list_skills`: list .fn files in a directory
 - `describe_skill`: meta + plan info for one file
 - `run_skill`: execute a .fn file
 - `lint`: type-check only, no execution
-```
 
 ## LSP Server
 
-The `funny-lsp` binary speaks LSP 3.17 (a hand-rolled minimal subset, no third-party
+The `funny lsp` subcommand speaks LSP 3.17 (a hand-rolled minimal subset, no third-party
 protocol dependency) over stdio, framed as standard `Content-Length`-prefixed JSON-RPC
 2.0. Point any LSP-capable editor at it for `.fn` files. Supported capabilities:
 

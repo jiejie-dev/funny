@@ -3,7 +3,7 @@
 **Release date:** 2026-07-01
 **Module:** `github.com/jiejie-dev/funny`
 **License:** MIT
-**Binaries:** `funny` (CLI), `funny-mcp` (MCP server), `funny-lsp` (LSP server, added in v2.1)
+**Binaries:** `funny` (CLI, MCP server via `funny mcp`, LSP server via `funny lsp`)
 
 ---
 
@@ -14,8 +14,8 @@ Funny v2 is a complete rewrite of the v1 scripting language, designed from the g
 ## Quick start
 
 ```bash
-# Build
-go install ./cmd/funny ./cmd/funny-mcp
+# Install
+go install github.com/jiejie-dev/funny/cmd/funny@latest
 
 # Run a script
 funny run script.funny
@@ -27,7 +27,7 @@ funny ast script.funny
 funny describe script.funny
 
 # Start MCP server (for LLM clients)
-funny-mcp
+funny mcp
 ```
 
 ## What's new in v2.0.0
@@ -130,15 +130,15 @@ funny ast <script>          Print the JSON AST
 funny describe <script>     Print the plan + metadata as JSON
 funny disasm <script>       Print the bytecode disassembly
 funny fmt <script>          Print canonically-formatted source (v2.1)
-funny-mcp                   Start the MCP server over stdio
-funny-lsp                   Start the LSP server over stdio (v2.1)
+funny mcp                   Start the MCP server over stdio
+funny lsp                   Start the LSP server over stdio (v2.1)
 ```
 
 `funny --help` lists the full set.
 
 ## MCP server
 
-`funny-mcp` exposes 6 tools over stdio (per the Model Context Protocol):
+`funny mcp` exposes 6 tools over stdio (per the Model Context Protocol):
 
 - `ast(path)` — parse and return JSON AST
 - `format(path)` — return formatted source (v2.0.0: no-op; real formatting shipped in v2.1, see CHANGELOG.md)
@@ -155,7 +155,7 @@ funny-lsp                   Start the LSP server over stdio (v2.1)
 - ~~`format` MCP tool is a no-op (real formatting lands in v2.1)~~ — fixed in v2.1: the MCP `format` tool and `funny fmt` both delegate to a real AST-based formatter now (see CHANGELOG.md)
 - Some stdlib functions return Result wrappers where plain values might be simpler
 - ~~`f"..."` string interpolation: M1 parser accepts the syntax; M2-A runtime substitution is deferred to v2.1~~ — fixed in v2.1: full `f"...{expr:spec}..."` interpolation now works end-to-end (lexer/parser/type checker/evaluator/bytecode VM), see CHANGELOG.md
-- ~~No LSP server in v2.0.0 (the v1 LSP scaffolding is gone in the v2 migration; v2.1 will re-add)~~ — fixed in v2.1: a from-scratch `funny-lsp` binary now provides diagnostics, hover, completion, signature help, go-to-definition (including across `import`s), document symbols, formatting, find-references, rename, and a custom `funny/planGraph` plan-visualization request (see CHANGELOG.md)
+- ~~No LSP server in v2.0.0 (the v1 LSP scaffolding is gone in the v2 migration; v2.1 will re-add)~~ — fixed in v2.1: `funny lsp` now provides diagnostics, hover, completion, signature help, go-to-definition (including across `import`s), document symbols, formatting, find-references, rename, and a custom `funny/planGraph` plan-visualization request (see CHANGELOG.md)
 - ~~`regex_match`/`regex_replace`/`env_get`/`file_read`/`file_exists`/`http_get`/`md5`/`sha256`/`b64_encode`/`b64_decode`/`jwt_encode`/`jwt_decode`/`sql_open` were implemented in the VM but uncallable from any `.fn` script (missing from the type checker's and compiler's builtin allowlists — E2002 "undefined function" on every call), and any builtin call's result (`len(x) > 0`, `sqrt(x) < 1.0`, ...), `float` comparisons, `!=`, and `and`/`or` all failed to compile under the default bytecode VM~~ — fixed in v2.1 (see CHANGELOG.md); the tree-walking evaluator fallback (`FUNNY_INTERPRET=1`) still only implements the original 8 M1 builtins
 - `match` is documented in the language manual but not implemented anywhere (no parser/type-checker/evaluator/compiler support) — a script using it fails to parse. Use `if`/`elif`/`else` instead until it's built; the manual now flags this inline
 - ~~`for` loops silently skipped their first element under the default VM path (a hardcoded bytecode `Arg` that should have been a constant-pool index)~~ — fixed in v2.1 (see CHANGELOG.md)
@@ -190,9 +190,7 @@ Built with the help of:
 ```
 funny/
 ├── cmd/
-│   ├── funny/              # CLI entry (run, ast, fmt, describe, disasm)
-│   ├── funny-mcp/          # MCP server entry
-│   └── funny-lsp/          # LSP server entry (added in v2.1)
+│   └── funny/              # CLI entry (run, ast, fmt, describe, disasm, mcp, lsp)
 ├── docs/                  # language-manual + 5 tutorials
 ├── internal/              # core packages
 │   ├── agent/             # plan engine

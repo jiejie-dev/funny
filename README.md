@@ -6,6 +6,20 @@ AI-native scripting language. See `docs/superpowers/plans/` for design and plann
 
 The complete Funny v2 stack is shipping. See `CHANGELOG.md` for the full release notes (including unreleased v2.1 work).
 
+### Install
+
+One binary covers the CLI, LSP server, and MCP server:
+
+```bash
+go install github.com/jiejie-dev/funny/cmd/funny@latest
+```
+
+Ensure `$HOME/go/bin` (or `$GOPATH/bin`) is on your `PATH`, then verify:
+
+```bash
+funny --version
+```
+
 ### Quick start
 
 ```bash
@@ -13,8 +27,8 @@ funny run script.fn         # execute a script
 funny ast script.fn         # print JSON AST
 funny describe script.fn    # print plan/metadata
 funny disasm script.fn      # print bytecode disassembly
-funny-mcp                   # start MCP server (for LLM clients)
-funny-lsp                   # start LSP server (for editors/IDEs)
+funny mcp                   # start MCP server (for LLM clients)
+funny lsp                   # start LSP server (for editors/IDEs)
 ```
 
 ### Features

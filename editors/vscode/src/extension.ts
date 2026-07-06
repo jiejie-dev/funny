@@ -35,11 +35,20 @@ interface PlanGraphResult {
 
 export function activate(context: vscode.ExtensionContext): void {
   const config = vscode.workspace.getConfiguration("funny");
-  const serverPath = config.get<string>("lsp.path") ?? "funny-lsp";
+  const serverPath = config.get<string>("lsp.path") ?? "funny";
+  const serverArgs = config.get<string[]>("lsp.args") ?? ["lsp"];
 
   const serverOptions: ServerOptions = {
-    run: { command: serverPath, transport: TransportKind.stdio },
-    debug: { command: serverPath, transport: TransportKind.stdio },
+    run: {
+      command: serverPath,
+      args: serverArgs,
+      transport: TransportKind.stdio,
+    },
+    debug: {
+      command: serverPath,
+      args: serverArgs,
+      transport: TransportKind.stdio,
+    },
   };
 
   const clientOptions: LanguageClientOptions = {

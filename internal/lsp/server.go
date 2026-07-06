@@ -32,7 +32,7 @@ func Run(ctx context.Context) error {
 
 func (s *Server) logf(format string, args ...any) {
 	if s.log != nil {
-		fmt.Fprintf(s.log, "[funny-lsp] "+format+"\n", args...)
+		fmt.Fprintf(s.log, "[funny lsp] "+format+"\n", args...)
 	}
 }
 
@@ -108,7 +108,7 @@ func (s *Server) dispatch(msg *rpcMessage) {
 
 func (s *Server) handleInitialize(msg *rpcMessage) {
 	result := InitializeResult{
-		ServerInfo: ServerInfo{Name: "funny-lsp", Version: "2.1.0"},
+		ServerInfo: ServerInfo{Name: "funny", Version: "2.1.0"},
 		Capabilities: ServerCapabilities{
 			TextDocumentSync:           SyncFull,
 			HoverProvider:              true,

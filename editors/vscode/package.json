@@ -66,8 +66,16 @@
       "properties": {
         "funny.lsp.path": {
           "type": "string",
-          "default": "funny-lsp",
-          "description": "Path to the funny-lsp executable. Must be on PATH or an absolute path."
+          "default": "funny",
+          "description": "Path to the funny executable."
+        },
+        "funny.lsp.args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["lsp"],
+          "description": "Arguments passed to start the language server."
         },
         "funny.executablePath": {
           "type": "string",
