@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.5 (2026-07-07)
+
+### Features
+- **`mut` struct fields** — declare `mut count: int` to allow `c.count = c.count + 1` after construction; non-`mut` fields remain immutable (E2010). End-to-end across parser, type checker, compiler (`SET_FIELD`), VM, evaluator, and formatter.
+
 ## v2.1.4 (2026-07-07)
 
 ### Features

@@ -1,4 +1,4 @@
-# Release Notes — v2.1.4
+# Release Notes — v2.1.5
 
 **Release date:** 2026-07-07
 **Module:** `github.com/jiejie-dev/funny/v2`
@@ -9,13 +9,13 @@
 
 ## Overview
 
-**v2.1.4** adds typed errors for the plan engine: struct instances carry a runtime `__type` tag, and `with retry … on=Type1,Type2` retries only when the step failure matches one of the listed error types (`str` matches plain `err("…")` string errors).
+**v2.1.5** adds explicit `mut` struct fields: fields declared with `mut` can be assigned after construction (`c.count = c.count + 1`); all other fields stay immutable and produce `E2010` if assigned.
 
 ## Quick start
 
 ```bash
 # Install this release
-go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.4
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.5
 
 # Run a script
 funny run script.fn
@@ -28,6 +28,17 @@ funny fmt script.fn -w
 funny lsp                   # LSP over stdio
 funny mcp                   # MCP over stdio
 ```
+
+## What's new in v2.1.5
+
+### `mut` struct fields
+
+- **`mut fname: T`** — struct field modifier parsed by lexer/parser and preserved by formatter
+- **Type checking** — `checkFieldAssign` validates mutability and field type before compile
+- **Bytecode `SET_FIELD`** — VM and compiler support `obj.field = value` on the default path
+- **Evaluator** — interpreter path (`FUNNY_INTERPRET=1`) also supports field assignment
+
+See `CHANGELOG.md` for the full itemized list.
 
 ## What's new in v2.1.4
 
@@ -126,8 +137,15 @@ The VM remains ~3.5× faster than the tree-walking interpreter. The spec's 5× t
 ## Known limitations (v2.1.x follow-ups)
 
 - 5× interpreter performance target not yet met (currently 3.5×)
-- Struct fields are immutable after construction (`p.x = 99` is `E2010`)
 - AI-friendliness benchmark harness is ready; community LLM runs are still needed
+
+## Upgrading from v2.1.4
+
+No breaking changes. Reinstall the binary:
+
+```bash
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.5
+```
 
 ## Upgrading from v2.1.3
 
