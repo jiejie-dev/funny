@@ -1,4 +1,4 @@
-# Release Notes — v2.1.2
+# Release Notes — v2.1.3
 
 **Release date:** 2026-07-07
 **Module:** `github.com/jiejie-dev/funny/v2`
@@ -9,13 +9,13 @@
 
 ## Overview
 
-**v2.1.2** completes the VM-path language surface that v2.1.0 documented but left interpreter-only or missing: `match`, `break`/`continue`, and `x in list` now run on the default bytecode path. It also unifies stdlib builtins between VM and interpreter, and type-checks top-level expression statements like `println(...)`.
+**v2.1.3** implements structured plan branching: `-> branch` steps can use a case-list (`cond => "step_name"`) to dispatch to named plan steps, with type checking, formatter support, and LSP plan graph branch edges. Legacy `if`/`else` branch bodies still work.
 
 ## Quick start
 
 ```bash
 # Install this release
-go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.2
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.3
 
 # Run a script
 funny run script.fn
@@ -28,6 +28,16 @@ funny fmt script.fn -w
 funny lsp                   # LSP over stdio
 funny mcp                   # MCP over stdio
 ```
+
+## What's new in v2.1.3
+
+### Agent protocol
+
+- **`branch` case-list** — `step "route" -> branch:` with arms like `status == 200 => "success"` and `_ => "fallback"`; the engine runs exactly one named target step
+- **Plan type checking** — branch targets must exist in the plan (E2111); duplicate step names are rejected (E2110)
+- **LSP planGraph** — branch steps fan out to target step nodes via `branch` edges; targets are omitted from the linear sequence chain
+
+See `CHANGELOG.md` for the full itemized list.
 
 ## What's new in v2.1.2
 
@@ -110,12 +120,20 @@ The VM remains ~3.5× faster than the tree-walking interpreter. The spec's 5× t
 - `retry.on` deferred until Funny has typed errors
 - AI-friendliness benchmark harness is ready; community LLM runs are still needed
 
+## Upgrading from v2.1.2
+
+No breaking changes. Reinstall the binary:
+
+```bash
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.3
+```
+
 ## Upgrading from v2.1.1
 
 No breaking changes. Reinstall the binary:
 
 ```bash
-go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.2
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.3
 ```
 
 ## Upgrading from v2.0.0
@@ -123,7 +141,7 @@ go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.2
 No breaking changes to the language surface shipped in v2.0. Install the new binary:
 
 ```bash
-go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.2
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.3
 ```
 
 If you previously used a standalone `funny-mcp` binary, switch to `funny mcp`. Editor configs should use `funny lsp` (see `editors/vscode/`).

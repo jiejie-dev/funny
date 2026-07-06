@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.3 (2026-07-07)
+
+### Features
+- **Plan `branch` case-list** — `step "route" -> branch:` with `cond => "target_step"` arms (and `_ => "fallback"`) dispatches to named plan steps; target steps are skipped in sequential execution unless selected. Includes plan type checking (E2110/E2111), formatter round-trip, and LSP `planGraph` branch edges. Legacy `if`/`else` branch bodies remain supported.
+
 ## v2.1.2 (2026-07-07)
 
 ### Features
