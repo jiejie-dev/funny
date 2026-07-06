@@ -1,4 +1,4 @@
-# Release Notes — v2.1.1
+# Release Notes — v2.1.2
 
 **Release date:** 2026-07-07
 **Module:** `github.com/jiejie-dev/funny/v2`
@@ -9,13 +9,13 @@
 
 ## Overview
 
-Funny v2.1 is a major tooling and language-completeness release on top of the v2.0 stack. **v2.1.1** fixes the Go module path (`github.com/jiejie-dev/funny/v2`) so semver installs work; feature content matches v2.1.0.
+**v2.1.2** completes the VM-path language surface that v2.1.0 documented but left interpreter-only or missing: `match`, `break`/`continue`, and `x in list` now run on the default bytecode path. It also unifies stdlib builtins between VM and interpreter, and type-checks top-level expression statements like `println(...)`.
 
 ## Quick start
 
 ```bash
 # Install this release
-go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.1
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.2
 
 # Run a script
 funny run script.fn
@@ -29,7 +29,22 @@ funny lsp                   # LSP over stdio
 funny mcp                   # MCP over stdio
 ```
 
-## What's new in v2.1.0
+## What's new in v2.1.2
+
+### VM path completeness
+
+- **`match`** — value matching compiles and executes on the default VM path
+- **`break` / `continue`** — loop control flow on the default VM path
+- **`x in list`** — membership test via new `IN_LIST` bytecode instruction
+
+### Stdlib and type checking
+
+- **Shared stdlib** — `internal/stdlib.Call` backs both VM and interpreter; all 33 builtins work under `FUNNY_INTERPRET=1` as well as on the default path
+- **Top-level expression statements** — `println(undefined_fn())` and similar bare calls at file scope are now type-checked at compile time
+
+See `CHANGELOG.md` for the full itemized list.
+
+## What's new in v2.1.0 (prior release)
 
 ### Language
 
@@ -54,17 +69,6 @@ funny mcp                   # MCP over stdio
 - **Retry backoff** — `with retry max=N backoff=constant|linear|exp`
 - **Step timeout** — `with timeout="<duration>"` bounds a single attempt (best-effort; evaluator is not preemptible)
 - **`__result`** — step bodies that end in a bare expression/`return` publish to plan scope
-
-### Notable fixes
-
-- Struct field access and builtin return types no longer mis-codegen under the VM
-- `for` loops no longer skip their first element on the default VM path
-- Thirteen stdlib builtins (`regex_*`, `env_get`, `file_*`, `http_get`, crypto, jwt, sql) are now callable from `.fn` source
-- Float comparisons, `!=`, and `and`/`or` compile on the VM path
-- Lexer column positions fixed for LSP accuracy
-- Many compiler crashes on `meta`/`plan` blocks, struct annotations, and mixed top-level decl order resolved
-
-See `CHANGELOG.md` for the full itemized list.
 
 ## CLI commands
 
@@ -107,12 +111,20 @@ The VM remains ~3.5× faster than the tree-walking interpreter. The spec's 5× t
 - `retry.on` deferred until Funny has typed errors
 - AI-friendliness benchmark harness is ready; community LLM runs are still needed
 
+## Upgrading from v2.1.1
+
+No breaking changes. Reinstall the binary:
+
+```bash
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.2
+```
+
 ## Upgrading from v2.0.0
 
 No breaking changes to the language surface shipped in v2.0. Install the new binary:
 
 ```bash
-go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.1
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.2
 ```
 
 If you previously used a standalone `funny-mcp` binary, switch to `funny mcp`. Editor configs should use `funny lsp` (see `editors/vscode/`).

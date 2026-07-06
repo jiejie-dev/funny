@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.1.2 (2026-07-07)
+
+### Features
+- **VM: `match`, `break`, `continue`** — the default bytecode path now compiles and executes value matching and loop control flow end-to-end (type checker, evaluator, compiler, VM)
+- **VM: `x in list`** — membership tests compile to a new `IN_LIST` opcode on the default path (no `FUNNY_INTERPRET=1` required)
+- **Stdlib unification** — VM and interpreter share `internal/stdlib.Call`; all 33 builtins (regex, env, file, http, crypto, jwt, sql, …) are available under `FUNNY_INTERPRET=1` as well as on the default VM path
+- **Type checking: top-level expression statements** — bare calls like `println(...)` at file top level are now type-checked (undefined functions and argument type errors are caught at compile time)
+
 ## v2.1.1 (2026-07-07)
 
 ### Fixes
