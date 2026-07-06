@@ -64,3 +64,23 @@ func TestBuiltin_TypeOf(t *testing.T) {
 		assert.Equal(t, c.want, v, "src=%s", c.src)
 	}
 }
+
+func TestBuiltin_AppendAndSqrt(t *testing.T) {
+	e := runSrc(t, `let xs = append([1], 2)
+let r = sqrt(16)
+`)
+	v, _ := e.scope.Get("xs")
+	assert.Equal(t, []any{1, 2}, v)
+	r, _ := e.scope.Get("r")
+	assert.Equal(t, 4.0, r)
+}
+
+func TestBuiltin_RegexAndB64(t *testing.T) {
+	e := runSrc(t, `let ok = regex_match("^h", "hello")
+let enc = b64_encode("hi")
+`)
+	ok, _ := e.scope.Get("ok")
+	assert.Equal(t, true, ok)
+	enc, _ := e.scope.Get("enc")
+	assert.Equal(t, "aGk=", enc)
+}

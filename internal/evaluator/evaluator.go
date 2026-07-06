@@ -347,7 +347,7 @@ func (e *Evaluator) evalCall(n *ast.CallExpr) (any, error) {
 	if !ok {
 		return nil, errs.New("E2070", "only direct function calls supported in M1", toErrPos(n.NodePos), "")
 	}
-	if b, ok := builtins[fn.Name]; ok {
+	if isBuiltin(fn.Name) {
 		args := make([]any, len(n.Args))
 		for i, a := range n.Args {
 			v, err := e.Eval(a)
@@ -356,7 +356,7 @@ func (e *Evaluator) evalCall(n *ast.CallExpr) (any, error) {
 			}
 			args[i] = v
 		}
-		return b.fn(e, args)
+		return callBuiltin(fn.Name, args)
 	}
 	v, ok := e.scope.Get(fn.Name)
 	if !ok {

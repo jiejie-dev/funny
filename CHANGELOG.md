@@ -36,9 +36,6 @@
 
 ### Limitations (v2.1.x follow-ups)
 - 5× interpreter performance target not yet met (currently 3.5×)
-- `match` parses but has no type-checker/evaluator/compiler backend yet
-- `break`/`continue` parse but are not implemented in loops
-- Tree-walking evaluator fallback still only implements the original 8 M1 builtins
 - Bare top-level expression statements (e.g. `println(...)`) are not type-checked
 - AI-friendliness benchmark harness exists; real LLM evaluation is left to community runs
 
