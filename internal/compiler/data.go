@@ -23,7 +23,7 @@ func (c *Compiler) compileList(n *ast.ListExpr) (valueType, error) {
 			elemType = valNil
 		}
 	}
-	c.fn.Emit(bytecode.BUILD_LIST, len(n.Elements))
+	c.emit(bytecode.BUILD_LIST, len(n.Elements))
 	return elemType, nil
 }
 
@@ -49,7 +49,7 @@ func (c *Compiler) compileIndex(n *ast.IndexExpr) (valueType, error) {
 	if _, err := c.compileExpr(n.Index); err != nil {
 		return "", err
 	}
-	c.fn.Emit(bytecode.INDEX, 0)
+	c.emit(bytecode.INDEX, 0)
 	return objType, nil
 }
 
@@ -73,8 +73,8 @@ func (c *Compiler) compileField(n *ast.FieldExpr) (valueType, error) {
 		return "", err
 	}
 	nameIdx := c.mod.AddConstant(n.Field)
-	c.fn.Emit(bytecode.PUSH_STR, nameIdx)
-	c.fn.Emit(bytecode.GET_FIELD, 0)
+	c.emit(bytecode.PUSH_STR, nameIdx)
+	c.emit(bytecode.GET_FIELD, 0)
 	if fields, ok := c.structFields[string(objType)]; ok {
 		if ft, ok := fields[n.Field]; ok {
 			return ft, nil
@@ -97,7 +97,7 @@ func (c *Compiler) compileMapLiteral(n *ast.MapLiteralExpr) (valueType, error) {
 			return "", err
 		}
 	}
-	c.fn.Emit(bytecode.BUILD_MAP, len(n.Keys))
+	c.emit(bytecode.BUILD_MAP, len(n.Keys))
 	return valNil, nil
 }
 
@@ -112,13 +112,13 @@ func (c *Compiler) compileStructLiteral(n *ast.StructLiteralExpr) (valueType, er
 	}
 	for k, v := range n.Fields {
 		nameIdx := c.mod.AddConstant(k)
-		c.fn.Emit(bytecode.PUSH_STR, nameIdx)
+		c.emit(bytecode.PUSH_STR, nameIdx)
 		if _, err := c.compileExpr(v); err != nil {
 			return "", err
 		}
 	}
-	c.fn.Emit(bytecode.BUILD_MAP, len(n.Fields))
+	c.emit(bytecode.BUILD_MAP, len(n.Fields))
 	typeIdx := c.mod.AddConstant(n.TypeName)
-	c.fn.Emit(bytecode.NEW_STRUCT, typeIdx)
+	c.emit(bytecode.NEW_STRUCT, typeIdx)
 	return valueType(n.TypeName), nil
 }

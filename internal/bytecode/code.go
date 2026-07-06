@@ -34,15 +34,23 @@ func (i Instruction) String() string {
 
 // Function is a compiled function body.
 type Function struct {
-	Name      string
-	Arity     int
-	NumLocals int
-	Code      []Instruction
+	Name       string
+	Arity      int
+	NumLocals  int
+	Code       []Instruction
+	Locations  []SourceLoc // parallel to Code
+	LocalNames []string    // slot index → name (params + locals)
 }
 
-// Emit appends a single instruction to the function body.
+// Emit appends an instruction with no source location (tests / legacy).
 func (f *Function) Emit(op OpCode, arg int) {
+	f.EmitAt(op, arg, SourceLoc{})
+}
+
+// EmitAt appends an instruction and its source location.
+func (f *Function) EmitAt(op OpCode, arg int, loc SourceLoc) {
 	f.Code = append(f.Code, Instruction{Op: op, Arg: arg})
+	f.Locations = append(f.Locations, loc)
 }
 
 // Module is a compilation unit (one .fn file produces one Module).
@@ -88,7 +96,11 @@ func (m *Module) Disassemble() string {
 	for i, fn := range m.Functions {
 		fmt.Fprintf(&b, "  fn %d %s arity=%d locals=%d\n", i, fn.Name, fn.Arity, fn.NumLocals)
 		for j, instr := range fn.Code {
-			fmt.Fprintf(&b, "    %4d %s\n", j, instr.String())
+			line := fmt.Sprintf("    %4d %s", j, instr.String())
+			if j < len(fn.Locations) && !fn.Locations[j].IsZero() {
+				line += "  ; " + fn.Locations[j].Display()
+			}
+			fmt.Fprintln(&b, line)
 		}
 	}
 	return b.String()

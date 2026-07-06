@@ -60,6 +60,7 @@ var builtinNames = map[string]bool{
 // declared before this `fn`) would become permanently unreachable by name,
 // silently falling back to (unimplemented) LOAD_GLOBAL lookups.
 func (c *Compiler) compileFnDecl(n *ast.FnDecl) error {
+	c.pos = n.Pos()
 	if _, ok := c.functions[n.Name]; ok {
 		return fmt.Errorf("function %s already declared", n.Name)
 	}
@@ -81,7 +82,7 @@ func (c *Compiler) compileFnDecl(n *ast.FnDecl) error {
 	if err := c.compileBlock(n.Body); err != nil {
 		return err
 	}
-	c.fn.Emit(bytecode.RETURN, 0)
+	c.emit(bytecode.RETURN, 0)
 
 	c.fn = outerFn
 	c.scopes = outerScopes
@@ -128,17 +129,19 @@ func annotationValueType(ann string, structFields map[string]map[string]valueTyp
 
 // compileReturn compiles a return statement.
 func (c *Compiler) compileReturn(n *ast.ReturnStmt) error {
+	c.pos = n.Pos()
 	if n.Value != nil {
 		if _, err := c.compileExpr(n.Value); err != nil {
 			return err
 		}
 	}
-	c.fn.Emit(bytecode.RETURN, 0)
+	c.emit(bytecode.RETURN, 0)
 	return nil
 }
 
 // compileCall compiles a function call expression.
 func (c *Compiler) compileCall(n *ast.CallExpr) (valueType, error) {
+	c.pos = n.Pos()
 	varName, ok := n.Func.(*ast.VariableExpr)
 	if !ok {
 		return "", fmt.Errorf("compileCall: only direct function calls supported (got %T)", n.Func)
@@ -154,7 +157,7 @@ func (c *Compiler) compileCall(n *ast.CallExpr) (valueType, error) {
 			argTypes[i] = vt
 		}
 		nameIdx := c.mod.AddConstant(bytecode.BuiltinInfo{Name: name, Arity: len(n.Args)})
-		c.fn.Emit(bytecode.CALL_BUILTIN, nameIdx)
+		c.emit(bytecode.CALL_BUILTIN, nameIdx)
 		return builtinValueType(name, argTypes), nil
 	}
 	fnIdx, ok := c.functions[name]
@@ -166,7 +169,7 @@ func (c *Compiler) compileCall(n *ast.CallExpr) (valueType, error) {
 			return "", err
 		}
 	}
-	c.fn.Emit(bytecode.CALL, fnIdx)
+	c.emit(bytecode.CALL, fnIdx)
 	return c.fnRetTypes[name], nil
 }
 

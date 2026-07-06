@@ -26,6 +26,7 @@ const (
 type Compiler struct {
 	mod          *bytecode.Module
 	fn           *bytecode.Function
+	pos          ast.Pos // source position for the next emitted instruction
 	scopes       []map[string]int
 	varTypes     []valueType                     // indexed by local slot (parallel to NumLocals)
 	functions    map[string]int                  // function name → index in mod.Functions
@@ -82,8 +83,17 @@ func Compile(prog *ast.Program, name string) (*bytecode.Module, error) {
 			return nil, err
 		}
 	}
-	c.fn.Emit(bytecode.HALT, 0)
+	if len(prog.Stmts) > 0 {
+		c.pos = prog.Stmts[lastMeaningful].Pos()
+	}
+	c.emit(bytecode.HALT, 0)
 	return c.mod, nil
+}
+
+// emit records c.pos alongside the instruction for debugger source maps.
+func (c *Compiler) emit(op bytecode.OpCode, arg int) {
+	loc := bytecode.SourceLoc{File: c.pos.File, Line: c.pos.Line, Col: c.pos.Col}
+	c.fn.EmitAt(op, arg, loc)
 }
 
 func (c *Compiler) pushScope() {
@@ -112,6 +122,10 @@ func (c *Compiler) declareLocal(name string, vt valueType) int {
 		c.varTypes = append(c.varTypes, valNil)
 	}
 	c.varTypes[idx] = vt
+	for len(c.fn.LocalNames) <= idx {
+		c.fn.LocalNames = append(c.fn.LocalNames, "")
+	}
+	c.fn.LocalNames[idx] = name
 	c.fn.NumLocals++
 	return idx
 }
@@ -132,6 +146,7 @@ func (c *Compiler) lookupLocal(name string) (int, valueType) {
 }
 
 func (c *Compiler) compileStmt(s ast.Statement, isLast bool) error {
+	c.pos = s.Pos()
 	switch n := s.(type) {
 	case *ast.ExprStmt:
 		if _, err := c.compileExpr(n.X); err != nil {
@@ -142,7 +157,7 @@ func (c *Compiler) compileStmt(s ast.Statement, isLast bool) error {
 		// a result, so POPping after them would underflow.
 		if !isLast {
 			if _, isCall := n.X.(*ast.CallExpr); !isCall {
-				c.fn.Emit(bytecode.POP, 0)
+				c.emit(bytecode.POP, 0)
 			}
 		}
 		return nil
@@ -201,8 +216,8 @@ func (c *Compiler) compileLet(n *ast.LetStmt) error {
 		}
 	}
 	slot := c.declareLocal(n.Name, vt)
-	c.fn.Emit(bytecode.STORE_LOCAL, slot)
-	c.fn.Emit(bytecode.POP, 0)
+	c.emit(bytecode.STORE_LOCAL, slot)
+	c.emit(bytecode.POP, 0)
 	return nil
 }
 
@@ -224,8 +239,8 @@ func (c *Compiler) compileAssign(n *ast.AssignStmt) error {
 	if slot < 0 {
 		return fmt.Errorf("compileAssign: undefined variable %s", v.Name)
 	}
-	c.fn.Emit(bytecode.STORE_LOCAL, slot)
-	c.fn.Emit(bytecode.POP, 0)
+	c.emit(bytecode.STORE_LOCAL, slot)
+	c.emit(bytecode.POP, 0)
 	return nil
 }
 
@@ -242,8 +257,8 @@ func (c *Compiler) compileIndexAssign(idx *ast.IndexExpr, value ast.Expression) 
 	if _, err := c.compileExpr(idx.Index); err != nil {
 		return err
 	}
-	c.fn.Emit(bytecode.SET_INDEX, 0)
-	c.fn.Emit(bytecode.POP, 0)
+	c.emit(bytecode.SET_INDEX, 0)
+	c.emit(bytecode.POP, 0)
 	return nil
 }
 
@@ -257,8 +272,8 @@ func (c *Compiler) compileFieldAssign(fe *ast.FieldExpr, value ast.Expression) e
 		return err
 	}
 	nameIdx := c.mod.AddConstant(fe.Field)
-	c.fn.Emit(bytecode.PUSH_STR, nameIdx)
-	c.fn.Emit(bytecode.SET_FIELD, 0)
-	c.fn.Emit(bytecode.POP, 0)
+	c.emit(bytecode.PUSH_STR, nameIdx)
+	c.emit(bytecode.SET_FIELD, 0)
+	c.emit(bytecode.POP, 0)
 	return nil
 }

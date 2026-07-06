@@ -350,6 +350,9 @@ funny fmt script.fn         # print canonically-formatted source to stdout
 funny fmt script.fn -w      # reformat the file in place
 funny describe script.fn    # JSON plan/metadata
 funny disasm script.fn      # print bytecode disassembly
+funny debug script.fn       # interactive bytecode debugger
+funny debug script.fn --source-map  # JSON instruction→source map
+funny debug script.fn -b 10 # break at line 10, then step/continue
 funny mcp                   # start MCP server
 funny lsp                   # start LSP server
 ```
@@ -359,6 +362,37 @@ Install the single `funny` binary (CLI + MCP + LSP):
 ```bash
 go install github.com/jiejie-dev/funny/cmd/funny@latest
 ```
+
+## Debugger
+
+The bytecode VM records a **source map** (instruction index → file:line:col) at compile
+time. Use `funny debug` for an interactive session, or export the map as JSON.
+
+```bash
+# JSON source map (per-function instructions + local names)
+funny debug script.fn --source-map
+
+# Interactive debugger (pauses at entry, then on breakpoints / after each step)
+funny debug script.fn
+funny debug script.fn -b 12 -b other.fn:5
+```
+
+`funny disasm` also annotates each instruction with its source location (`; file:line:col`).
+
+Debugger commands at the `(dbg)` prompt:
+
+| Command | Alias | Action |
+|---|---|---|
+| `step` | `s` | Execute one bytecode instruction |
+| `continue` | `c` | Run until the next breakpoint |
+| `break N` | `b` | Set breakpoint at line N (or `file:line`) |
+| `locals` | `l` | Show local variables |
+| `stack` | `p` | Show operand stack |
+| `where` | `w` | Show current source location |
+| `quit` | `q` | End the session |
+
+Set `FUNNY_INTERPRET=1` to use the tree-walking evaluator instead of the VM; the
+debugger applies only to the default bytecode path.
 
 ## MCP Server
 

@@ -19,6 +19,7 @@ type VM struct {
 	mod    *bytecode.Module
 	stack  []bytecode.Value
 	frames []*Frame
+	dbg    *Debugger
 }
 
 // New creates a VM ready to run the given module.
@@ -26,13 +27,29 @@ func New(mod *bytecode.Module) *VM {
 	return &VM{mod: mod}
 }
 
+// SetDebugger attaches a debugger for RunDebug or breakpoint stepping.
+func (v *VM) SetDebugger(d *Debugger) {
+	v.dbg = d
+}
+
 // Run executes the module's first function (main) and returns the top of stack.
 // Returns nil if the stack is empty at HALT.
 func (v *VM) Run() (bytecode.Value, error) {
-	if len(v.mod.Functions) == 0 {
+	return v.runFrom(0)
+}
+
+// RunDebug executes with the attached debugger, pausing on breakpoints/steps.
+func (v *VM) RunDebug(d *Debugger) (bytecode.Value, error) {
+	v.dbg = d
+	d.StepOnce() // pause at first instruction
+	return v.runFrom(0)
+}
+
+func (v *VM) runFrom(fnIdx int) (bytecode.Value, error) {
+	if fnIdx < 0 || fnIdx >= len(v.mod.Functions) {
 		return nil, fmt.Errorf("vm: module has no functions")
 	}
-	main := v.mod.Functions[0]
+	main := v.mod.Functions[fnIdx]
 	v.frames = []*Frame{{fn: main, ip: 0, locals: make([]bytecode.Value, main.NumLocals)}}
 	return v.execute()
 }
@@ -49,6 +66,15 @@ func (v *VM) execute() (bytecode.Value, error) {
 		frame := v.frames[len(v.frames)-1]
 		if frame.ip >= len(frame.fn.Code) {
 			return nil, fmt.Errorf("vm: ip out of bounds at %d", frame.ip)
+		}
+		if v.dbg != nil {
+			action, err := v.dbg.beforeInstr(v, frame)
+			if err != nil {
+				return nil, err
+			}
+			if action == ActionQuit {
+				return nil, fmt.Errorf("debug: stopped")
+			}
 		}
 		instr := frame.fn.Code[frame.ip]
 		frame.ip++

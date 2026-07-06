@@ -9,6 +9,7 @@ import (
 )
 
 func (c *Compiler) compileExpr(e ast.Expression) (valueType, error) {
+	c.pos = e.Pos()
 	switch n := e.(type) {
 	case *ast.LiteralExpr:
 		return c.compileLiteral(n)
@@ -44,22 +45,22 @@ func (c *Compiler) compileExpr(e ast.Expression) (valueType, error) {
 func (c *Compiler) compileFString(n *ast.FStringExpr) (valueType, error) {
 	if len(n.Parts) == 0 {
 		idx := c.mod.AddConstant("")
-		c.fn.Emit(bytecode.PUSH_STR, idx)
+		c.emit(bytecode.PUSH_STR, idx)
 		return valStr, nil
 	}
 	for i, part := range n.Parts {
 		if part.Expr == nil {
 			idx := c.mod.AddConstant(part.Text)
-			c.fn.Emit(bytecode.PUSH_STR, idx)
+			c.emit(bytecode.PUSH_STR, idx)
 		} else {
 			if _, err := c.compileExpr(part.Expr); err != nil {
 				return "", err
 			}
 			specIdx := c.mod.AddConstant(part.Spec)
-			c.fn.Emit(bytecode.FORMAT_VALUE, specIdx)
+			c.emit(bytecode.FORMAT_VALUE, specIdx)
 		}
 		if i > 0 {
-			c.fn.Emit(bytecode.ADD_STR, 0)
+			c.emit(bytecode.ADD_STR, 0)
 		}
 	}
 	return valStr, nil
@@ -75,7 +76,7 @@ func (c *Compiler) compileTry(n *ast.TryExpr) (valueType, error) {
 	if err != nil {
 		return "", err
 	}
-	c.fn.Emit(bytecode.TRY_OR_RETURN, 0)
+	c.emit(bytecode.TRY_OR_RETURN, 0)
 	if vt == valStr {
 		return valStr, nil
 	}
@@ -85,23 +86,23 @@ func (c *Compiler) compileTry(n *ast.TryExpr) (valueType, error) {
 func (c *Compiler) compileLiteral(n *ast.LiteralExpr) (valueType, error) {
 	switch v := n.Value.(type) {
 	case nil:
-		c.fn.Emit(bytecode.PUSH_NIL, 0)
+		c.emit(bytecode.PUSH_NIL, 0)
 		return valNil, nil
 	case int:
 		idx := c.mod.AddConstant(v)
-		c.fn.Emit(bytecode.PUSH_INT, idx)
+		c.emit(bytecode.PUSH_INT, idx)
 		return valInt, nil
 	case float64:
 		idx := c.mod.AddConstant(v)
-		c.fn.Emit(bytecode.PUSH_FLOAT, idx)
+		c.emit(bytecode.PUSH_FLOAT, idx)
 		return valFloat, nil
 	case string:
 		idx := c.mod.AddConstant(v)
-		c.fn.Emit(bytecode.PUSH_STR, idx)
+		c.emit(bytecode.PUSH_STR, idx)
 		return valStr, nil
 	case bool:
 		idx := c.mod.AddConstant(v)
-		c.fn.Emit(bytecode.PUSH_BOOL, idx)
+		c.emit(bytecode.PUSH_BOOL, idx)
 		return valBool, nil
 	}
 	return "", fmt.Errorf("compileLiteral: unsupported literal type %T", n.Value)
@@ -109,11 +110,11 @@ func (c *Compiler) compileLiteral(n *ast.LiteralExpr) (valueType, error) {
 
 func (c *Compiler) compileVariable(n *ast.VariableExpr) (valueType, error) {
 	if slot, vt := c.lookupLocal(n.Name); slot >= 0 {
-		c.fn.Emit(bytecode.LOAD_LOCAL, slot)
+		c.emit(bytecode.LOAD_LOCAL, slot)
 		return vt, nil
 	}
 	idx := c.mod.AddConstant(n.Name)
-	c.fn.Emit(bytecode.LOAD_GLOBAL, idx)
+	c.emit(bytecode.LOAD_GLOBAL, idx)
 	// Globals have no recorded type yet (M2-B.5 follow-up).
 	return valNil, nil
 }
@@ -126,7 +127,7 @@ func (c *Compiler) compileBinary(n *ast.BinaryExpr) (valueType, error) {
 		if _, err := c.compileExpr(n.Right); err != nil {
 			return "", err
 		}
-		c.fn.Emit(bytecode.IN_LIST, 0)
+		c.emit(bytecode.IN_LIST, 0)
 		return valBool, nil
 	}
 	leftOp, err := c.compileExpr(n.Left)
@@ -168,15 +169,15 @@ func (c *Compiler) compileBinary(n *ast.BinaryExpr) (valueType, error) {
 		if err != nil {
 			return "", fmt.Errorf("compileBinary: unsupported op != for %s", opType)
 		}
-		c.fn.Emit(op, 0)
-		c.fn.Emit(bytecode.NOT_BOOL, 0)
+		c.emit(op, 0)
+		c.emit(bytecode.NOT_BOOL, 0)
 		return valBool, nil
 	}
 	op, err := pickBinaryOp(n.Op, opType)
 	if err != nil {
 		return "", err
 	}
-	c.fn.Emit(op, 0)
+	c.emit(op, 0)
 
 	// Comparison / equality / logical ops produce bool; arithmetic preserves
 	// operand type.
@@ -287,15 +288,15 @@ func (c *Compiler) compileUnary(n *ast.UnaryExpr) (valueType, error) {
 	case "-":
 		switch op {
 		case valInt:
-			c.fn.Emit(bytecode.NEG_INT, 0)
+			c.emit(bytecode.NEG_INT, 0)
 			return valInt, nil
 		case valFloat:
-			c.fn.Emit(bytecode.NEG_FLOAT, 0)
+			c.emit(bytecode.NEG_FLOAT, 0)
 			return valFloat, nil
 		}
 	case "not":
 		if op == valBool {
-			c.fn.Emit(bytecode.NOT_BOOL, 0)
+			c.emit(bytecode.NOT_BOOL, 0)
 			return valBool, nil
 		}
 	}
