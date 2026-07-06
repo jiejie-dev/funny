@@ -47,7 +47,7 @@ func TestCompile_MapLiteral_EmitsBuildMap(t *testing.T) {
 }
 
 func TestCompile_MapLiteral_MultiLine_RunsOnVM(t *testing.T) {
-	src := "let m = {\n    \"a\": 1,\n    \"b\": 2,\n}\nm.a\n"
+	src := "let m = {\n    \"a\": 1,\n    \"b\": 2,\n}\nm[\"a\"]\n"
 	mod := compileExpr(t, src)
 	got, err := vm.New(mod).Run()
 	require.NoError(t, err)

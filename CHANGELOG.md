@@ -36,7 +36,6 @@
 
 ### Limitations (v2.1.x follow-ups)
 - 5× interpreter performance target not yet met (currently 3.5×)
-- Bare top-level expression statements (e.g. `println(...)`) are not type-checked
 - AI-friendliness benchmark harness exists; real LLM evaluation is left to community runs
 
 ## v2.0.0 (2026-07-01)

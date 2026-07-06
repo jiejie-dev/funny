@@ -541,12 +541,19 @@ func checkStmt(s ast.Statement, env *Env) error {
 		return checkBreak(n, env)
 	case *ast.ContinueStmt:
 		return checkContinue(n, env)
-	case *ast.ExprStmt, *ast.PlanBlock, *ast.ImportDecl, *ast.CommentStmt:
-		return nil // M2-A doesn't type-check these
+	case *ast.ExprStmt:
+		return checkExprStmt(n, env)
+	case *ast.PlanBlock, *ast.ImportDecl, *ast.CommentStmt:
+		return nil
 	case *ast.MetaBlock:
 		return checkMeta(n, env)
 	}
 	return New("E2099", fmt.Sprintf("unsupported statement %T", s), s.Pos())
+}
+
+func checkExprStmt(n *ast.ExprStmt, env *Env) error {
+	_, err := CheckExpr(n.X, env)
+	return err
 }
 
 func checkLet(n *ast.LetStmt, env *Env) error {

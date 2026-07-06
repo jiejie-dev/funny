@@ -858,3 +858,36 @@ func TestCheck_ContinueInLoop(t *testing.T) {
 	env := NewEnv(nil)
 	require.NoError(t, Check(prog, env))
 }
+
+func TestCheck_ExprStmt_UndefinedCallErrors(t *testing.T) {
+	src := `println(undefined_fn())
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "E2002")
+}
+
+func TestCheck_ExprStmt_ValidCallOk(t *testing.T) {
+	src := `println("hello")
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	require.NoError(t, Check(prog, env))
+}
+
+func TestCheck_ExprStmt_TypeMismatchInCallArgs(t *testing.T) {
+	src := `println(1 + "two")
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	require.Error(t, err)
+}
