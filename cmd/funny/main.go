@@ -17,7 +17,7 @@ import (
 // `-ldflags "-X main.version=2.1.0"` so `funny --version` matches the tag
 // actually released, instead of drifting from CHANGELOG.md/RELEASE_NOTES.md
 // like the old hardcoded "0.1.0" did.
-var version = "2.1.5"
+var version = "2.1.6"
 
 var rootCmd = &cobra.Command{
 	Use:     "funny",
@@ -101,6 +101,33 @@ var describeCmd = &cobra.Command{
 	},
 }
 
+var debugCmd = &cobra.Command{
+	Use:   "debug <script>",
+	Short: "Debug a script (source map, breakpoints, single-step)",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		data, err := os.ReadFile(args[0])
+		if err != nil {
+			return err
+		}
+		sourceMap, _ := cmd.Flags().GetBool("source-map")
+		if sourceMap {
+			out, err := cli.SourceMap(data, args[0])
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(out))
+			return nil
+		}
+		breaks, _ := cmd.Flags().GetStringArray("break")
+		if err := cli.Debug(data, args[0], cli.DebugOptions{Breakpoints: breaks}, os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return nil
+	},
+}
+
 var disasmCmd = &cobra.Command{
 	Use:   "disasm <script>",
 	Short: "Print bytecode disassembly",
@@ -137,7 +164,9 @@ var mcpCmd = &cobra.Command{
 
 func init() {
 	fmtCmd.Flags().BoolP("write", "w", false, "write result to the source file instead of stdout")
-	rootCmd.AddCommand(runCmd, astCmd, fmtCmd, describeCmd, disasmCmd, lspCmd, mcpCmd)
+	debugCmd.Flags().Bool("source-map", false, "emit JSON source map and exit")
+	debugCmd.Flags().StringArrayP("break", "b", nil, "breakpoint at line or file:line (repeatable)")
+	rootCmd.AddCommand(runCmd, astCmd, fmtCmd, describeCmd, disasmCmd, debugCmd, lspCmd, mcpCmd)
 }
 
 func main() {

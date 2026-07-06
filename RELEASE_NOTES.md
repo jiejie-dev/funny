@@ -1,4 +1,4 @@
-# Release Notes — v2.1.5
+# Release Notes — v2.1.6
 
 **Release date:** 2026-07-07
 **Module:** `github.com/jiejie-dev/funny/v2`
@@ -9,16 +9,23 @@
 
 ## Overview
 
-**v2.1.5** adds explicit `mut` struct fields: fields declared with `mut` can be assigned after construction (`c.count = c.count + 1`); all other fields stay immutable and produce `E2010` if assigned.
+**v2.1.6** adds the bytecode debugger from the v2.1 roadmap: compile-time source maps, `funny debug` for breakpoints and single-stepping, and JSON source-map export. `funny disasm` now shows source locations per instruction.
 
 ## Quick start
 
 ```bash
 # Install this release
-go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.5
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.6
 
 # Run a script
 funny run script.fn
+
+# Debug (interactive)
+funny debug script.fn
+funny debug script.fn -b 12
+
+# Source map JSON
+funny debug script.fn --source-map
 
 # Format source
 funny fmt script.fn
@@ -28,6 +35,19 @@ funny fmt script.fn -w
 funny lsp                   # LSP over stdio
 funny mcp                   # MCP over stdio
 ```
+
+## What's new in v2.1.6
+
+### Bytecode debugger
+
+- **Source maps** — compiler records `SourceLoc` per instruction and `LocalNames` per function
+- **`funny debug`** — interactive debugger: `step`, `continue`, `break`, `locals`, `stack`, `where`, `quit`
+- **`--source-map`** — JSON export of instruction index → source position
+- **`funny disasm`** — disassembly lines annotated with `; file:line:col`
+
+Applies to the default bytecode VM path only (not `FUNNY_INTERPRET=1`).
+
+See `CHANGELOG.md` for the full itemized list.
 
 ## What's new in v2.1.5
 
@@ -109,6 +129,7 @@ funny ast <script>          Print the JSON AST
 funny fmt <script> [-w]     Format source (stdout, or in-place with -w)
 funny describe <script>     Print plan + metadata as JSON
 funny disasm <script>       Print bytecode disassembly
+funny debug <script>        Interactive bytecode debugger (-b, --source-map)
 funny mcp                   Start the MCP server over stdio
 funny lsp                   Start the LSP server over stdio
 ```
@@ -138,6 +159,14 @@ The VM remains ~3.5× faster than the tree-walking interpreter. The spec's 5× t
 
 - 5× interpreter performance target not yet met (currently 3.5×)
 - AI-friendliness benchmark harness is ready; community LLM runs are still needed
+
+## Upgrading from v2.1.5
+
+No breaking changes. Reinstall the binary:
+
+```bash
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.6
+```
 
 ## Upgrading from v2.1.4
 

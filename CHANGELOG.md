@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.6 (2026-07-07)
+
+### Features
+- **Bytecode debugger** — compiler emits per-instruction source maps (`file:line:col` + local names); new `funny debug` subcommand with interactive breakpoints, single-step, locals/stack inspection; `funny debug --source-map` exports JSON; `funny disasm` annotates instructions with source locations
+
 ## v2.1.5 (2026-07-07)
 
 ### Features
