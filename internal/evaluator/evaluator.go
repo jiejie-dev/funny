@@ -2,6 +2,7 @@
 package evaluator
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -10,8 +11,14 @@ import (
 	"github.com/jiejie-dev/funny/v2/internal/strfmt"
 )
 
+var (
+	errLoopBreak    = errors.New("loop break")
+	errLoopContinue = errors.New("loop continue")
+)
+
 type Evaluator struct {
-	scope *Scope
+	scope     *Scope
+	loopDepth int
 }
 
 func New(scope *Scope) *Evaluator {
@@ -389,6 +396,9 @@ func (e *Evaluator) execBlock(b *ast.Block) (any, bool, error) {
 	for _, s := range b.Statements {
 		v, has, err := e.execStmt(s)
 		if err != nil {
+			if errors.Is(err, errLoopBreak) || errors.Is(err, errLoopContinue) {
+				return nil, false, err
+			}
 			return nil, false, err
 		}
 		if has {
@@ -402,6 +412,12 @@ func (e *Evaluator) execBlock(b *ast.Block) (any, bool, error) {
 func (e *Evaluator) Exec(prog *ast.Program) error {
 	for _, s := range prog.Stmts {
 		if _, _, err := e.execStmt(s); err != nil {
+			if errors.Is(err, errLoopBreak) {
+				return errs.New("E2012", "break outside for/while", toErrPos(s.Pos()), "")
+			}
+			if errors.Is(err, errLoopContinue) {
+				return errs.New("E2013", "continue outside for/while", toErrPos(s.Pos()), "")
+			}
 			return err
 		}
 	}
@@ -463,6 +479,8 @@ func (e *Evaluator) execStmt(s ast.Statement) (any, bool, error) {
 		if !ok {
 			return nil, false, errs.New("E2011", "for-in requires list", toErrPos(n.NodePos), "")
 		}
+		e.loopDepth++
+		defer func() { e.loopDepth-- }()
 		for _, item := range list {
 			saved := e.scope
 			iterScope := NewScope(e.scope)
@@ -471,6 +489,12 @@ func (e *Evaluator) execStmt(s ast.Statement) (any, bool, error) {
 			_, has, err := e.execBlock(n.Body)
 			e.scope = saved
 			if err != nil {
+				if errors.Is(err, errLoopBreak) {
+					break
+				}
+				if errors.Is(err, errLoopContinue) {
+					continue
+				}
 				return nil, false, err
 			}
 			if has {
@@ -479,6 +503,8 @@ func (e *Evaluator) execStmt(s ast.Statement) (any, bool, error) {
 		}
 		return nil, false, nil
 	case *ast.WhileStmt:
+		e.loopDepth++
+		defer func() { e.loopDepth-- }()
 		for {
 			cond, err := e.Eval(n.Cond)
 			if err != nil {
@@ -489,11 +515,40 @@ func (e *Evaluator) execStmt(s ast.Statement) (any, bool, error) {
 			}
 			_, has, err := e.execBlock(n.Body)
 			if err != nil {
+				if errors.Is(err, errLoopBreak) {
+					break
+				}
+				if errors.Is(err, errLoopContinue) {
+					continue
+				}
 				return nil, false, err
 			}
 			if has {
 				return nil, true, nil
 			}
+		}
+		return nil, false, nil
+	case *ast.MatchStmt:
+		scrutinee, err := e.Eval(n.Expr)
+		if err != nil {
+			return nil, false, err
+		}
+		for _, arm := range n.Arms {
+			matched, err := e.patternMatches(scrutinee, arm.Pattern)
+			if err != nil {
+				return nil, false, err
+			}
+			if !matched {
+				continue
+			}
+			v, has, err := e.execBlock(arm.Body)
+			if err != nil {
+				if errors.Is(err, errLoopBreak) || errors.Is(err, errLoopContinue) {
+					return nil, false, err
+				}
+				return nil, false, err
+			}
+			return v, has, nil
 		}
 		return nil, false, nil
 	case *ast.ReturnStmt:
@@ -512,9 +567,15 @@ func (e *Evaluator) execStmt(s ast.Statement) (any, bool, error) {
 		}
 		return nil, false, nil
 	case *ast.BreakStmt:
-		return nil, false, errs.New("E2012", "break outside for/while", toErrPos(n.NodePos), "")
+		if e.loopDepth == 0 {
+			return nil, false, errs.New("E2012", "break outside for/while", toErrPos(n.NodePos), "")
+		}
+		return nil, false, errLoopBreak
 	case *ast.ContinueStmt:
-		return nil, false, errs.New("E2013", "continue outside for/while", toErrPos(n.NodePos), "")
+		if e.loopDepth == 0 {
+			return nil, false, errs.New("E2013", "continue outside for/while", toErrPos(n.NodePos), "")
+		}
+		return nil, false, errLoopContinue
 	case *ast.FnDecl:
 		e.scope.Set(n.Name, n)
 		return nil, false, nil
@@ -535,4 +596,36 @@ func (e *Evaluator) execStmt(s ast.Statement) (any, bool, error) {
 
 func toErrPos(p ast.Pos) errs.Position {
 	return errs.Position{File: p.File, Line: p.Line, Col: p.Col}
+}
+
+func (e *Evaluator) patternMatches(scrutinee any, pattern ast.Expression) (bool, error) {
+	if v, ok := pattern.(*ast.VariableExpr); ok && v.Name == "_" {
+		return true, nil
+	}
+	if v, ok := pattern.(*ast.VariableExpr); ok {
+		other, ok := e.scope.Get(v.Name)
+		if !ok {
+			return false, errs.New("E2001", fmt.Sprintf("undefined variable: %s", v.Name), toErrPos(v.NodePos), "")
+		}
+		return valuesEqual(scrutinee, other), nil
+	}
+	pv, err := e.Eval(pattern)
+	if err != nil {
+		return false, err
+	}
+	return valuesEqual(scrutinee, pv), nil
+}
+
+func valuesEqual(a, b any) bool {
+	if a == b {
+		return true
+	}
+	eq, err := applyBinary("==", a, b)
+	if err != nil {
+		return false
+	}
+	if b, ok := eq.(bool); ok {
+		return b
+	}
+	return false
 }

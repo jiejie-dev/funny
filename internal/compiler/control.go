@@ -96,16 +96,17 @@ func (c *Compiler) compileWhile(n *ast.WhileStmt) error {
 		return err
 	}
 	exitJumpIdx := len(c.fn.Code)
-	c.fn.Emit(bytecode.JUMP_IF_FALSE, 0) // placeholder
+	c.fn.Emit(bytecode.JUMP_IF_FALSE, 0)
 
+	c.pushLoop()
 	if err := c.compileBlock(n.Body); err != nil {
 		return err
 	}
-
 	c.fn.Emit(bytecode.JUMP, loopStart)
 
-	// Patch: JUMP_IF_FALSE target = current end (after the JUMP back)
-	c.fn.Code[exitJumpIdx].Arg = len(c.fn.Code)
+	loopEnd := len(c.fn.Code)
+	c.popLoop(loopEnd, loopStart)
+	c.fn.Code[exitJumpIdx].Arg = loopEnd
 	return nil
 }
 
@@ -175,9 +176,11 @@ func (c *Compiler) compileFor(n *ast.ForStmt) error {
 	userSlot := c.declareLocal(n.Name, iterType)
 	c.fn.Emit(bytecode.STORE_LOCAL, userSlot)
 	c.fn.Emit(bytecode.POP, 0)
+	c.pushLoop()
 	if err := c.compileBlock(n.Body); err != nil {
 		return err
 	}
+	continueStart := len(c.fn.Code)
 	c.fn.Emit(bytecode.LOAD_LOCAL, idxSlot)
 	oneIdx := c.mod.AddConstant(1)
 	c.fn.Emit(bytecode.PUSH_INT, oneIdx)
@@ -185,7 +188,9 @@ func (c *Compiler) compileFor(n *ast.ForStmt) error {
 	c.fn.Emit(bytecode.STORE_LOCAL, idxSlot)
 	c.fn.Emit(bytecode.POP, 0)
 	c.fn.Emit(bytecode.JUMP, loopStart)
-	c.fn.Code[exitJump].Arg = len(c.fn.Code)
+	loopEnd := len(c.fn.Code)
+	c.popLoop(loopEnd, continueStart)
+	c.fn.Code[exitJump].Arg = loopEnd
 	return nil
 }
 
@@ -200,6 +205,118 @@ func (c *Compiler) compileBlock(b *ast.Block) error {
 		if err := c.compileStmt(s, false); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (c *Compiler) pushLoop() {
+	c.loopStack = append(c.loopStack, loopFrame{})
+}
+
+func (c *Compiler) popLoop(loopEnd, continueTarget int) {
+	if len(c.loopStack) == 0 {
+		return
+	}
+	top := c.loopStack[len(c.loopStack)-1]
+	for _, idx := range top.breakPatches {
+		c.fn.Code[idx].Arg = loopEnd
+	}
+	for _, idx := range top.continuePatches {
+		c.fn.Code[idx].Arg = continueTarget
+	}
+	c.loopStack = c.loopStack[:len(c.loopStack)-1]
+}
+
+func (c *Compiler) compileBreak() error {
+	if len(c.loopStack) == 0 {
+		return fmt.Errorf("compileBreak: break outside for/while")
+	}
+	idx := len(c.fn.Code)
+	c.fn.Emit(bytecode.JUMP, 0)
+	top := &c.loopStack[len(c.loopStack)-1]
+	top.breakPatches = append(top.breakPatches, idx)
+	return nil
+}
+
+func (c *Compiler) compileContinue() error {
+	if len(c.loopStack) == 0 {
+		return fmt.Errorf("compileContinue: continue outside for/while")
+	}
+	idx := len(c.fn.Code)
+	c.fn.Emit(bytecode.JUMP, 0)
+	top := &c.loopStack[len(c.loopStack)-1]
+	top.continuePatches = append(top.continuePatches, idx)
+	return nil
+}
+
+func isWildcardPattern(p ast.Expression) bool {
+	v, ok := p.(*ast.VariableExpr)
+	return ok && v.Name == "_"
+}
+
+func (c *Compiler) compilePatternMatch(scrutineeSlot int, pattern ast.Expression) error {
+	if isWildcardPattern(pattern) {
+		idx := c.mod.AddConstant(true)
+		c.fn.Emit(bytecode.PUSH_BOOL, idx)
+		return nil
+	}
+	scrType := valNil
+	if scrutineeSlot < len(c.varTypes) {
+		scrType = c.varTypes[scrutineeSlot]
+	}
+	c.fn.Emit(bytecode.LOAD_LOCAL, scrutineeSlot)
+	patType, err := c.compileExpr(pattern)
+	if err != nil {
+		return err
+	}
+	opType := scrType
+	if scrType != patType {
+		switch {
+		case scrType == valNil && patType != valNil:
+			opType = patType
+		case patType == valNil && scrType != valNil:
+			opType = scrType
+		default:
+			return fmt.Errorf("compilePatternMatch: type mismatch %s vs %s", scrType, patType)
+		}
+	}
+	op, err := pickBinaryOp("==", opType)
+	if err != nil {
+		return fmt.Errorf("compilePatternMatch: %w", err)
+	}
+	c.fn.Emit(op, 0)
+	return nil
+}
+
+func (c *Compiler) compileMatch(n *ast.MatchStmt) error {
+	c.pushScope()
+	defer c.popScope()
+	scrType, err := c.compileExpr(n.Expr)
+	if err != nil {
+		return err
+	}
+	slot := c.declareLocal("__match__", scrType)
+	c.fn.Emit(bytecode.STORE_LOCAL, slot)
+	c.fn.Emit(bytecode.POP, 0)
+
+	endJumps := []int{}
+	for _, arm := range n.Arms {
+		if err := c.compilePatternMatch(slot, arm.Pattern); err != nil {
+			return err
+		}
+		skipIdx := len(c.fn.Code)
+		c.fn.Emit(bytecode.JUMP_IF_FALSE, 0)
+		if err := c.compileBlock(arm.Body); err != nil {
+			return err
+		}
+		endIdx := len(c.fn.Code)
+		c.fn.Emit(bytecode.JUMP, 0)
+		endJumps = append(endJumps, endIdx)
+		c.fn.Code[skipIdx].Arg = len(c.fn.Code)
+	}
+	matchEnd := len(c.fn.Code)
+	for _, idx := range endJumps {
+		c.fn.Code[idx].Arg = matchEnd
 	}
 	return nil
 }

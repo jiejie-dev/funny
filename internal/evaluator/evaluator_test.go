@@ -225,3 +225,43 @@ for i in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
 	v, _ := e.scope.Get("sum")
 	assert.Equal(t, 55, v)
 }
+
+func TestEval_Match(t *testing.T) {
+	e := execProgram(t, `let n = 2
+let label = "other"
+match n:
+    1 =>
+        label = "one"
+    2 =>
+        label = "two"
+    _ =>
+        label = "many"
+`)
+	v, ok := e.Scope().Get("label")
+	require.True(t, ok)
+	assert.Equal(t, "two", v)
+}
+
+func TestEval_BreakInWhile(t *testing.T) {
+	e := execProgram(t, `let x = 0
+while x < 100:
+    x = x + 1
+    if x == 5:
+        break
+`)
+	v, ok := e.Scope().Get("x")
+	require.True(t, ok)
+	assert.Equal(t, 5, v)
+}
+
+func TestEval_ContinueInFor(t *testing.T) {
+	e := execProgram(t, `let total = 0
+for i in [1, 2, 3, 4]:
+    if i == 3:
+        continue
+    total = total + i
+`)
+	v, ok := e.Scope().Get("total")
+	require.True(t, ok)
+	assert.Equal(t, 7, v)
+}

@@ -529,13 +529,19 @@ func checkStmt(s ast.Statement, env *Env) error {
 		return checkFor(n, env)
 	case *ast.WhileStmt:
 		return checkWhile(n, env)
+	case *ast.MatchStmt:
+		return checkMatch(n, env)
 	case *ast.ReturnStmt:
 		return checkReturn(n, env)
 	case *ast.FnDecl:
 		return checkFnDecl(n, env)
 	case *ast.StructDecl:
 		return checkStructDecl(n, env)
-	case *ast.ExprStmt, *ast.BreakStmt, *ast.ContinueStmt, *ast.PlanBlock, *ast.ImportDecl, *ast.CommentStmt:
+	case *ast.BreakStmt:
+		return checkBreak(n, env)
+	case *ast.ContinueStmt:
+		return checkContinue(n, env)
+	case *ast.ExprStmt, *ast.PlanBlock, *ast.ImportDecl, *ast.CommentStmt:
 		return nil // M2-A doesn't type-check these
 	case *ast.MetaBlock:
 		return checkMeta(n, env)
@@ -643,7 +649,7 @@ func checkFor(n *ast.ForStmt, env *Env) error {
 	}
 	bodyEnv := NewEnv(env)
 	bodyEnv.DeclareVar(n.Name, listT.Elem)
-	return Check(n.Body.ToProgram(), bodyEnv)
+	return Check(n.Body.ToProgram(), bodyEnv.WithLoopBody())
 }
 
 func checkWhile(n *ast.WhileStmt, env *Env) error {
@@ -654,7 +660,51 @@ func checkWhile(n *ast.WhileStmt, env *Env) error {
 	if !Equal(condT, Primitive("bool")) {
 		return NewMismatch(n.NodePos, Primitive("bool"), condT)
 	}
-	return Check(n.Body.ToProgram(), env)
+	return Check(n.Body.ToProgram(), env.WithLoopBody())
+}
+
+func checkMatch(n *ast.MatchStmt, env *Env) error {
+	scrT, err := CheckExpr(n.Expr, env)
+	if err != nil {
+		return err
+	}
+	for _, arm := range n.Arms {
+		if err := checkMatchPattern(arm.Pattern, scrT, env, n.NodePos); err != nil {
+			return err
+		}
+		if err := Check(arm.Body.ToProgram(), env); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func checkMatchPattern(pattern ast.Expression, scrT Type, env *Env, pos ast.Pos) error {
+	if v, ok := pattern.(*ast.VariableExpr); ok && v.Name == "_" {
+		return nil
+	}
+	patT, err := CheckExpr(pattern, env)
+	if err != nil {
+		return err
+	}
+	if !Equal(patT, scrT) {
+		return NewMismatch(pos, scrT, patT)
+	}
+	return nil
+}
+
+func checkBreak(n *ast.BreakStmt, env *Env) error {
+	if !env.InLoop() {
+		return New("E2012", "break outside for/while", n.NodePos)
+	}
+	return nil
+}
+
+func checkContinue(n *ast.ContinueStmt, env *Env) error {
+	if !env.InLoop() {
+		return New("E2013", "continue outside for/while", n.NodePos)
+	}
+	return nil
 }
 
 func checkReturn(n *ast.ReturnStmt, env *Env) error {

@@ -208,17 +208,19 @@ for i in [1, 2, 3]:
 
 while x > 0:
     x = x - 1
+
+# break exits the nearest for/while; continue skips to the next iteration.
+for i in [1, 2, 3]:
+    if i == 2:
+        continue
+    print(i)
 ```
 
 ### Match
 
-> **Not implemented yet.** The syntax below is aspirational/reserved — there
-> is no `ast.MatchStmt`, no parser support, no type-checker case, and no
-> evaluator/compiler codegen for it anywhere in the codebase today; a
-> script containing a `match` block fails to parse (`E1003`). Use an
-> `if`/`elif`/`else` chain instead. Tracked as a real follow-up rather than
-> quietly dropped from the manual, since a match-like construct is a
-> natural fit for the language's `Result`/tagged-union values.
+Value matching on an expression. Patterns are literals, variables (compared
+by value), or `_` (wildcard). The first matching arm runs; if none match,
+execution continues after the `match`.
 
 ```
 match status:

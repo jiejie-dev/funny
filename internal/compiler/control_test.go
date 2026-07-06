@@ -129,3 +129,46 @@ sum
 	require.NoError(t, err)
 	assert.Equal(t, 6, got)
 }
+
+func TestCompile_Match_RunsOnVM(t *testing.T) {
+	mod := compileExpr(t, `let code = 404
+let msg = "other"
+match code:
+    200 =>
+        msg = "ok"
+    404 =>
+        msg = "not found"
+    _ =>
+        msg = "unknown"
+msg
+`)
+	got, err := vm.New(mod).Run()
+	require.NoError(t, err)
+	assert.Equal(t, "not found", got)
+}
+
+func TestCompile_BreakInWhile_RunsOnVM(t *testing.T) {
+	mod := compileExpr(t, `let x = 0
+while x < 10:
+    x = x + 1
+    if x == 3:
+        break
+x
+`)
+	got, err := vm.New(mod).Run()
+	require.NoError(t, err)
+	assert.Equal(t, 3, got)
+}
+
+func TestCompile_ContinueInFor_RunsOnVM(t *testing.T) {
+	mod := compileExpr(t, `let sum = 0
+for i in [1, 2, 3, 4]:
+    if i == 3:
+        continue
+    sum = sum + i
+sum
+`)
+	got, err := vm.New(mod).Run()
+	require.NoError(t, err)
+	assert.Equal(t, 7, got)
+}

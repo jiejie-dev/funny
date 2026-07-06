@@ -804,3 +804,57 @@ func TestCheck_MetaBlock_MissingName(t *testing.T) {
 	err = Check(prog, env)
 	assert.Error(t, err)
 }
+
+func TestCheck_Match(t *testing.T) {
+	src := `let code: int = 200
+match code:
+    200 =>
+        let ok = true
+    404 =>
+        let missing = true
+    _ =>
+        let other = true
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	require.NoError(t, Check(prog, env))
+}
+
+func TestCheck_MatchPatternMismatch(t *testing.T) {
+	src := `let code: int = 200
+match code:
+    "bad" =>
+        let x = 1
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	require.Error(t, err)
+}
+
+func TestCheck_BreakOutsideLoop(t *testing.T) {
+	src := `break
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	err = Check(prog, env)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "E2012")
+}
+
+func TestCheck_ContinueInLoop(t *testing.T) {
+	src := `for i in [1, 2, 3]:
+    continue
+`
+	p := parser.New(src, "")
+	prog, err := p.Parse()
+	require.NoError(t, err)
+	env := NewEnv(nil)
+	require.NoError(t, Check(prog, env))
+}

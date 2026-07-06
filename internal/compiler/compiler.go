@@ -31,6 +31,12 @@ type Compiler struct {
 	functions    map[string]int                  // function name → index in mod.Functions
 	fnRetTypes   map[string]valueType            // function name → declared return value type
 	structFields map[string]map[string]valueType // struct name → field name → value type
+	loopStack    []loopFrame                     // active loops for break/continue
+}
+
+type loopFrame struct {
+	breakPatches    []int
+	continuePatches []int
 }
 
 // Compile translates a typed Program into a Module.
@@ -150,6 +156,12 @@ func (c *Compiler) compileStmt(s ast.Statement, isLast bool) error {
 		return c.compileWhile(n)
 	case *ast.ForStmt:
 		return c.compileFor(n)
+	case *ast.MatchStmt:
+		return c.compileMatch(n)
+	case *ast.BreakStmt:
+		return c.compileBreak()
+	case *ast.ContinueStmt:
+		return c.compileContinue()
 	case *ast.FnDecl:
 		return c.compileFnDecl(n)
 	case *ast.ReturnStmt:

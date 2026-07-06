@@ -2,10 +2,11 @@ package types
 
 // Env is a type environment that tracks variables, functions, and structs.
 type Env struct {
-	parent  *Env
-	vars    map[string]Type
-	funcs   map[string]Func
-	structs map[string]Struct
+	parent    *Env
+	vars      map[string]Type
+	funcs     map[string]Func
+	structs   map[string]Struct
+	loopDepth int // nesting depth of for/while loops for break/continue checking
 }
 
 // NewEnv creates a new Env, optionally nested inside parent.
@@ -16,6 +17,18 @@ func NewEnv(parent *Env) *Env {
 		funcs:   map[string]Func{},
 		structs: map[string]Struct{},
 	}
+}
+
+// WithLoopBody returns a child env for a loop body (increments loop depth).
+func (e *Env) WithLoopBody() *Env {
+	child := NewEnv(e)
+	child.loopDepth = e.loopDepth + 1
+	return child
+}
+
+// InLoop reports whether break/continue are valid in this env.
+func (e *Env) InLoop() bool {
+	return e.loopDepth > 0
 }
 
 // DeclareVar defines a variable in this scope (no parent traversal).
