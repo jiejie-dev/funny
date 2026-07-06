@@ -189,6 +189,37 @@ Struct types are always merged under their bare name regardless of alias
 (there is no `m.Point(...)` construction syntax); use the struct name
 directly after importing it.
 
+#### Package dependencies (`funny pkg`)
+
+Projects declare third-party modules in `funny.pkg` (JSON) at the project root.
+`funny pkg install` copies or fetches them into `.funny/packages/<name>/` and
+writes `funny.lock` with SHA-256 checksums.
+
+```json
+{
+  "name": "my-app",
+  "dependencies": {
+    "math": { "source": "path:vendor/math.fn" }
+  }
+}
+```
+
+Supported `source` forms: `path:<file-or-dir>`, `https://...` (single `.fn`),
+`git+<url>@<ref>` (shallow clone).
+
+Import installed packages with the `pkg:` prefix:
+
+```
+import "pkg:math"
+let r = add(1, 2)
+```
+
+```bash
+funny pkg install
+funny pkg install math
+funny pkg list
+```
+
 Other rules:
 - A module's own private (non-`pub`) functions are still usable by that
   module's `pub` functions, but are invisible to (and cannot collide with)
@@ -353,6 +384,8 @@ funny disasm script.fn      # print bytecode disassembly
 funny debug script.fn       # interactive bytecode debugger
 funny debug script.fn --source-map  # JSON instruction→source map
 funny debug script.fn -b 10 # break at line 10, then step/continue
+funny pkg install           # install dependencies from funny.pkg
+funny pkg list              # list locked packages
 funny mcp                   # start MCP server
 funny lsp                   # start LSP server
 ```

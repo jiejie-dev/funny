@@ -42,6 +42,7 @@ import (
 	"github.com/jiejie-dev/funny/v2/internal/ast"
 	"github.com/jiejie-dev/funny/v2/internal/errs"
 	"github.com/jiejie-dev/funny/v2/internal/parser"
+	"github.com/jiejie-dev/funny/v2/internal/pkgman"
 )
 
 // resolvedModule is the fully-processed result of resolving one dependency
@@ -308,6 +309,9 @@ func (r *resolver) resolveFile(path string) (*resolvedModule, error) {
 func resolveImportPath(baseDir, importPath string) (string, error) {
 	if strings.TrimSpace(importPath) == "" {
 		return "", fmt.Errorf("empty import path")
+	}
+	if strings.HasPrefix(importPath, "pkg:") {
+		return pkgman.ResolvePkgImport(baseDir, importPath)
 	}
 	p := importPath
 	if !filepath.IsAbs(p) {
