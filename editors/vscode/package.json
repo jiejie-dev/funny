@@ -2,7 +2,7 @@
   "name": "funny-vscode",
   "displayName": "Funny",
   "description": "Language support for Funny — syntax highlighting, LSP (completion, hover, diagnostics, formatting, rename, references), snippets, and plan graph visualization.",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "publisher": "jiejie-dev",
   "license": "MIT",
   "repository": {
@@ -101,6 +101,16 @@
         "icon": "$(play)"
       },
       {
+        "command": "funny.startRepl",
+        "title": "Funny: Start REPL",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "funny.debugFile",
+        "title": "Funny: Debug Current File (Terminal)",
+        "icon": "$(debug-alt)"
+      },
+      {
         "command": "funny.formatFile",
         "title": "Funny: Format Document"
       },
@@ -114,12 +124,51 @@
         "title": "Funny: Restart Language Server"
       }
     ],
+    "debuggers": [
+      {
+        "type": "funny",
+        "label": "Funny",
+        "program": "${config:funny.executablePath}",
+        "args": ["dap"],
+        "configurationAttributes": {
+          "launch": {
+            "required": ["program"],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Path to the Funny script to debug",
+                "default": "${file}"
+              },
+              "cwd": {
+                "type": "string",
+                "description": "Working directory for resolving imports",
+                "default": "${workspaceFolder}"
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "funny",
+            "request": "launch",
+            "name": "Debug Funny File",
+            "program": "${file}",
+            "cwd": "${workspaceFolder}"
+          }
+        ]
+      }
+    ],
     "menus": {
       "editor/title/run": [
         {
           "command": "funny.runFile",
           "when": "resourceLangId == funny",
           "group": "navigation@1"
+        },
+        {
+          "command": "funny.startRepl",
+          "when": "resourceLangId == funny",
+          "group": "navigation@2"
         }
       ],
       "editor/context": [
@@ -132,11 +181,24 @@
           "command": "funny.showPlanGraph",
           "when": "resourceLangId == funny",
           "group": "navigation@2"
+        },
+        {
+          "command": "funny.debugFile",
+          "when": "resourceLangId == funny",
+          "group": "navigation@3"
         }
       ],
       "commandPalette": [
         {
           "command": "funny.runFile",
+          "when": "editorLangId == funny"
+        },
+        {
+          "command": "funny.startRepl",
+          "when": "editorLangId == funny || workspaceFolderCount > 0"
+        },
+        {
+          "command": "funny.debugFile",
           "when": "editorLangId == funny"
         },
         {

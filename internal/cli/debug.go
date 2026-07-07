@@ -18,7 +18,7 @@ import (
 
 // SourceMap compiles src and returns JSON source map bytes.
 func SourceMap(src []byte, file string) ([]byte, error) {
-	mod, err := compileModule(src, file)
+	mod, err := CompileModule(src, file)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ type DebugOptions struct {
 
 // Debug runs script under the bytecode debugger with an interactive REPL on stdin.
 func Debug(src []byte, file string, opts DebugOptions, in io.Reader, out io.Writer) error {
-	mod, err := compileModule(src, file)
+	mod, err := CompileModule(src, file)
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,8 @@ func Debug(src []byte, file string, opts DebugOptions, in io.Reader, out io.Writ
 	return err
 }
 
-func compileModule(src []byte, file string) (*bytecode.Module, error) {
+// CompileModule parses, type-checks, and compiles source for debug/disasm.
+func CompileModule(src []byte, file string) (*bytecode.Module, error) {
 	p := parser.New(string(src), file)
 	prog, err := p.Parse()
 	if err != nil {

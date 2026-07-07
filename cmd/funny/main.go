@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/jiejie-dev/funny/v2/internal/cli"
+	"github.com/jiejie-dev/funny/v2/internal/dap"
 	"github.com/jiejie-dev/funny/v2/internal/lsp"
 	"github.com/jiejie-dev/funny/v2/internal/mcp"
 	"github.com/jiejie-dev/funny/v2/internal/repl"
@@ -220,6 +221,14 @@ var replCmd = &cobra.Command{
 	},
 }
 
+var dapCmd = &cobra.Command{
+	Use:   "dap",
+	Short: "Start the Debug Adapter Protocol server over stdio (for VS Code)",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return dap.Run(os.Stdin, os.Stdout)
+	},
+}
+
 var lspCmd = &cobra.Command{
 	Use:   "lsp",
 	Short: "Start the LSP server over stdio (for editors/IDEs)",
@@ -250,7 +259,7 @@ func init() {
 	benchAICmd.Flags().String("model", "", "model override (provider default if empty)")
 	benchAICmd.Flags().Bool("mock", false, "use mock provider (echo prompt); same as --provider mock")
 	benchCmd.AddCommand(benchAICmd)
-	rootCmd.AddCommand(runCmd, astCmd, fmtCmd, describeCmd, disasmCmd, debugCmd, pkgCmd, replCmd, benchCmd, lspCmd, mcpCmd)
+	rootCmd.AddCommand(runCmd, astCmd, fmtCmd, describeCmd, disasmCmd, debugCmd, pkgCmd, replCmd, benchCmd, dapCmd, lspCmd, mcpCmd)
 }
 
 func main() {

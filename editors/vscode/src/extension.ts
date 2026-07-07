@@ -68,6 +68,8 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     client,
     vscode.commands.registerCommand("funny.runFile", runCurrentFile),
+    vscode.commands.registerCommand("funny.startRepl", startRepl),
+    vscode.commands.registerCommand("funny.debugFile", debugCurrentFileTerminal),
     vscode.commands.registerCommand("funny.formatFile", formatCurrentFile),
     vscode.commands.registerCommand("funny.showPlanGraph", showPlanGraph),
     vscode.commands.registerCommand(
@@ -92,11 +94,9 @@ async function runCurrentFile(): Promise<void> {
     return;
   }
 
-  const funnyPath =
-    vscode.workspace.getConfiguration("funny").get<string>("executablePath") ??
-    "funny";
+  const funnyPath = getExecutablePath();
   const filePath = editor.document.uri.fsPath;
-  const cwd = vscode.workspace.getWorkspaceFolder(editor.document.uri)?.uri.fsPath;
+  const cwd = workspaceCwd(editor.document.uri);
 
   const terminal = vscode.window.createTerminal({
     name: "Funny Run",
@@ -104,6 +104,62 @@ async function runCurrentFile(): Promise<void> {
   });
   terminal.show();
   terminal.sendText(`${quoteShell(funnyPath)} run ${quoteShell(filePath)}`);
+}
+
+async function startRepl(): Promise<void> {
+  const editor = vscode.window.activeTextEditor;
+  const cwd =
+    (editor && workspaceCwd(editor.document.uri)) ||
+    vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+
+  const funnyPath = getExecutablePath();
+  const args = ["repl"];
+  if (cwd) {
+    args.push("--project", quoteShell(cwd));
+  }
+
+  const terminal = vscode.window.createTerminal({
+    name: "Funny REPL",
+    cwd,
+  });
+  terminal.show();
+  terminal.sendText(`${quoteShell(funnyPath)} ${args.join(" ")}`);
+}
+
+async function debugCurrentFileTerminal(): Promise<void> {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor || editor.document.languageId !== "funny") {
+    vscode.window.showWarningMessage("Open a Funny (.fn / .funny) file first.");
+    return;
+  }
+
+  const funnyPath = getExecutablePath();
+  const filePath = editor.document.uri.fsPath;
+  const line = editor.selection.active.line + 1;
+  const cwd = workspaceCwd(editor.document.uri);
+
+  const terminal = vscode.window.createTerminal({
+    name: "Funny Debug",
+    cwd,
+  });
+  terminal.show();
+  terminal.sendText(
+    `${quoteShell(funnyPath)} debug ${quoteShell(filePath)} -b ${line}`
+  );
+  vscode.window.showInformationMessage(
+    "Funny debug session started in terminal. For VS Code breakpoints, use Run and Debug with the Funny configuration."
+  );
+}
+
+function getExecutablePath(): string {
+  return (
+    vscode.workspace.getConfiguration("funny").get<string>("executablePath") ??
+    "funny"
+  );
+}
+
+function workspaceCwd(docUri: vscode.Uri): string | undefined {
+  return vscode.workspace.getWorkspaceFolder(docUri)?.uri.fsPath;
 }
 
 async function formatCurrentFile(): Promise<void> {

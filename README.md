@@ -34,6 +34,7 @@ funny debug script.fn --source-map  # JSON instruction→source map
 funny pkg install           # install dependencies from funny.pkg
 funny repl                  # interactive REPL (persistent session)
 funny repl --lesson 1       # guided tutorial from docs/tutorial-*.funny
+funny dap                   # DAP server (VS Code debugging)
 funny mcp                   # start MCP server (for LLM clients)
 funny lsp                   # start LSP server (for editors/IDEs)
 ```
@@ -43,6 +44,7 @@ funny lsp                   # start LSP server (for editors/IDEs)
 - AI-native design: indentation-based syntax, strong typing, agent protocol
 - Bytecode VM (default) + tree-walking evaluator fallback (VM is ~3.5× faster; set `FUNNY_INTERPRET=1` to use the interpreter instead)
 - **REPL** (`funny repl`) — persistent session, guided tutorials (`:lesson`), `:load` / `:type` / `:install`, completion hints
+- **VS Code** (`editors/vscode/`) — LSP, REPL terminal, DAP debugging via `funny dap`
 - `Result` + `?` operator for error propagation
 - Plan engine: `tool`/`transform`/`guard`/`delay`/`parallel` step kinds with real retry+backoff, timeout, and guard-assertion semantics; `branch` supports a case-list (`cond => "step"`) that dispatches to named plan steps (legacy `if`/`else` bodies still accepted)
 - MCP server with 6 tools for LLM integration

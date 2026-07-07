@@ -18,6 +18,8 @@ Language support for [Funny](https://github.com/jiejie-dev/funny), an AI-native 
 | Format document | `funny lsp` (same as `funny fmt`) |
 | Code snippets | Built-in |
 | Run current file | `funny run` command |
+| REPL in terminal | `funny repl` command |
+| VS Code debugging | `funny dap` Debug Adapter |
 | Plan graph visualization | Custom `funny/planGraph` LSP request |
 
 ## Prerequisites
@@ -64,9 +66,21 @@ code --install-extension funny-vscode-*.vsix
 ## Commands
 
 - **Funny: Run Current File** — runs `funny run` on the active editor
+- **Funny: Start REPL** — opens a terminal with `funny repl --project <workspace>`
+- **Funny: Debug Current File (Terminal)** — `funny debug` with breakpoint at cursor line
 - **Funny: Format Document** — triggers LSP formatting
 - **Funny: Show Plan Graph** — renders `plan` blocks as a Mermaid flowchart
 - **Funny: Restart Language Server**
+
+## Debugging
+
+Use the **Run and Debug** panel with the **Debug Funny File** launch configuration (requires `funny dap` in your toolchain). The adapter uses the bytecode VM debugger with editor breakpoints, locals, and stack inspection.
+
+For a quick terminal session, use **Funny: Debug Current File (Terminal)**.
+
+## REPL
+
+**Funny: Start REPL** opens an integrated terminal running `funny repl`. Use `:lessons` and `:lesson 1` inside the REPL for guided tutorials.
 
 ## Snippets
 

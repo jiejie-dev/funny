@@ -384,6 +384,7 @@ funny disasm script.fn      # print bytecode disassembly
 funny debug script.fn       # interactive bytecode debugger
 funny debug script.fn --source-map  # JSON instruction→source map
 funny debug script.fn -b 10 # break at line 10, then step/continue
+funny dap                   # Debug Adapter Protocol (VS Code Run and Debug)
 funny pkg install           # install dependencies from funny.pkg
 funny pkg list              # list locked packages
 funny repl                  # interactive REPL
@@ -412,6 +413,10 @@ funny debug script.fn -b 12 -b other.fn:5
 ```
 
 `funny disasm` also annotates each instruction with its source location (`; file:line:col`).
+
+### VS Code debugging (DAP)
+
+`funny dap` speaks the [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/) over stdio. The Funny VS Code extension (`editors/vscode/`) registers a **Debug Funny File** launch configuration that starts `funny dap`, sets editor breakpoints, and inspects **Locals** and **Stack** scopes while stepping.
 
 Debugger commands at the `(dbg)` prompt:
 
