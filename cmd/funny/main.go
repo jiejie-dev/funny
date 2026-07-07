@@ -18,7 +18,7 @@ import (
 // `-ldflags "-X main.version=2.1.0"` so `funny --version` matches the tag
 // actually released, instead of drifting from CHANGELOG.md/RELEASE_NOTES.md
 // like the old hardcoded "0.1.0" did.
-var version = "2.2.1"
+var version = "2.2.2"
 
 var rootCmd = &cobra.Command{
 	Use:     "funny",

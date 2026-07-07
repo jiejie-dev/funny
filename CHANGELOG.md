@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.2.2 (2026-07-07)
+
+### Features
+- **REPL learning environment** — guided tutorials from `docs/tutorial-*.funny` via `:lessons` / `:lesson N` / `:step` / `:hint` / `:show`; `funny repl --lesson 1` and `--lessons-dir`
+- **REPL learning commands** — `:load`, `:type`, `:desc`, `:complete`, `:history`, `:install` for interactive exploration
+
 ## v2.2.1 (2026-07-07)
 
 ### Features

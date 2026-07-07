@@ -1,4 +1,4 @@
-# Release Notes — v2.2.1
+# Release Notes — v2.2.2
 
 **Release date:** 2026-07-07
 **Module:** `github.com/jiejie-dev/funny/v2`
@@ -9,24 +9,31 @@
 
 ## Overview
 
-**v2.2.1** hits the v2.1.x VM performance target (~7× vs tree-walking interpreter on exec-only `fib(20)`) and adds **`funny bench ai`** for real LLM scoring against 50 compile_ok/compile_err tasks.
+**v2.2.2** completes the v2.2 spec's *interactive learning environment*: guided tutorials, type exploration, script loading, and package install — all inside `funny repl`.
 
 ## Quick start
 
 ```bash
 # Install this release
-go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.2.1
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.2.2
 
-# AI-friendliness benchmark
-funny bench ai --mock
-OPENAI_API_KEY=sk-... funny bench ai --provider openai
+# Guided tutorial
+funny repl --lesson 1
 
 # Interactive REPL
 funny repl
-
-# Run a script
-funny run script.fn
 ```
+
+## What's new in v2.2.2
+
+### REPL learning environment
+
+- **Guided tutorials** — `:lessons`, `:lesson N`, `:step`, `:hint`, `:show`, `:skip` over `docs/tutorial-*.funny`
+- **CLI flags** — `funny repl --lesson 1`, `--lessons-dir ./docs`
+- **Exploration** — `:type EXPR`, `:desc NAME`, `:complete PREFIX`, `:history`
+- **Workspace** — `:load path.fn`, `:install [pkg]` (wraps `funny.pkg install`)
+
+See `CHANGELOG.md` for the full itemized list.
 
 ## What's new in v2.2.1
 
@@ -195,6 +202,15 @@ Full pipeline (parse + typecheck + compile + run) remains ~4×; exec-only isolat
 
 - JIT compilation (v2.3 roadmap) not started
 - AI benchmark community leaderboard / CI integration not yet published
+- REPL uses tree-walking evaluator (differs from default VM path); no VS Code REPL panel or DAP yet
+
+## Upgrading from v2.2.1
+
+No breaking changes. Reinstall the binary:
+
+```bash
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.2.2
+```
 
 ## Upgrading from v2.2.0
 
