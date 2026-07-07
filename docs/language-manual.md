@@ -361,10 +361,9 @@ omitted) and its `with` options are executed by `internal/agent.Engine` as follo
   `return err(NetworkError(message: "timeout"))`); plain string errors use `str`.
   Omitting `on` retries every failure.
 - **`with ... timeout="<duration>"`** (e.g. `"500ms"`, `"5s"`): bounds a single attempt's
-  wall-clock time. Since the tree-walking evaluator has no preemption point, a step that's
-  genuinely stuck (e.g. an infinite loop) keeps running in the background after the
-  timeout error is returned — `timeout` is a best-effort control-flow signal for
-  eventually-terminating work (like a slow HTTP call), not a hard isolation guarantee.
+  wall-clock time. When the deadline passes the plan engine cancels the step's evaluator
+  context; the tree-walking interpreter stops at the next preemption point (loop head,
+  statement boundary), so infinite loops no longer keep mutating scope in the background.
 
 Struct instances created via struct literals carry a runtime `__type` field with the
 struct name so plan `retry.on` can distinguish typed errors from plain strings.

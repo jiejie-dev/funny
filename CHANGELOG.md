@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.4.1 (2026-07-07)
+
+### Features
+- **Plan timeout preemption** — step `with timeout` cancels the evaluator context at the deadline; infinite loops stop at preemption points instead of continuing to mutate plan scope in the background
+
 ## v2.4.0 (2026-07-07)
 
 ### Features

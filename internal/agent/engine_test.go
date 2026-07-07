@@ -223,6 +223,25 @@ func TestEngine_Timeout_FailsFastWithoutHanging(t *testing.T) {
 	require.Less(t, elapsed, 500*time.Millisecond)
 }
 
+func TestEngine_Timeout_CancelStopsScopeMutation(t *testing.T) {
+	e, err := runPlanSrc(t, `plan "demo":
+    let counter = 0
+    step "spin" -> tool with timeout="30ms":
+        while true:
+            counter = counter + 1
+    step "done" -> guard:
+        true
+`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "timed out")
+	v1, ok := e.eval.Scope().Get("counter")
+	require.True(t, ok)
+	time.Sleep(50 * time.Millisecond)
+	v2, ok := e.eval.Scope().Get("counter")
+	require.True(t, ok)
+	assert.Equal(t, v1, v2, "timed-out step must stop mutating scope")
+}
+
 func TestEngine_Timeout_RetriesAfterTimingOut(t *testing.T) {
 	e, err := runPlanSrc(t, `plan "demo":
     let tries = 0

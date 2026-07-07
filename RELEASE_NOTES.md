@@ -1,4 +1,4 @@
-# Release Notes — v2.4.0
+# Release Notes — v2.4.1
 
 **Release date:** 2026-07-07
 **Module:** `github.com/jiejie-dev/funny/v2`
@@ -9,20 +9,24 @@
 
 ## Overview
 
-**v2.4.0** adds a first-class **testing framework** and **documentation generator**: write `test "name":` blocks in `*_test.fn`, run them with **`funny test`**, and generate API docs from **`##` doc comments** with **`funny doc`**.
+**v2.4.1** makes plan step **`with timeout`** a real preemption guarantee: when the deadline passes the plan engine cancels the step's evaluator, and infinite loops stop at the next preemption point instead of continuing to mutate scope in the background.
 
 ## Quick start
 
 ```bash
 # Install this release
-go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.4.0
-
-# Run tests
-funny test
-
-# Generate docs
-funny doc . --out docs/api
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.4.1
 ```
+
+## What's new in v2.4.1
+
+### Plan timeout preemption
+
+- **Cancellable evaluator** — `evaluator.NewWithContext` checks `ctx.Done()` at loop heads and statement boundaries
+- **`execWithTimeout`** — cancels the step context on deadline and waits for the goroutine to exit before continuing the plan
+- **Scope safety** — timed-out steps no longer keep incrementing variables or racing with subsequent steps
+
+See `CHANGELOG.md` for the full itemized list.
 
 ## What's new in v2.4.0
 
@@ -212,7 +216,7 @@ See `CHANGELOG.md` for the full itemized list.
 - **`guard`** — final expression/`return` is an assertion (`err(...)`/falsy fails)
 - **`delay`** — sleeps for `with timeout="<duration>"` before running body
 - **Retry backoff** — `with retry max=N backoff=constant|linear|exp`
-- **Step timeout** — `with timeout="<duration>"` bounds a single attempt (best-effort; evaluator is not preemptible)
+- **Step timeout** — `with timeout="<duration>"` bounds a single attempt; preemptible since v2.4.1
 - **`__result`** — step bodies that end in a bare expression/`return` publish to plan scope
 
 ## CLI commands
@@ -257,6 +261,14 @@ Full pipeline (parse + typecheck + compile + run) remains ~4×; exec-only isolat
 - JIT compilation (v2.3 roadmap) not started
 - AI benchmark community leaderboard / CI integration not yet published
 - REPL uses tree-walking evaluator (differs from default VM path)
+
+## Upgrading from v2.4.0
+
+No breaking changes. Reinstall the binary:
+
+```bash
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.4.1
+```
 
 ## Upgrading from v2.2.4
 

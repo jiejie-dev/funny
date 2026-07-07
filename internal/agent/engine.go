@@ -2,6 +2,8 @@
 package agent
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -48,6 +50,9 @@ func (e *Engine) execBlock(b *ast.Block) (v any, has bool, err error) {
 		return nil, false, nil
 	}
 	for _, stmt := range b.Statements {
+		if err := e.checkCancel(); err != nil {
+			return nil, false, err
+		}
 		v, has, err = e.execStmt(stmt)
 		if err != nil {
 			return nil, false, err
@@ -112,6 +117,9 @@ func (e *Engine) execIf(n *ast.IfStmt) (any, bool, error) {
 // execWhile executes a while-loop within a plan step body.
 func (e *Engine) execWhile(n *ast.WhileStmt) error {
 	for {
+		if err := e.checkCancel(); err != nil {
+			return err
+		}
 		cond, err := e.eval.Eval(n.Cond)
 		if err != nil {
 			return err
@@ -210,14 +218,13 @@ func (e *Engine) execBlockRetry(s *ast.Step) error {
 // an error. A guard body that ends in `let`/`assign`/a value-less branch
 // (has == false) has made no explicit assertion and always passes.
 func (e *Engine) runStepBodyOnce(s *ast.Step, timeout time.Duration) (any, bool, error) {
-	run := func() (any, bool, error) { return e.execBlock(s.Body) }
 	var v any
 	var has bool
 	var err error
 	if timeout > 0 {
-		v, has, err = e.execWithTimeout(run, timeout)
+		v, has, err = e.execWithTimeout(s.Body, timeout)
 	} else {
-		v, has, err = run()
+		v, has, err = e.execBlock(s.Body)
 	}
 	if err != nil {
 		return nil, false, err
@@ -235,19 +242,14 @@ func (e *Engine) runStepBodyOnce(s *ast.Step, timeout time.Duration) (any, bool,
 	return v, has, nil
 }
 
-// execWithTimeout runs fn on its own goroutine and returns a timeout error
-// if it doesn't finish within d.
-//
-// Caveat (documented, not silently glossed over): the tree-walking
-// evaluator has no preemption point, so a fn that's genuinely stuck (e.g.
-// `while true: let x = 1`) keeps its goroutine running in the background
-// after this returns the timeout error — it is not killed. Since that
-// goroutine shares e.eval's scope with whatever step runs next, a timed-out
-// step that later "wakes up" and keeps mutating scope races with
-// subsequent steps. Treat `timeout` as a plan-control-flow SLA signal for
-// well-behaved (eventually-terminating, e.g. blocked-on-I/O) steps, not as
-// a hard isolation guarantee for adversarial/infinite-looping ones.
-func (e *Engine) execWithTimeout(fn func() (any, bool, error), d time.Duration) (any, bool, error) {
+// execWithTimeout runs body on its own goroutine with a cancellable
+// evaluator. When the deadline passes the context is cancelled and the
+// evaluator stops at the next preemption point (loop head, statement
+// boundary), so timed-out steps no longer keep mutating plan scope.
+func (e *Engine) execWithTimeout(body *ast.Block, d time.Duration) (any, bool, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	type outcome struct {
 		v   any
 		has bool
@@ -255,15 +257,36 @@ func (e *Engine) execWithTimeout(fn func() (any, bool, error), d time.Duration) 
 	}
 	ch := make(chan outcome, 1)
 	go func() {
-		v, has, err := fn()
+		fork := &Engine{eval: evaluator.NewWithContext(e.eval.Scope(), ctx)}
+		v, has, err := fork.execBlock(body)
 		ch <- outcome{v, has, err}
 	}()
+
+	timer := time.NewTimer(d)
+	defer timer.Stop()
 	select {
 	case o := <-ch:
+		if errors.Is(o.err, evaluator.ErrCancelled) {
+			return nil, false, fmt.Errorf("timed out after %s", d)
+		}
 		return o.v, o.has, o.err
-	case <-time.After(d):
-		return nil, false, fmt.Errorf("timed out after %s", d)
+	case <-timer.C:
+		cancel()
+		select {
+		case o := <-ch:
+			_ = o
+			return nil, false, fmt.Errorf("timed out after %s", d)
+		case <-time.After(time.Second):
+			return nil, false, fmt.Errorf("timed out after %s (cancel did not stop step)", d)
+		}
 	}
+}
+
+func (e *Engine) checkCancel() error {
+	if e.eval == nil {
+		return nil
+	}
+	return e.eval.CheckCancel()
 }
 
 // backoffDelay returns how long to wait after a failed attempt before the

@@ -2,6 +2,7 @@
 package evaluator
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -20,6 +21,7 @@ var (
 type Evaluator struct {
 	scope     *Scope
 	loopDepth int
+	ctx       context.Context
 }
 
 func New(scope *Scope) *Evaluator {
@@ -412,6 +414,9 @@ func (e *Evaluator) evalCall(n *ast.CallExpr) (any, error) {
 
 func (e *Evaluator) execBlock(b *ast.Block) (any, bool, error) {
 	for i, s := range b.Statements {
+		if err := e.checkCancel(); err != nil {
+			return nil, false, err
+		}
 		isLast := i == len(b.Statements)-1
 		if es, ok := s.(*ast.ExprStmt); ok && isLast {
 			v, err := e.Eval(es.X)
@@ -443,6 +448,9 @@ func (e *Evaluator) Exec(prog *ast.Program) error {
 // ExecCell runs a program and returns the value of a trailing expression statement.
 func (e *Evaluator) ExecCell(prog *ast.Program) (result any, showResult bool, err error) {
 	for i, s := range prog.Stmts {
+		if err := e.checkCancel(); err != nil {
+			return nil, false, err
+		}
 		isLast := i == len(prog.Stmts)-1
 		if isLast {
 			if es, ok := s.(*ast.ExprStmt); ok {
@@ -481,6 +489,9 @@ func (e *Evaluator) ExecCell(prog *ast.Program) (result any, showResult bool, er
 }
 
 func (e *Evaluator) execStmt(s ast.Statement) (any, bool, error) {
+	if err := e.checkCancel(); err != nil {
+		return nil, false, err
+	}
 	switch n := s.(type) {
 	case *ast.LetStmt:
 		v, err := e.Eval(n.Value)
@@ -544,6 +555,9 @@ func (e *Evaluator) execStmt(s ast.Statement) (any, bool, error) {
 		e.loopDepth++
 		defer func() { e.loopDepth-- }()
 		for _, item := range list {
+			if err := e.checkCancel(); err != nil {
+				return nil, false, err
+			}
 			saved := e.scope
 			iterScope := NewScope(e.scope)
 			iterScope.Set(n.Name, item)
@@ -568,6 +582,9 @@ func (e *Evaluator) execStmt(s ast.Statement) (any, bool, error) {
 		e.loopDepth++
 		defer func() { e.loopDepth-- }()
 		for {
+			if err := e.checkCancel(); err != nil {
+				return nil, false, err
+			}
 			cond, err := e.Eval(n.Cond)
 			if err != nil {
 				return nil, false, err

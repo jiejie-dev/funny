@@ -3,15 +3,10 @@ package evaluator
 
 import "sync"
 
-// Scope's map access is synchronized because it's no longer guaranteed to
-// only ever see one goroutine at a time: internal/agent's plan engine runs
-// a `parallel` step's body statements concurrently (execParallel), and a
-// step that exceeds its `timeout` leaves its goroutine running in the
-// background (execWithTimeout) while later steps continue on the same
-// Evaluator/Scope. The mutex only guards against data races (undefined
-// behavior / map corruption); it does not make the *values* those
-// goroutines see consistent — see execWithTimeout's doc comment in
-// internal/agent/engine.go for that caveat.
+// Scope's map access is synchronized because plan `parallel` steps run body
+// statements on separate goroutines against the same Scope. Step timeouts
+// use a cancellable evaluator fork so timed-out loops stop at preemption
+// points instead of continuing to mutate scope in the background.
 type Scope struct {
 	mu     sync.RWMutex
 	parent *Scope
