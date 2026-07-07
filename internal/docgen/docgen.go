@@ -51,37 +51,13 @@ func Extract(src []byte, file string) (*ModuleDoc, error) {
 		return nil, err
 	}
 	doc := &ModuleDoc{File: file}
-	var pending []string
-	flushPending := func() []string {
-		if len(pending) == 0 {
-			return nil
-		}
-		lines := append([]string(nil), pending...)
-		pending = nil
-		return lines
-	}
 	for _, s := range prog.Stmts {
-		switch n := s.(type) {
-		case *ast.CommentStmt:
-			if n.Doc {
-				line := strings.TrimSpace(n.Text)
-				if line != "" {
-					pending = append(pending, line)
-				}
-			}
-		case *ast.MetaBlock:
-			doc.Meta = n.Fields
-			pending = nil
-		case *ast.FnDecl:
-			lines := flushPending()
-			doc.Symbols = append(doc.Symbols, fnSymbol(n, lines, env))
-		case *ast.StructDecl:
-			lines := flushPending()
-			doc.Symbols = append(doc.Symbols, structSymbol(n, lines))
-		default:
-			pending = nil
+		if meta, ok := s.(*ast.MetaBlock); ok {
+			doc.Meta = meta.Fields
+			break
 		}
 	}
+	doc.Symbols = CollectSymbols(prog, env)
 	return doc, nil
 }
 

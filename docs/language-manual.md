@@ -515,7 +515,13 @@ debugger applies only to the default bytecode path.
 
 `funny repl` starts an interactive read-eval-print loop for learning and
 experimentation. State (variables, functions, structs) persists across inputs.
-The REPL uses the tree-walking evaluator with the same type checker as `funny run`.
+By default the REPL uses the **bytecode VM** with the same type checker as
+`funny run`. Set `FUNNY_REPL_INTERPRET=1` (or `FUNNY_INTERPRET=1`) to use the
+tree-walking evaluator instead.
+
+Each successful cell is appended to the session program and the full program is
+recompiled and re-run. Side effects from earlier cells (for example `println`)
+execute again on later inputs.
 
 ```bash
 funny repl
@@ -575,7 +581,9 @@ protocol dependency) over stdio, framed as standard `Content-Length`-prefixed JS
   still surfaced in the importing document (anchored at the top of the file, with the
   imported file's path/line embedded in the message), so it isn't silently invisible.
 - **Hover**: shows the type of local variables/parameters, full function signatures,
-  struct field layouts, builtin functions, and keyword documentation.
+  struct field layouts, builtin functions, and keyword documentation. For `fn` and
+  `struct` declarations, preceding `##` doc comments (same format as `funny doc`)
+  appear as summary, argument descriptions, and return type notes.
 - **Completion**: keywords, builtins, declared functions/structs, and locals in scope
   everywhere; immediately after `<expr>.`, only that expression's fields (struct
   fields, or `tag`/`val` for a `Result`) are offered — type-aware, same-type-only

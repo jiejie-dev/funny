@@ -166,7 +166,7 @@ func (c *Compiler) compileStmt(s ast.Statement, isLast bool) error {
 	case *ast.AssignStmt:
 		return c.compileAssign(n)
 	case *ast.IfStmt:
-		return c.compileIf(n)
+		return c.compileIf(n, isLast)
 	case *ast.WhileStmt:
 		return c.compileWhile(n)
 	case *ast.ForStmt:

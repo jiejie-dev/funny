@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.4.2 (2026-07-07)
+
+### Features
+- **REPL VM backend** — `funny repl` defaults to the bytecode VM (same path as `funny run`); `FUNNY_REPL_INTERPRET=1` or `FUNNY_INTERPRET=1` selects the tree-walking evaluator
+- **LSP doc hover** — hover on `fn`/`struct` shows preceding `##` doc comments (summary, args, returns), shared with `funny doc` via `docgen.SymbolIndex`
+- **Compiler** — `if`/`elif`/`else` blocks may leave a trailing expression on the stack when the `if` is the last statement (REPL result display)
+
 ## v2.4.1 (2026-07-07)
 
 ### Features

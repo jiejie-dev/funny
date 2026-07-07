@@ -1,4 +1,4 @@
-# Release Notes — v2.4.1
+# Release Notes — v2.4.2
 
 **Release date:** 2026-07-07
 **Module:** `github.com/jiejie-dev/funny/v2`
@@ -9,14 +9,33 @@
 
 ## Overview
 
-**v2.4.1** makes plan step **`with timeout`** a real preemption guarantee: when the deadline passes the plan engine cancels the step's evaluator, and infinite loops stop at the next preemption point instead of continuing to mutate scope in the background.
+**v2.4.2** unifies interactive tooling with the default execution path: the REPL runs on the bytecode VM (same as `funny run`), and LSP hover shows `##` doc comments for functions and structs.
 
 ## Quick start
 
 ```bash
 # Install this release
-go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.4.1
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.4.2
 ```
+
+## What's new in v2.4.2
+
+### REPL VM backend
+
+- **Default VM path** — each REPL cell is type-checked, appended to the session program, compiled, and run on the bytecode VM
+- **Binding snapshot** — `:vars`, `:desc`, and completions read VM main-frame locals plus declared `fn`/`struct` names
+- **Interpreter fallback** — set `FUNNY_REPL_INTERPRET=1` (or `FUNNY_INTERPRET=1`) for the tree-walking evaluator
+
+### LSP doc hover
+
+- **`docgen.SymbolIndex`** — shared extraction of `##` doc comments from parsed, type-checked programs
+- **Rich hover** — function and struct hovers show summary, argument descriptions, and return notes alongside signatures
+
+### Compiler
+
+- **Trailing `if` expressions** — when an `if` is the last statement in a cell, branch bodies may leave a result on the stack (REPL `if n > 0: n * 2` pattern)
+
+See `CHANGELOG.md` for the full itemized list.
 
 ## What's new in v2.4.1
 
@@ -260,7 +279,15 @@ Full pipeline (parse + typecheck + compile + run) remains ~4×; exec-only isolat
 
 - JIT compilation (v2.3 roadmap) not started
 - AI benchmark community leaderboard / CI integration not yet published
-- REPL uses tree-walking evaluator (differs from default VM path)
+- REPL VM backend re-runs all prior cells on each input (side effects such as `println` repeat); interpreter fallback available via `FUNNY_REPL_INTERPRET=1`
+
+## Upgrading from v2.4.1
+
+No breaking changes. Reinstall the binary:
+
+```bash
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.4.2
+```
 
 ## Upgrading from v2.4.0
 

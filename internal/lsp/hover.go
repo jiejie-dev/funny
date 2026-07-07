@@ -57,10 +57,16 @@ func (d *document) hover(pos Position) *Hover {
 	if d.env != nil {
 		if fn, ok := d.env.LookupFunc(name); ok {
 			md := fmt.Sprintf("```funny\nfn %s%s\n```\nfunction", name, fn.String())
+			if sym, ok := d.docIndex[name]; ok {
+				md = formatSymbolDoc(sym, "function")
+			}
 			return &Hover{Contents: MarkupContent{Kind: "markdown", Value: md}, Range: &rng}
 		}
 		if s, ok := d.env.LookupStruct(name); ok {
-			md := fmt.Sprintf("```funny\nstruct %s:\n%s```", name, structFieldsBlock(s))
+			md := fmt.Sprintf("```funny\nstruct %s:\n%s```\nstruct", name, structFieldsBlock(s))
+			if sym, ok := d.docIndex[name]; ok {
+				md = formatSymbolDoc(sym, "struct")
+			}
 			return &Hover{Contents: MarkupContent{Kind: "markdown", Value: md}, Range: &rng}
 		}
 		if t, ok := d.env.LookupVar(name); ok {

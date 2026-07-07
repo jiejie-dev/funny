@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/jiejie-dev/funny/v2/internal/ast"
+	"github.com/jiejie-dev/funny/v2/internal/docgen"
 	"github.com/jiejie-dev/funny/v2/internal/errs"
 	"github.com/jiejie-dev/funny/v2/internal/module"
 	"github.com/jiejie-dev/funny/v2/internal/parser"
@@ -25,6 +26,7 @@ type document struct {
 
 	prog        *ast.Program // best available AST: resolved+rewritten if that succeeded, else the bare parse
 	env         *types.Env   // best available type environment (populated up to the first error, if any)
+	docIndex    map[string]docgen.SymbolDoc
 	diagnostics []Diagnostic
 }
 
@@ -34,6 +36,7 @@ func (d *document) analyze() {
 	d.diagnostics = nil
 	d.env = types.NewEnv(nil)
 	d.prog = nil
+	d.docIndex = nil
 
 	p := parser.New(d.text, d.path)
 	prog, err := p.Parse()
@@ -54,6 +57,9 @@ func (d *document) analyze() {
 
 	if err := types.Check(d.prog, d.env); err != nil {
 		d.diagnostics = append(d.diagnostics, errorToDiagnostic(err, d.path))
+	}
+	if d.prog != nil {
+		d.docIndex = docgen.SymbolIndex(d.prog, d.env)
 	}
 }
 

@@ -87,7 +87,7 @@ func Completions(sess *Session, line string) []string {
 		for name := range sess.env.Structs() {
 			add(name)
 		}
-		for name := range sess.eval.Scope().Bindings() {
+		for name := range sess.sessionBindings() {
 			add(name)
 		}
 	}
@@ -136,7 +136,7 @@ func (s *Session) DescribeName(name string) (string, error) {
 	if st, ok := s.env.LookupStruct(name); ok {
 		return st.String(), nil
 	}
-	if v, ok := s.eval.Scope().Get(name); ok {
+	if v, ok := s.sessionBindings()[name]; ok {
 		switch x := v.(type) {
 		case *ast.FnDecl:
 			return fmt.Sprintf("fn %s(...)", x.Name), nil

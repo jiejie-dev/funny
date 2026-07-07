@@ -54,6 +54,17 @@ func TestSession_MultiLineIf(t *testing.T) {
 	assert.Equal(t, "6", out)
 }
 
+func TestSession_VMBackend_ListVars(t *testing.T) {
+	s, err := NewSession(t.TempDir())
+	require.NoError(t, err)
+	require.False(t, s.interpret)
+	_, _, err = s.EvalCell("let x = 41")
+	require.NoError(t, err)
+	lines := s.ListVars()
+	require.Len(t, lines, 1)
+	assert.Contains(t, lines[0], "x = 41")
+}
+
 func TestSession_Reset(t *testing.T) {
 	s, err := NewSession(t.TempDir())
 	require.NoError(t, err)

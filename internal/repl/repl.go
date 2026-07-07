@@ -27,13 +27,16 @@ type Options struct {
 
 // Session is a persistent REPL state (types + runtime bindings).
 type Session struct {
-	eval     *evaluator.Evaluator
-	env      *types.Env
-	workDir  string
-	replPath string
-	lessons  []Lesson
-	lesson   *LessonProgress
-	history  *History
+	eval        *evaluator.Evaluator
+	env         *types.Env
+	stmts       []ast.Statement
+	bindings    map[string]any
+	interpret   bool
+	workDir     string
+	replPath    string
+	lessons     []Lesson
+	lesson      *LessonProgress
+	history     *History
 }
 
 // NewSession creates a REPL session rooted at workDir (for import/pkg resolution).
@@ -56,12 +59,14 @@ func NewSessionWithOptions(opts Options) (*Session, error) {
 		lessons, _ = DiscoverLessons(lessonsDir)
 	}
 	return &Session{
-		eval:     evaluator.New(nil),
-		env:      types.NewEnv(nil),
-		workDir:  abs,
-		replPath: filepath.Join(abs, replFile),
-		lessons:  lessons,
-		history:  NewHistory(100),
+		eval:      evaluator.New(nil),
+		env:       types.NewEnv(nil),
+		bindings:  map[string]any{},
+		interpret: useInterpretBackend(),
+		workDir:   abs,
+		replPath:  filepath.Join(abs, replFile),
+		lessons:   lessons,
+		history:   NewHistory(100),
 	}, nil
 }
 
@@ -69,6 +74,8 @@ func NewSessionWithOptions(opts Options) (*Session, error) {
 func (s *Session) Reset() {
 	s.eval = evaluator.New(nil)
 	s.env = types.NewEnv(nil)
+	s.stmts = nil
+	s.bindings = map[string]any{}
 	s.lesson = nil
 }
 
@@ -93,19 +100,24 @@ func (s *Session) EvalCell(src string) (result string, showed bool, err error) {
 	if err := types.Check(prog, s.env); err != nil {
 		return "", false, err
 	}
-	v, show, err := s.eval.ExecCell(prog)
-	if err != nil {
-		return "", false, err
+	if s.interpret {
+		v, show, err := s.eval.ExecCell(prog)
+		if err != nil {
+			return "", false, err
+		}
+		s.stmts = append(s.stmts, prog.Stmts...)
+		s.bindings = s.eval.Scope().Bindings()
+		if show {
+			return FormatValue(v), true, nil
+		}
+		return "", false, nil
 	}
-	if show {
-		return FormatValue(v), true, nil
-	}
-	return "", false, nil
+	return s.evalCellVM(prog)
 }
 
 // ListVars returns visible binding lines sorted by name.
 func (s *Session) ListVars() []string {
-	bindings := s.eval.Scope().Bindings()
+	bindings := s.sessionBindings()
 	names := make([]string, 0, len(bindings))
 	for name := range bindings {
 		names = append(names, name)
@@ -146,7 +158,7 @@ func RunWithOptions(opts Options, in io.Reader, out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintln(out, "Funny REPL (v2.2) — type :help for commands, :lessons for tutorials")
+	fmt.Fprintln(out, "Funny REPL (v2.4) — type :help for commands, :lessons for tutorials")
 	if opts.StartLesson > 0 {
 		if err := sess.startLesson(opts.StartLesson, out); err != nil {
 			fmt.Fprintln(out, err)
@@ -395,6 +407,13 @@ func handleMetaCommand(line string, sess *Session, out io.Writer) (action string
 		fmt.Fprintf(out, "unknown command %q (try :help)\n", cmd)
 	}
 	return "", true
+}
+
+func (s *Session) sessionBindings() map[string]any {
+	if s.interpret {
+		return s.eval.Scope().Bindings()
+	}
+	return mergeBindings(s.bindings, declBindings(s.stmts))
 }
 
 func printHelp(out io.Writer) {

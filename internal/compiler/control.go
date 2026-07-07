@@ -35,18 +35,18 @@ import (
 //   next:
 //   <compile elif (recursively) or final else, if any>
 //   end:
-func (c *Compiler) compileIf(n *ast.IfStmt) error {
-	return c.compileIfChain(n, n.ElseBlock)
+func (c *Compiler) compileIf(n *ast.IfStmt, asResult bool) error {
+	return c.compileIfChain(n, n.ElseBlock, asResult)
 }
 
-func (c *Compiler) compileIfChain(n *ast.IfStmt, finalElse *ast.Block) error {
+func (c *Compiler) compileIfChain(n *ast.IfStmt, finalElse *ast.Block, asResult bool) error {
 	if _, err := c.compileExpr(n.Cond); err != nil {
 		return err
 	}
 	jumpIfFalseIdx := len(c.fn.Code)
 	c.emit(bytecode.JUMP_IF_FALSE, 0) // placeholder
 
-	if err := c.compileBlock(n.Then); err != nil {
+	if err := c.compileBlockResult(n.Then, asResult); err != nil {
 		return err
 	}
 
@@ -64,15 +64,11 @@ func (c *Compiler) compileIfChain(n *ast.IfStmt, finalElse *ast.Block) error {
 	c.fn.Code[jumpIfFalseIdx].Arg = len(c.fn.Code)
 
 	if n.ElseIf != nil {
-		// n.ElseIf.ElseBlock is always nil by construction (the parser
-		// clears it during hoisting) - finalElse is threaded through
-		// instead so the chain's real else is only compiled once, at
-		// whichever elif actually falls through.
-		if err := c.compileIfChain(n.ElseIf, finalElse); err != nil {
+		if err := c.compileIfChain(n.ElseIf, finalElse, asResult); err != nil {
 			return err
 		}
 	} else if finalElse != nil {
-		if err := c.compileBlock(finalElse); err != nil {
+		if err := c.compileBlockResult(finalElse, asResult); err != nil {
 			return err
 		}
 	}
@@ -196,14 +192,21 @@ func (c *Compiler) compileFor(n *ast.ForStmt) error {
 
 // compileBlock compiles a block of statements in a new scope.
 func (c *Compiler) compileBlock(b *ast.Block) error {
+	return c.compileBlockResult(b, false)
+}
+
+// compileBlockResult compiles a block; when asResult is true the last
+// statement may leave its value on the stack (REPL / trailing expressions).
+func (c *Compiler) compileBlockResult(b *ast.Block, asResult bool) error {
 	if b == nil {
 		return fmt.Errorf("compileBlock: nil block")
 	}
 	c.pos = b.Pos()
 	c.pushScope()
 	defer c.popScope()
-	for _, s := range b.Statements {
-		if err := c.compileStmt(s, false); err != nil {
+	for i, s := range b.Statements {
+		isLast := asResult && i == len(b.Statements)-1
+		if err := c.compileStmt(s, isLast); err != nil {
 			return err
 		}
 	}

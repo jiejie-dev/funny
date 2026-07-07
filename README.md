@@ -2,7 +2,7 @@
 
 AI-native scripting language. See `docs/superpowers/plans/` for design and planning documents.
 
-**Status: v2.4.1 — RELEASED**
+**Status: v2.4.2 — RELEASED**
 
 The complete Funny v2 stack is shipping. See `CHANGELOG.md` and `RELEASE_NOTES.md` for release notes.
 
@@ -13,7 +13,7 @@ Go module: `github.com/jiejie-dev/funny/v2`
 One binary covers the CLI, LSP server, and MCP server:
 
 ```bash
-go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.4.1
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.4.2
 ```
 
 Ensure `$HOME/go/bin` (or `$GOPATH/bin`) is on your `PATH`, then verify:
@@ -47,12 +47,12 @@ funny lsp                   # start LSP server (for editors/IDEs)
 
 - AI-native design: indentation-based syntax, strong typing, agent protocol
 - Bytecode VM (default) + tree-walking evaluator fallback (VM is ~3.5× faster; set `FUNNY_INTERPRET=1` to use the interpreter instead)
-- **REPL** (`funny repl`) — persistent session, guided tutorials (`:lesson`), `:load` / `:type` / `:install`, completion hints
+- **REPL** (`funny repl`) — persistent session on the bytecode VM (same as `funny run`); set `FUNNY_REPL_INTERPRET=1` or `FUNNY_INTERPRET=1` for tree-walking fallback
 - **VS Code** (`editors/vscode/`) — LSP, REPL terminal, DAP debugging via `funny dap`
 - `Result` + `?` operator for error propagation
 - Plan engine: `tool`/`transform`/`guard`/`delay`/`parallel` step kinds with real retry+backoff, timeout, and guard-assertion semantics; `branch` supports a case-list (`cond => "step"`) that dispatches to named plan steps (legacy `if`/`else` bodies still accepted)
 - MCP server with 6 tools for LLM integration
-- LSP server: diagnostics, hover, completion, signature help, go-to-definition, document symbols, formatting, find-references, rename, and a custom `funny/planGraph` plan-visualization request
+- LSP server: diagnostics, hover (with `##` doc comments), completion, signature help, go-to-definition, document symbols, formatting, find-references, rename, and a custom `funny/planGraph` plan-visualization request
 - VS Code extension (`editors/vscode/`): syntax highlighting, snippets, LSP integration, run/format commands, plan graph view
 - Standard library: json, time, math, str, regex, env, file, http, crypto, jwt, sql
 - **Testing** (`funny test`) — `test "name":` blocks in `*_test.fn`, `assert` / `assert_eq` builtins
