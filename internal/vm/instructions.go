@@ -130,52 +130,6 @@ func (v *VM) pop() bytecode.Value {
 	return x
 }
 
-// execCall handles CALL fnIdx.
-// Pops argCount args from the stack (in reverse), pushes new frame with args as locals.
-func (v *VM) execCall(fnIdx int) error {
-	if fnIdx < 0 || fnIdx >= len(v.mod.Functions) {
-		return fmt.Errorf("vm: CALL invalid function index %d", fnIdx)
-	}
-	callee := v.mod.Functions[fnIdx]
-	n := callee.Arity
-	if len(v.stack) < n {
-		return fmt.Errorf("vm: CALL %s expects %d args, got %d", callee.Name, n, len(v.stack))
-	}
-	args := make([]bytecode.Value, n)
-	for i := n - 1; i >= 0; i-- {
-		args[i] = v.stack[len(v.stack)-1-(n-1-i)]
-	}
-	v.stack = v.stack[:len(v.stack)-n]
-	newFrame := &Frame{
-		fn:     callee,
-		ip:     0,
-		locals: make([]bytecode.Value, callee.NumLocals),
-	}
-	for i, a := range args {
-		newFrame.locals[i] = a
-	}
-	v.frames = append(v.frames, newFrame)
-	return nil
-}
-
-// execReturn handles RETURN.
-// Pops the current frame, pushes top-of-stack as caller's return value (if any).
-func (v *VM) execReturn() error {
-	if len(v.frames) == 0 {
-		return fmt.Errorf("vm: RETURN with no frames")
-	}
-	var retVal bytecode.Value
-	if len(v.stack) > 0 {
-		retVal = v.stack[len(v.stack)-1]
-		v.stack = v.stack[:len(v.stack)-1]
-	}
-	v.frames = v.frames[:len(v.frames)-1]
-	if retVal != nil {
-		v.stack = append(v.stack, retVal)
-	}
-	return nil
-}
-
 // execBuildList handles BUILD_LIST n. Pops n values from stack (in reverse), pushes a []Value.
 func (v *VM) execBuildList(n int) {
 	items := make([]bytecode.Value, n)

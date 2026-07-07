@@ -180,6 +180,28 @@ var pkgListCmd = &cobra.Command{
 	},
 }
 
+var benchCmd = &cobra.Command{
+	Use:   "bench",
+	Short: "Run benchmarks (VM perf, AI friendliness)",
+}
+
+var benchAICmd = &cobra.Command{
+	Use:   "ai",
+	Short: "Run AI-friendliness benchmark (50 compile_ok/compile_err tasks)",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		tasks, _ := cmd.Flags().GetString("tasks")
+		provider, _ := cmd.Flags().GetString("provider")
+		model, _ := cmd.Flags().GetString("model")
+		mock, _ := cmd.Flags().GetBool("mock")
+		return cli.BenchAI(cli.BenchAIOptions{
+			TasksPath: tasks,
+			Provider:  provider,
+			Model:     model,
+			Mock:      mock,
+		})
+	},
+}
+
 var replCmd = &cobra.Command{
 	Use:   "repl",
 	Short: "Start an interactive REPL (read-eval-print loop)",
@@ -215,7 +237,12 @@ func init() {
 	pkgCmd.PersistentFlags().String("project", ".", "project root containing funny.pkg")
 	pkgCmd.AddCommand(pkgInstallCmd, pkgListCmd)
 	replCmd.Flags().String("project", ".", "working directory for imports and pkg: resolution")
-	rootCmd.AddCommand(runCmd, astCmd, fmtCmd, describeCmd, disasmCmd, debugCmd, pkgCmd, replCmd, lspCmd, mcpCmd)
+	benchAICmd.Flags().String("tasks", "", "path to tasks.json (default: internal/benchmark/tasks.json)")
+	benchAICmd.Flags().String("provider", "mock", "LLM provider: mock, openai, anthropic")
+	benchAICmd.Flags().String("model", "", "model override (provider default if empty)")
+	benchAICmd.Flags().Bool("mock", false, "use mock provider (echo prompt); same as --provider mock")
+	benchCmd.AddCommand(benchAICmd)
+	rootCmd.AddCommand(runCmd, astCmd, fmtCmd, describeCmd, disasmCmd, debugCmd, pkgCmd, replCmd, benchCmd, lspCmd, mcpCmd)
 }
 
 func main() {
