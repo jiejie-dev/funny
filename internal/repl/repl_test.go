@@ -1,6 +1,7 @@
 package repl
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -67,4 +68,13 @@ func TestRun_MetaCommands(t *testing.T) {
 	var out strings.Builder
 	require.NoError(t, Run(t.TempDir(), in, &out))
 	assert.Contains(t, out.String(), "no bindings")
+}
+
+func TestRun_LessonsMeta(t *testing.T) {
+	dir := filepath.Join("..", "..", "docs")
+	s, err := NewSessionWithOptions(Options{WorkDir: t.TempDir(), LessonsDir: dir})
+	require.NoError(t, err)
+	var out strings.Builder
+	require.NoError(t, s.startLesson(1, &out))
+	assert.Contains(t, out.String(), "Tutorial 1")
 }

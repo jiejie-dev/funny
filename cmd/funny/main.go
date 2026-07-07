@@ -210,7 +210,13 @@ var replCmd = &cobra.Command{
 		if dir == "" {
 			dir = "."
 		}
-		return repl.Run(dir, os.Stdin, os.Stdout)
+		lessonsDir, _ := cmd.Flags().GetString("lessons-dir")
+		lesson, _ := cmd.Flags().GetInt("lesson")
+		return repl.RunWithOptions(repl.Options{
+			WorkDir:       dir,
+			LessonsDir:    lessonsDir,
+			StartLesson:   lesson,
+		}, os.Stdin, os.Stdout)
 	},
 }
 
@@ -237,6 +243,8 @@ func init() {
 	pkgCmd.PersistentFlags().String("project", ".", "project root containing funny.pkg")
 	pkgCmd.AddCommand(pkgInstallCmd, pkgListCmd)
 	replCmd.Flags().String("project", ".", "working directory for imports and pkg: resolution")
+	replCmd.Flags().String("lessons-dir", "", "directory with tutorial-*.funny lessons (default: docs/)")
+	replCmd.Flags().Int("lesson", 0, "start guided tutorial N (1-based)")
 	benchAICmd.Flags().String("tasks", "", "path to tasks.json (default: internal/benchmark/tasks.json)")
 	benchAICmd.Flags().String("provider", "mock", "LLM provider: mock, openai, anthropic")
 	benchAICmd.Flags().String("model", "", "model override (provider default if empty)")

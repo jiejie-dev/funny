@@ -449,6 +449,24 @@ expression in an `if`/`for`/`while` body).
 | `:vars` | `:v` | List bindings |
 | `:reset` | | Clear session |
 | `:quit` | `:q` | Exit |
+| `:lessons` | `:ls` | List `tutorial-*.funny` lessons |
+| `:lesson N` | | Start guided tutorial *N* |
+| `:step` | | Run current tutorial step (demo) |
+| `:hint` | | Show current step hint |
+| `:show` | | Reveal current step source |
+| `:load PATH` | | Load and run a script into the session |
+| `:type EXPR` | | Show expression type |
+| `:desc NAME` | | Describe a binding |
+| `:complete PREFIX` | | Suggest identifier completions |
+| `:history` | | Show recent inputs |
+| `:install [PKG]` | | Run `funny.pkg` install |
+
+Start a guided tutorial directly:
+
+```bash
+funny repl --lesson 1
+funny repl --lessons-dir ./docs
+```
 
 ## MCP Server
 
