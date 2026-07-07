@@ -2,7 +2,7 @@
 
 AI-native scripting language. See `docs/superpowers/plans/` for design and planning documents.
 
-**Status: v2.1.7 — RELEASED**
+**Status: v2.2.0 — RELEASED**
 
 The complete Funny v2 stack is shipping. See `CHANGELOG.md` and `RELEASE_NOTES.md` for release notes.
 
@@ -13,7 +13,7 @@ Go module: `github.com/jiejie-dev/funny/v2`
 One binary covers the CLI, LSP server, and MCP server:
 
 ```bash
-go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.7
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.2.0
 ```
 
 Ensure `$HOME/go/bin` (or `$GOPATH/bin`) is on your `PATH`, then verify:
@@ -32,6 +32,7 @@ funny disasm script.fn      # print bytecode disassembly
 funny debug script.fn       # interactive bytecode debugger
 funny debug script.fn --source-map  # JSON instruction→source map
 funny pkg install           # install dependencies from funny.pkg
+funny repl                  # interactive REPL (persistent session)
 funny mcp                   # start MCP server (for LLM clients)
 funny lsp                   # start LSP server (for editors/IDEs)
 ```
@@ -40,6 +41,7 @@ funny lsp                   # start LSP server (for editors/IDEs)
 
 - AI-native design: indentation-based syntax, strong typing, agent protocol
 - Bytecode VM (default) + tree-walking evaluator fallback (VM is ~3.5× faster; set `FUNNY_INTERPRET=1` to use the interpreter instead)
+- **REPL** (`funny repl`) — persistent interactive session with multi-line indentation cells
 - `Result` + `?` operator for error propagation
 - Plan engine: `tool`/`transform`/`guard`/`delay`/`parallel` step kinds with real retry+backoff, timeout, and guard-assertion semantics; `branch` supports a case-list (`cond => "step"`) that dispatches to named plan steps (legacy `if`/`else` bodies still accepted)
 - MCP server with 6 tools for LLM integration

@@ -61,3 +61,21 @@ func (s *Scope) Assign(name string, value any) bool {
 	}
 	return false
 }
+
+// Bindings returns all names visible from this scope (locals shadow parents).
+func (s *Scope) Bindings() map[string]any {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := map[string]any{}
+	for k, v := range s.vars {
+		out[k] = v
+	}
+	if s.parent != nil {
+		for k, v := range s.parent.Bindings() {
+			if _, ok := out[k]; !ok {
+				out[k] = v
+			}
+		}
+	}
+	return out
+}

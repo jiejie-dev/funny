@@ -386,6 +386,7 @@ funny debug script.fn --source-map  # JSON instruction→source map
 funny debug script.fn -b 10 # break at line 10, then step/continue
 funny pkg install           # install dependencies from funny.pkg
 funny pkg list              # list locked packages
+funny repl                  # interactive REPL
 funny mcp                   # start MCP server
 funny lsp                   # start LSP server
 ```
@@ -426,6 +427,28 @@ Debugger commands at the `(dbg)` prompt:
 
 Set `FUNNY_INTERPRET=1` to use the tree-walking evaluator instead of the VM; the
 debugger applies only to the default bytecode path.
+
+## REPL
+
+`funny repl` starts an interactive read-eval-print loop for learning and
+experimentation. State (variables, functions, structs) persists across inputs.
+The REPL uses the tree-walking evaluator with the same type checker as `funny run`.
+
+```bash
+funny repl
+funny repl --project /path/to/project   # for import/pkg: resolution
+```
+
+Multi-line cells use indentation (and open brackets); continuation lines show a
+`...` prompt. Trailing expressions print their value (including the last
+expression in an `if`/`for`/`while` body).
+
+| Command | Alias | Action |
+|---|---|---|
+| `:help` | `:h` | Show REPL help |
+| `:vars` | `:v` | List bindings |
+| `:reset` | | Clear session |
+| `:quit` | `:q` | Exit |
 
 ## MCP Server
 

@@ -411,7 +411,15 @@ func (e *Evaluator) evalCall(n *ast.CallExpr) (any, error) {
 }
 
 func (e *Evaluator) execBlock(b *ast.Block) (any, bool, error) {
-	for _, s := range b.Statements {
+	for i, s := range b.Statements {
+		isLast := i == len(b.Statements)-1
+		if es, ok := s.(*ast.ExprStmt); ok && isLast {
+			v, err := e.Eval(es.X)
+			if err != nil {
+				return nil, false, err
+			}
+			return v, true, nil
+		}
 		v, has, err := e.execStmt(s)
 		if err != nil {
 			if errors.Is(err, errLoopBreak) || errors.Is(err, errLoopContinue) {
@@ -428,18 +436,48 @@ func (e *Evaluator) execBlock(b *ast.Block) (any, bool, error) {
 
 // Exec runs a Program.
 func (e *Evaluator) Exec(prog *ast.Program) error {
-	for _, s := range prog.Stmts {
+	_, _, err := e.ExecCell(prog)
+	return err
+}
+
+// ExecCell runs a program and returns the value of a trailing expression statement.
+func (e *Evaluator) ExecCell(prog *ast.Program) (result any, showResult bool, err error) {
+	for i, s := range prog.Stmts {
+		isLast := i == len(prog.Stmts)-1
+		if isLast {
+			if es, ok := s.(*ast.ExprStmt); ok {
+				v, err := e.Eval(es.X)
+				if err != nil {
+					return nil, false, err
+				}
+				return v, true, nil
+			}
+			v, has, err := e.execStmt(s)
+			if err != nil {
+				if errors.Is(err, errLoopBreak) {
+					return nil, false, errs.New("E2012", "break outside for/while", toErrPos(s.Pos()), "")
+				}
+				if errors.Is(err, errLoopContinue) {
+					return nil, false, errs.New("E2013", "continue outside for/while", toErrPos(s.Pos()), "")
+				}
+				return nil, false, err
+			}
+			if has {
+				return v, true, nil
+			}
+			return nil, false, nil
+		}
 		if _, _, err := e.execStmt(s); err != nil {
 			if errors.Is(err, errLoopBreak) {
-				return errs.New("E2012", "break outside for/while", toErrPos(s.Pos()), "")
+				return nil, false, errs.New("E2012", "break outside for/while", toErrPos(s.Pos()), "")
 			}
 			if errors.Is(err, errLoopContinue) {
-				return errs.New("E2013", "continue outside for/while", toErrPos(s.Pos()), "")
+				return nil, false, errs.New("E2013", "continue outside for/while", toErrPos(s.Pos()), "")
 			}
-			return err
+			return nil, false, err
 		}
 	}
-	return nil
+	return nil, false, nil
 }
 
 func (e *Evaluator) execStmt(s ast.Statement) (any, bool, error) {
