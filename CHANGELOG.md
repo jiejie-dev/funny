@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.4.0 (2026-07-07)
+
+### Features
+- **Test framework** — `test "name":` blocks in `*_test.fn` files; `funny test` discovers and runs them with `assert` / `assert_eq` builtins
+- **Doc generator** — `funny doc` extracts `##` doc comments into Markdown or JSON API reference (`--out`, `--format json`)
+
 ## v2.2.4 (2026-07-07)
 
 ### Features

@@ -20,7 +20,7 @@ var keywordDocs = map[string]string{
 	"continue": "Skips to the next loop iteration.", "import": "Imports declarations from another file.",
 	"as": "Aliases an import.", "pub": "Marks a declaration as importable from other files.",
 	"meta": "Declares agent metadata for this skill file.", "plan": "Declares an executable step plan.",
-	"step": "Declares one step within a `plan` block.", "true": "Boolean literal.",
+	"step": "Declares one step within a `plan` block.", "test": "Declares a unit test (run with `funny test`).", "true": "Boolean literal.",
 	"false": "Boolean literal.", "nil": "The absence of a value.",
 	"and": "Logical AND.", "or": "Logical OR.", "not": "Logical NOT.",
 }

@@ -32,11 +32,12 @@ var Names = map[string]bool{
 	"env_get": true, "file_read": true, "file_exists": true, "http_get": true,
 	"md5": true, "sha256": true, "b64_encode": true, "b64_decode": true,
 	"jwt_encode": true, "jwt_decode": true, "sql_open": true, "append": true,
+	"assert": true, "assert_eq": true,
 }
 
 // SideEffectOnly reports builtins that produce no meaningful return value.
 func SideEffectOnly(name string) bool {
-	return name == "print" || name == "println"
+	return name == "print" || name == "println" || name == "assert" || name == "assert_eq"
 }
 
 // Call dispatches a stdlib builtin by name. Args are in source order.
@@ -363,6 +364,26 @@ func Call(name string, args []any) (any, error) {
 		}
 		_ = db
 		return "sqlite:" + path, nil
+	case "assert":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("assert() takes exactly 1 argument")
+		}
+		b, ok := args[0].(bool)
+		if !ok {
+			return nil, fmt.Errorf("assert() argument must be bool")
+		}
+		if !b {
+			return nil, fmt.Errorf("assertion failed")
+		}
+		return nil, nil
+	case "assert_eq":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("assert_eq() takes exactly 2 arguments")
+		}
+		if !valuesEqual(args[0], args[1]) {
+			return nil, fmt.Errorf("assert_eq failed: %v != %v", args[0], args[1])
+		}
+		return nil, nil
 	default:
 		return nil, fmt.Errorf("unknown builtin %q", name)
 	}
@@ -376,4 +397,14 @@ func toFloat(val any) float64 {
 		return x
 	}
 	panic(fmt.Sprintf("stdlib: expected number, got %T", val))
+}
+
+func valuesEqual(a, b any) bool {
+	if a == b {
+		return true
+	}
+	if fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b) {
+		return true
+	}
+	return false
 }

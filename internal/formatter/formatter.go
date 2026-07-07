@@ -131,6 +131,9 @@ func (p *printer) stmt(s ast.Statement) {
 	case *ast.PlanBlock:
 		p.writeLine(fmt.Sprintf("plan %q:", n.Name))
 		p.block(n.Body)
+	case *ast.TestBlock:
+		p.writeLine(fmt.Sprintf("test %q:", n.Name))
+		p.block(n.Body)
 	case *ast.Step:
 		p.step(n)
 	default:

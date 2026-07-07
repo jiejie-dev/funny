@@ -19,7 +19,7 @@ import (
 // `-ldflags "-X main.version=2.1.0"` so `funny --version` matches the tag
 // actually released, instead of drifting from CHANGELOG.md/RELEASE_NOTES.md
 // like the old hardcoded "0.1.0" did.
-var version = "2.2.4"
+var version = "2.4.0"
 
 var rootCmd = &cobra.Command{
 	Use:     "funny",
@@ -268,6 +268,45 @@ var dapCmd = &cobra.Command{
 	},
 }
 
+var testCmd = &cobra.Command{
+	Use:   "test [path]",
+	Short: "Run test blocks in *_test.fn files",
+	Args:  cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		path := "."
+		if len(args) > 0 {
+			path = args[0]
+		}
+		verbose, _ := cmd.Flags().GetBool("verbose")
+		jsonOut, _ := cmd.Flags().GetBool("json")
+		if err := cli.Test(path, verbose, jsonOut); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return nil
+	},
+}
+
+var docCmd = &cobra.Command{
+	Use:   "doc [path]",
+	Short: "Generate API docs from ## doc comments",
+	Args:  cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		path := "."
+		if len(args) > 0 {
+			path = args[0]
+		}
+		format, _ := cmd.Flags().GetString("format")
+		outDir, _ := cmd.Flags().GetString("out")
+		includeTests, _ := cmd.Flags().GetBool("include-tests")
+		if err := cli.Doc(path, format, outDir, includeTests); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return nil
+	},
+}
+
 var lspCmd = &cobra.Command{
 	Use:   "lsp",
 	Short: "Start the LSP server over stdio (for editors/IDEs)",
@@ -301,7 +340,12 @@ func init() {
 	benchAICmd.Flags().String("model", "", "model override (provider default if empty)")
 	benchAICmd.Flags().Bool("mock", false, "use mock provider (echo prompt); same as --provider mock")
 	benchCmd.AddCommand(benchAICmd)
-	rootCmd.AddCommand(runCmd, astCmd, fmtCmd, describeCmd, disasmCmd, debugCmd, pkgCmd, replCmd, benchCmd, dapCmd, lspCmd, mcpCmd)
+	testCmd.Flags().BoolP("verbose", "v", false, "print each test as it runs")
+	testCmd.Flags().Bool("json", false, "emit JSON report")
+	docCmd.Flags().String("format", "markdown", "output format: markdown or json")
+	docCmd.Flags().String("out", "", "write docs to directory (default: stdout)")
+	docCmd.Flags().Bool("include-tests", false, "include *_test.fn files")
+	rootCmd.AddCommand(runCmd, astCmd, fmtCmd, describeCmd, disasmCmd, debugCmd, pkgCmd, replCmd, benchCmd, testCmd, docCmd, dapCmd, lspCmd, mcpCmd)
 }
 
 func main() {

@@ -69,6 +69,7 @@ const (
 	RETURN   Kind = "return"
 	STEP     Kind = "step"
 	STRUCT   Kind = "struct"
+	TEST     Kind = "test"
 	TRUE     Kind = "true"
 	WHILE    Kind = "while"
 )
@@ -79,7 +80,7 @@ var keywordSet = map[string]Kind{
 	"for": FOR, "if": IF, "import": IMPORT, "in": IN, "let": LET,
 	"match": MATCH, "meta": META, "mut": MUT, "nil": NIL, "not": NOT, "or": OR,
 	"plan": PLAN, "pub": PUB, "return": RETURN, "step": STEP,
-	"struct": STRUCT, "true": TRUE, "while": WHILE,
+	"struct": STRUCT, "test": TEST, "true": TRUE, "while": WHILE,
 }
 
 func (k Kind) IsKeyword() bool {

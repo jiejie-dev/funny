@@ -2,7 +2,7 @@
 
 AI-native scripting language. See `docs/superpowers/plans/` for design and planning documents.
 
-**Status: v2.2.4 — RELEASED**
+**Status: v2.4.0 — RELEASED**
 
 The complete Funny v2 stack is shipping. See `CHANGELOG.md` and `RELEASE_NOTES.md` for release notes.
 
@@ -13,7 +13,7 @@ Go module: `github.com/jiejie-dev/funny/v2`
 One binary covers the CLI, LSP server, and MCP server:
 
 ```bash
-go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.2.4
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.4.0
 ```
 
 Ensure `$HOME/go/bin` (or `$GOPATH/bin`) is on your `PATH`, then verify:
@@ -34,6 +34,8 @@ funny debug script.fn --source-map  # JSON instruction→source map
 funny pkg add <name> [source] # add dependency and install
 funny pkg install           # install dependencies from funny.pkg
 funny pkg update [name...]  # refresh locked packages
+funny test                  # run unit tests in *_test.fn files
+funny doc . --out docs/api  # generate API docs from ## comments
 funny repl                  # interactive REPL (persistent session)
 funny repl --lesson 1       # guided tutorial from docs/tutorial-*.funny
 funny dap                   # DAP server (VS Code debugging)
@@ -53,3 +55,5 @@ funny lsp                   # start LSP server (for editors/IDEs)
 - LSP server: diagnostics, hover, completion, signature help, go-to-definition, document symbols, formatting, find-references, rename, and a custom `funny/planGraph` plan-visualization request
 - VS Code extension (`editors/vscode/`): syntax highlighting, snippets, LSP integration, run/format commands, plan graph view
 - Standard library: json, time, math, str, regex, env, file, http, crypto, jwt, sql
+- **Testing** (`funny test`) — `test "name":` blocks in `*_test.fn`, `assert` / `assert_eq` builtins
+- **Doc generator** (`funny doc`) — Markdown/JSON API reference from `##` doc comments

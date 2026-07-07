@@ -191,6 +191,8 @@ func (c *Compiler) compileStmt(s ast.Statement, isLast bool) error {
 		return nil
 	case *ast.PlanBlock:
 		return nil
+	case *ast.TestBlock:
+		return nil
 	}
 	return fmt.Errorf("compileStmt: unsupported statement type %T", s)
 }

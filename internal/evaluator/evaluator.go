@@ -648,6 +648,8 @@ func (e *Evaluator) execStmt(s ast.Statement) (any, bool, error) {
 		return nil, false, nil
 	case *ast.PlanBlock:
 		return nil, false, nil
+	case *ast.TestBlock:
+		return nil, false, nil
 	case *ast.ImportDecl:
 		return nil, false, nil
 	case *ast.CommentStmt:

@@ -157,6 +157,14 @@ func TestFormat_MetaBlock(t *testing.T) {
 	assert.Equal(t, "meta:\n    name = \"demo\"\n    version = \"1.0\"\n", out)
 }
 
+func TestFormat_TestBlock(t *testing.T) {
+	out, err := Format([]byte(`test "demo":
+    assert(true)
+`), "t")
+	require.NoError(t, err)
+	assert.Equal(t, "test \"demo\":\n    assert(true)\n", out)
+}
+
 func TestFormat_PlanAndStep(t *testing.T) {
 	out, err := Format([]byte("plan \"demo\":\n    step \"one\":\n        println(1)\n"), "t")
 	require.NoError(t, err)

@@ -1,0 +1,17 @@
+meta:
+    name: "math"
+    version: "1.0"
+
+## Add two integers
+##
+## args:
+##   a: first summand
+##   b: second summand
+## returns: sum of a and b
+pub fn add(a: int, b: int) -> int:
+    return a + b
+
+## A 2D point.
+pub struct Point:
+    x: int
+    y: int

@@ -89,6 +89,8 @@ func (p *Parser) parseStatement() (ast.Statement, error) {
 		return p.parseMeta()
 	case lexer.PLAN:
 		return p.parsePlan()
+	case lexer.TEST:
+		return p.parseTest()
 	case lexer.STEP:
 		return p.parseStep()
 	case lexer.IMPORT:
@@ -479,6 +481,24 @@ func (p *Parser) parsePlan() (ast.Statement, error) {
 		return nil, err
 	}
 	return &ast.PlanBlock{NodePos: pos, Name: name, Body: body}, nil
+}
+
+func (p *Parser) parseTest() (ast.Statement, error) {
+	pos := astPos(p.cur.Pos)
+	p.advance()
+	if p.cur.Kind != lexer.STR {
+		return nil, errs.New("E1053", "expected test name as string", errPos(p.cur.Pos), "")
+	}
+	name := p.cur.Data
+	p.advance()
+	if _, err := p.expect(lexer.COLON); err != nil {
+		return nil, err
+	}
+	body, err := p.parseBlock()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.TestBlock{NodePos: pos, Name: name, Body: body}, nil
 }
 
 func (p *Parser) parseStep() (ast.Statement, error) {

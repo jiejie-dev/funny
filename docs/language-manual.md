@@ -391,6 +391,61 @@ struct name so plan `retry.on` can distinguish typed errors from plain strings.
 | `jwt_encode(h, c, s)` | Sign JWT (HS256) |
 | `jwt_decode(t, s)` | Verify and decode JWT |
 | `sql_open(path)` | Open SQLite database |
+| `assert(cond)` | Fail the current test if `cond` is false |
+| `assert_eq(a, b)` | Fail if `a` and `b` are not equal |
+
+## Testing
+
+Write tests in `*_test.fn` files using `test "name":` blocks:
+
+```
+fn add(a: int, b: int) -> int:
+    return a + b
+
+test "addition":
+    assert(add(1, 2) == 3)
+
+test "zero":
+    assert_eq(add(0, 0), 0)
+```
+
+Run all tests under a directory or a single file:
+
+```bash
+funny test                  # discover *_test.fn under .
+funny test path/to/pkg      # run tests in a tree
+funny test math_test.fn     # one file
+funny test -v               # verbose (print each case as it runs)
+funny test --json           # machine-readable report
+```
+
+Test bodies share the same helpers and imports as the rest of the file; the
+runner type-checks the full module, then executes each `test` block in isolation
+with supporting declarations available.
+
+## Documentation (`funny doc`)
+
+Place `##` doc comments immediately before `pub fn` / `pub struct` declarations.
+The doc generator extracts summaries, argument descriptions, and return notes:
+
+```
+## Add two integers
+##
+## args:
+##   a: first summand
+##   b: second summand
+## returns: sum of a and b
+pub fn add(a: int, b: int) -> int:
+    return a + b
+```
+
+Generate Markdown or JSON API reference:
+
+```bash
+funny doc .                         # markdown to stdout
+funny doc lib/ --out docs/api       # write one .md per .fn file
+funny doc skill.fn --format json    # JSON schema-like output
+```
 
 ## CLI Usage
 
@@ -410,6 +465,8 @@ funny pkg install           # install dependencies from funny.pkg
 funny pkg update [name...]  # re-fetch and refresh funny.lock
 funny pkg list              # list locked packages
 funny repl                  # interactive REPL
+funny test [path]           # run *_test.fn test blocks
+funny doc [path]            # generate docs from ## comments
 funny mcp                   # start MCP server
 funny lsp                   # start LSP server
 ```

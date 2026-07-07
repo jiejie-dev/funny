@@ -214,6 +214,8 @@ var builtinTypeNames = map[string]bool{
 	"jwt_decode":    true,
 	"sql_open":      true,
 	"append":        true,
+	"assert":        true,
+	"assert_eq":     true,
 }
 
 // builtinResultReturns lists builtins that return a Result, so the `?` operator
@@ -295,6 +297,8 @@ func builtinReturnType(name string, argTypes []Type) Type {
 		return Primitive("str")
 	case "str_contains", "regex_match", "file_exists":
 		return Primitive("bool")
+	case "assert", "assert_eq":
+		return Primitive("nil")
 	case "str_split":
 		// Without this, `str_split(s, sep)[i]` and `for part in
 		// str_split(...)` both failed to type-check: checkIndexExpr and
@@ -545,6 +549,8 @@ func checkStmt(s ast.Statement, env *Env) error {
 		return checkExprStmt(n, env)
 	case *ast.PlanBlock:
 		return checkPlanBlock(n, env)
+	case *ast.TestBlock:
+		return checkTestBlock(n, env)
 	case *ast.ImportDecl, *ast.CommentStmt:
 		return nil
 	case *ast.MetaBlock:

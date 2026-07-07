@@ -1,4 +1,4 @@
-# Release Notes — v2.2.4
+# Release Notes — v2.4.0
 
 **Release date:** 2026-07-07
 **Module:** `github.com/jiejie-dev/funny/v2`
@@ -9,19 +9,37 @@
 
 ## Overview
 
-**v2.2.4** promotes the package manager from prototype to daily use: declare dependencies with **`funny pkg add`**, refresh them with **`funny pkg update`**, pin versions with **semver constraints**, and autocomplete **`import "pkg:`** names in the LSP.
+**v2.4.0** adds a first-class **testing framework** and **documentation generator**: write `test "name":` blocks in `*_test.fn`, run them with **`funny test`**, and generate API docs from **`##` doc comments** with **`funny doc`**.
 
 ## Quick start
 
 ```bash
 # Install this release
-go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.2.4
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.4.0
 
-# Add and install a dependency
-funny pkg add math path:vendor/math.fn --version "^1.0.0"
-funny pkg list
-import "pkg:math"   # LSP suggests declared package names
+# Run tests
+funny test
+
+# Generate docs
+funny doc . --out docs/api
 ```
+
+## What's new in v2.4.0
+
+### Test framework (`funny test`)
+
+- **`test "name":`** — top-level test blocks in `*_test.fn` files (parsed, type-checked, not executed by `funny run`)
+- **`funny test [path]`** — discover `*_test.fn` under a directory or run one file
+- **Builtins** — `assert(cond)` and `assert_eq(a, b)` fail the current test with a clear error
+- **Flags** — `-v` / `--verbose`, `--json` report
+
+### Documentation generator (`funny doc`)
+
+- **`##` doc comments** — attach to `pub fn` / `pub struct`; supports `args:` and `returns:` sections
+- **`funny doc [path]`** — Markdown (default) or JSON (`--format json`) API reference
+- **`--out dir`** — write one file per `.fn` module
+
+See `CHANGELOG.md` for the full itemized list.
 
 ## What's new in v2.2.4
 
@@ -239,6 +257,14 @@ Full pipeline (parse + typecheck + compile + run) remains ~4×; exec-only isolat
 - JIT compilation (v2.3 roadmap) not started
 - AI benchmark community leaderboard / CI integration not yet published
 - REPL uses tree-walking evaluator (differs from default VM path)
+
+## Upgrading from v2.2.4
+
+No breaking changes. Reinstall the binary:
+
+```bash
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.4.0
+```
 
 ## Upgrading from v2.2.3
 
