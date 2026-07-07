@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.2.0 (2026-07-07)
+
+### Features
+- **Interactive REPL** — `funny repl` with persistent session state, multi-line indentation cells (`...` continuation prompt), expression result printing, and `:help` / `:vars` / `:reset` / `:quit` meta-commands; uses the type checker + tree-walking evaluator for interactive learning
+
 ## v2.1.7 (2026-07-07)
 
 ### Features

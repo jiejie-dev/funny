@@ -10,6 +10,7 @@ import (
 	"github.com/jiejie-dev/funny/v2/internal/cli"
 	"github.com/jiejie-dev/funny/v2/internal/lsp"
 	"github.com/jiejie-dev/funny/v2/internal/mcp"
+	"github.com/jiejie-dev/funny/v2/internal/repl"
 )
 
 // version is a fallback for non-release builds; `go build`/`go run` don't
@@ -17,7 +18,7 @@ import (
 // `-ldflags "-X main.version=2.1.0"` so `funny --version` matches the tag
 // actually released, instead of drifting from CHANGELOG.md/RELEASE_NOTES.md
 // like the old hardcoded "0.1.0" did.
-var version = "2.1.7"
+var version = "2.2.0"
 
 var rootCmd = &cobra.Command{
 	Use:     "funny",
@@ -179,6 +180,18 @@ var pkgListCmd = &cobra.Command{
 	},
 }
 
+var replCmd = &cobra.Command{
+	Use:   "repl",
+	Short: "Start an interactive REPL (read-eval-print loop)",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		dir, _ := cmd.Flags().GetString("project")
+		if dir == "" {
+			dir = "."
+		}
+		return repl.Run(dir, os.Stdin, os.Stdout)
+	},
+}
+
 var lspCmd = &cobra.Command{
 	Use:   "lsp",
 	Short: "Start the LSP server over stdio (for editors/IDEs)",
@@ -201,7 +214,8 @@ func init() {
 	debugCmd.Flags().StringArrayP("break", "b", nil, "breakpoint at line or file:line (repeatable)")
 	pkgCmd.PersistentFlags().String("project", ".", "project root containing funny.pkg")
 	pkgCmd.AddCommand(pkgInstallCmd, pkgListCmd)
-	rootCmd.AddCommand(runCmd, astCmd, fmtCmd, describeCmd, disasmCmd, debugCmd, pkgCmd, lspCmd, mcpCmd)
+	replCmd.Flags().String("project", ".", "working directory for imports and pkg: resolution")
+	rootCmd.AddCommand(runCmd, astCmd, fmtCmd, describeCmd, disasmCmd, debugCmd, pkgCmd, replCmd, lspCmd, mcpCmd)
 }
 
 func main() {

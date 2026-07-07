@@ -1,4 +1,4 @@
-# Release Notes — v2.1.7
+# Release Notes — v2.2.0
 
 **Release date:** 2026-07-07
 **Module:** `github.com/jiejie-dev/funny/v2`
@@ -9,13 +9,16 @@
 
 ## Overview
 
-**v2.1.7** adds the package-manager prototype from the M4 roadmap: `funny.pkg` dependency manifest, `funny pkg install` with `funny.lock` checksum locks, and `import "pkg:name"` resolution into `.funny/packages/`.
+**v2.2.0** adds the interactive REPL from the v2.2 roadmap: `funny repl` for persistent sessions, multi-line indentation input, expression result printing, and meta-commands for learning and experimentation.
 
 ## Quick start
 
 ```bash
 # Install this release
-go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.1.7
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.2.0
+
+# Interactive REPL
+funny repl
 
 # Run a script
 funny run script.fn
@@ -26,10 +29,6 @@ funny pkg list
 
 # Debug (interactive)
 funny debug script.fn
-funny debug script.fn -b 12
-
-# Source map JSON
-funny debug script.fn --source-map
 
 # Format source
 funny fmt script.fn
@@ -39,6 +38,18 @@ funny fmt script.fn -w
 funny lsp                   # LSP over stdio
 funny mcp                   # MCP over stdio
 ```
+
+## What's new in v2.2.0
+
+### Interactive REPL
+
+- **`funny repl`** — read-eval-print loop with persistent bindings
+- **Multi-line input** — open blocks/brackets continue on `...` prompt
+- **Result printing** — top-level and block-tail expressions display values
+- **Meta-commands** — `:help`, `:vars`, `:reset`, `:quit`
+- **Type-checked** — same checker as `funny run`; interpreter backend for session state
+
+See `CHANGELOG.md` for the full itemized list.
 
 ## What's new in v2.1.7
 
@@ -148,6 +159,7 @@ funny disasm <script>       Print bytecode disassembly
 funny debug <script>        Interactive bytecode debugger (-b, --source-map)
 funny pkg install [name]    Install dependencies from funny.pkg
 funny pkg list              List packages in funny.lock
+funny repl                  Interactive REPL (persistent session)
 funny mcp                   Start the MCP server over stdio
 funny lsp                   Start the LSP server over stdio
 ```
@@ -177,6 +189,14 @@ The VM remains ~3.5× faster than the tree-walking interpreter. The spec's 5× t
 
 - 5× interpreter performance target not yet met (currently 3.5×)
 - AI-friendliness benchmark harness is ready; community LLM runs are still needed
+
+## Upgrading from v2.1.7
+
+No breaking changes. Reinstall the binary:
+
+```bash
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.2.0
+```
 
 ## Upgrading from v2.1.6
 
