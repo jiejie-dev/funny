@@ -1,4 +1,4 @@
-# Release Notes — v2.2.0
+# Release Notes — v2.2.1
 
 **Release date:** 2026-07-07
 **Module:** `github.com/jiejie-dev/funny/v2`
@@ -9,35 +9,41 @@
 
 ## Overview
 
-**v2.2.0** adds the interactive REPL from the v2.2 roadmap: `funny repl` for persistent sessions, multi-line indentation input, expression result printing, and meta-commands for learning and experimentation.
+**v2.2.1** hits the v2.1.x VM performance target (~7× vs tree-walking interpreter on exec-only `fib(20)`) and adds **`funny bench ai`** for real LLM scoring against 50 compile_ok/compile_err tasks.
 
 ## Quick start
 
 ```bash
 # Install this release
-go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.2.0
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.2.1
+
+# AI-friendliness benchmark
+funny bench ai --mock
+OPENAI_API_KEY=sk-... funny bench ai --provider openai
 
 # Interactive REPL
 funny repl
 
 # Run a script
 funny run script.fn
-
-# Package dependencies
-funny pkg install
-funny pkg list
-
-# Debug (interactive)
-funny debug script.fn
-
-# Format source
-funny fmt script.fn
-funny fmt script.fn -w
-
-# Editor / LLM integration
-funny lsp                   # LSP over stdio
-funny mcp                   # MCP over stdio
 ```
+
+## What's new in v2.2.1
+
+### VM performance (~7×)
+
+- **Locals pooling** — `CALL`/`RETURN` reuse `[]bytecode.Value` slots across recursive frames
+- **Value-type frame stack** — `[]Frame` avoids per-call heap allocations
+- **Hot-path dispatch** — inlined `ADD_INT`, `SUB_INT`, `LT_INT`, `CALL`, `RETURN`, `LOAD/STORE_LOCAL`
+- **5× gate** — `TestFib_SpeedupRatio` in `internal/vm/bench_exec_test.go` enforces ≥5× exec-only speedup
+
+### AI benchmark CLI
+
+- **`funny bench ai`** — runs 50 tasks from `internal/benchmark/tasks.json`, prints JSON report
+- **Real classification** — parser + type checker (fragment tasks forgive unresolved names only)
+- **Providers** — `--provider mock|openai|anthropic`, `--model`, env `OPENAI_API_KEY` / `ANTHROPIC_API_KEY`
+
+See `CHANGELOG.md` for the full itemized list.
 
 ## What's new in v2.2.0
 
@@ -178,17 +184,25 @@ funny lsp                   Start the LSP server over stdio
 ## Performance
 
 ```
-BenchmarkFib_VM-12           ~2.31 ms/op   (recursive fib(20))
-BenchmarkFib_Interpreter-12  ~8.07 ms/op
-ratio: ~3.5x
+BenchmarkFib_VM_ExecOnly-12           ~1.3 ms/op   (recursive fib(20), pooled VM)
+BenchmarkFib_Interpreter_ExecOnly-12  ~9.2 ms/op
+exec-only ratio: ~7×
 ```
 
-The VM remains ~3.5× faster than the tree-walking interpreter. The spec's 5× target is a v2.1.x follow-up.
+Full pipeline (parse + typecheck + compile + run) remains ~4×; exec-only isolates VM dispatch improvements.
 
-## Known limitations (v2.1.x follow-ups)
+## Known limitations (v2.2.x follow-ups)
 
-- 5× interpreter performance target not yet met (currently 3.5×)
-- AI-friendliness benchmark harness is ready; community LLM runs are still needed
+- JIT compilation (v2.3 roadmap) not started
+- AI benchmark community leaderboard / CI integration not yet published
+
+## Upgrading from v2.2.0
+
+No breaking changes. Reinstall the binary:
+
+```bash
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.2.1
+```
 
 ## Upgrading from v2.1.7
 

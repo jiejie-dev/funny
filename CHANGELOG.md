@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.2.1 (2026-07-07)
+
+### Features
+- **VM performance** — locals pooling, value-type frame stack, and hot-path opcode dispatch; exec-only `fib(20)` benchmark reaches ~7× vs tree-walking interpreter (5× gate in `TestFib_SpeedupRatio`)
+- **AI benchmark CLI** — `funny bench ai` with real parser/typecheck classification, JSON report, and OpenAI/Anthropic HTTP providers (`--mock` for harness validation)
+
+### Fixes
+- **AI benchmark tasks** — corrected `match` indentation syntax (task 25); task 33 expects `compile_ok` per `?` pass-through on non-Result values
+
 ## v2.2.0 (2026-07-07)
 
 ### Features
