@@ -1,4 +1,4 @@
-# Release Notes — v2.2.3
+# Release Notes — v2.2.4
 
 **Release date:** 2026-07-07
 **Module:** `github.com/jiejie-dev/funny/v2`
@@ -9,18 +9,40 @@
 
 ## Overview
 
-**v2.2.3** completes route B of the v2.2 roadmap: VS Code can launch **Funny REPL** in a terminal and debug `.fn` files via **`funny dap`** (Debug Adapter Protocol) with editor breakpoints.
+**v2.2.4** promotes the package manager from prototype to daily use: declare dependencies with **`funny pkg add`**, refresh them with **`funny pkg update`**, pin versions with **semver constraints**, and autocomplete **`import "pkg:`** names in the LSP.
 
 ## Quick start
 
 ```bash
 # Install this release
-go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.2.3
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.2.4
 
-# VS Code: Run and Debug → "Debug Funny File"
-# Or terminal debug:
-funny debug script.fn -b 10
+# Add and install a dependency
+funny pkg add math path:vendor/math.fn --version "^1.0.0"
+funny pkg list
+import "pkg:math"   # LSP suggests declared package names
 ```
+
+## What's new in v2.2.4
+
+### Package manager (`funny pkg add` / `update`)
+
+- **`funny pkg add <name> [source]`** — writes `funny.pkg` (creates if missing) and installs into `.funny/packages/`
+- **`funny pkg update [name...]`** — re-fetches declared sources and updates `funny.lock` checksums; reports changed packages
+- **Flags** — `--source`, `--version`, `--entry`, `--project`
+
+### Version constraints
+
+- **Manifest** — optional `"version"` per dependency in `funny.pkg`
+- **Forms** — exact (`1.2.3`), minimum (`>=1.0.0`), caret (`^1.2.0`), wildcard (`*`)
+- **Lock file** — resolved version stored in `funny.lock` alongside SHA-256 checksums
+- **Git sources** — `@ref` on `git+url@ref` treated as resolved version
+
+### LSP completion
+
+- **`import "pkg:`** — suggests package names from `funny.pkg` and installed entries in `funny.lock`
+
+See `CHANGELOG.md` for the full itemized list.
 
 ## What's new in v2.2.3
 
@@ -217,6 +239,14 @@ Full pipeline (parse + typecheck + compile + run) remains ~4×; exec-only isolat
 - JIT compilation (v2.3 roadmap) not started
 - AI benchmark community leaderboard / CI integration not yet published
 - REPL uses tree-walking evaluator (differs from default VM path)
+
+## Upgrading from v2.2.3
+
+No breaking changes. Reinstall the binary:
+
+```bash
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.2.4
+```
 
 ## Upgrading from v2.2.2
 

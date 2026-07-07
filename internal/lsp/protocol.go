@@ -157,6 +157,7 @@ const (
 	CIKField    CompletionItemKind = 5
 	CIKVariable CompletionItemKind = 6
 	CIKClass    CompletionItemKind = 7
+	CIKModule   CompletionItemKind = 9
 	CIKKeyword  CompletionItemKind = 14
 )
 

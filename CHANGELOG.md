@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.2.4 (2026-07-07)
+
+### Features
+- **Package manager** — `funny pkg add` declares a dependency in `funny.pkg` and installs it; `funny pkg update` re-fetches sources and refreshes `funny.lock` checksums
+- **Version constraints** — optional `version` field per dependency (`1.2.3`, `>=1.0.0`, `^1.2.0`, `*`); validated at install time; resolved version recorded in `funny.lock`
+- **LSP pkg completion** — autocomplete package names after `import "pkg:` from `funny.pkg` / `funny.lock`
+
 ## v2.2.3 (2026-07-07)
 
 ### Features

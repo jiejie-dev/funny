@@ -199,10 +199,26 @@ writes `funny.lock` with SHA-256 checksums.
 {
   "name": "my-app",
   "dependencies": {
-    "math": { "source": "path:vendor/math.fn" }
+    "math": {
+      "source": "path:vendor/math.fn",
+      "version": "^1.0.0"
+    }
   }
 }
 ```
+
+Each dependency may include an optional `version` constraint:
+
+| Form | Meaning |
+|------|---------|
+| `1.2.3` | exact version |
+| `>=1.0.0` | minimum version |
+| `^1.2.0` | compatible within major (≥1.2.0 and &lt;2.0.0) |
+| `*` or omitted | any version |
+
+For `git+<url>@<ref>` sources, the `@ref` tag is treated as the resolved
+version and checked against the constraint at install time. `path:` and
+`https://` sources resolve to `0.0.0` unless you pin with an exact constraint.
 
 Supported `source` forms: `path:<file-or-dir>`, `https://...` (single `.fn`),
 `git+<url>@<ref>` (shallow clone).
@@ -215,8 +231,12 @@ let r = add(1, 2)
 ```
 
 ```bash
+funny pkg add math path:vendor/math.fn          # declare + install
+funny pkg add math --source path:vendor/math.fn --version "^1.0.0"
 funny pkg install
 funny pkg install math
+funny pkg update              # refresh all locked packages
+funny pkg update math         # refresh one package
 funny pkg list
 ```
 
@@ -385,7 +405,9 @@ funny debug script.fn       # interactive bytecode debugger
 funny debug script.fn --source-map  # JSON instruction→source map
 funny debug script.fn -b 10 # break at line 10, then step/continue
 funny dap                   # Debug Adapter Protocol (VS Code Run and Debug)
+funny pkg add <name> [source] # add dependency to funny.pkg and install
 funny pkg install           # install dependencies from funny.pkg
+funny pkg update [name...]  # re-fetch and refresh funny.lock
 funny pkg list              # list locked packages
 funny repl                  # interactive REPL
 funny mcp                   # start MCP server

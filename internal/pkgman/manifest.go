@@ -20,6 +20,8 @@ type Dependency struct {
 	//   https://...                  — download a single .fn file
 	//   git+<url>[@ref]              — shallow clone (optional @tag/branch/commit)
 	Source string `json:"source"`
+	// Version is an optional constraint: exact (1.2.3), >=1.0.0, ^1.2.0, or *.
+	Version string `json:"version,omitempty"`
 	// Entry is the main .fn file inside the installed tree (default: <name>.fn).
 	Entry string `json:"entry,omitempty"`
 }

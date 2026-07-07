@@ -22,6 +22,11 @@ var keywordCompletions = []string{
 // §5.7). Otherwise every symbol reachable at pos (locals, functions,
 // structs, builtins, keywords) is offered.
 func (d *document) completion(pos Position) []CompletionItem {
+	if prefix, ok := pkgImportContext(d.text, pos); ok {
+		if items := d.pkgCompletions(prefix); len(items) > 0 {
+			return items
+		}
+	}
 	if objName, ok := dotContext(d.text, pos); ok {
 		if items := d.fieldCompletions(objName, pos); items != nil {
 			return items

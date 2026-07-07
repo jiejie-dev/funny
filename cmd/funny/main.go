@@ -19,7 +19,7 @@ import (
 // `-ldflags "-X main.version=2.1.0"` so `funny --version` matches the tag
 // actually released, instead of drifting from CHANGELOG.md/RELEASE_NOTES.md
 // like the old hardcoded "0.1.0" did.
-var version = "2.2.3"
+var version = "2.2.4"
 
 var rootCmd = &cobra.Command{
 	Use:     "funny",
@@ -169,6 +169,45 @@ var pkgInstallCmd = &cobra.Command{
 	},
 }
 
+var pkgAddCmd = &cobra.Command{
+	Use:   "add <name> [source]",
+	Short: "Add a dependency to funny.pkg and install it",
+	Args:  cobra.RangeArgs(1, 2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		dir, _ := cmd.Flags().GetString("project")
+		if dir == "" {
+			dir = "."
+		}
+		source, _ := cmd.Flags().GetString("source")
+		if source == "" && len(args) > 1 {
+			source = args[1]
+		}
+		version, _ := cmd.Flags().GetString("version")
+		entry, _ := cmd.Flags().GetString("entry")
+		if err := cli.PkgAdd(dir, args[0], cli.NormalizePkgSource(source), version, entry); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return nil
+	},
+}
+
+var pkgUpdateCmd = &cobra.Command{
+	Use:   "update [name...]",
+	Short: "Re-fetch dependencies and refresh funny.lock checksums",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		dir, _ := cmd.Flags().GetString("project")
+		if dir == "" {
+			dir = "."
+		}
+		if err := cli.PkgUpdate(dir, args); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return nil
+	},
+}
+
 var pkgListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List packages recorded in funny.lock",
@@ -250,7 +289,10 @@ func init() {
 	debugCmd.Flags().Bool("source-map", false, "emit JSON source map and exit")
 	debugCmd.Flags().StringArrayP("break", "b", nil, "breakpoint at line or file:line (repeatable)")
 	pkgCmd.PersistentFlags().String("project", ".", "project root containing funny.pkg")
-	pkgCmd.AddCommand(pkgInstallCmd, pkgListCmd)
+	pkgCmd.AddCommand(pkgInstallCmd, pkgAddCmd, pkgUpdateCmd, pkgListCmd)
+	pkgAddCmd.Flags().String("source", "", "package source (path:, https://, git+url@ref)")
+	pkgAddCmd.Flags().String("version", "", "version constraint (1.2.3, >=1.0.0, ^1.2.0, *)")
+	pkgAddCmd.Flags().String("entry", "", "entry .fn file (default: <name>.fn)")
 	replCmd.Flags().String("project", ".", "working directory for imports and pkg: resolution")
 	replCmd.Flags().String("lessons-dir", "", "directory with tutorial-*.funny lessons (default: docs/)")
 	replCmd.Flags().Int("lesson", 0, "start guided tutorial N (1-based)")

@@ -70,12 +70,17 @@ func Install(opts InstallOptions) (*Lockfile, error) {
 		if _, err := os.Stat(entryPath); err != nil {
 			return nil, fmt.Errorf("install %q: entry file %q missing after fetch", name, entry)
 		}
+		resolvedVer := ResolvedVersion(dep.Source)
+		if err := SatisfiesConstraint(dep.Version, resolvedVer); err != nil {
+			return nil, fmt.Errorf("install %q: %w", name, err)
+		}
 		sum, err := fileSHA256(entryPath)
 		if err != nil {
 			return nil, err
 		}
 		lock.Packages[name] = LockedPackage{
 			Source:     dep.Source,
+			Version:    resolvedVer,
 			InstallDir: installRel,
 			Entry:      entry,
 			Checksum:   "sha256:" + sum,

@@ -18,9 +18,10 @@ type Lockfile struct {
 // LockedPackage is one installed dependency entry.
 type LockedPackage struct {
 	Source     string `json:"source"`
-	InstallDir string `json:"install_dir"` // relative to project root
-	Entry      string `json:"entry"`       // file name inside install_dir
-	Checksum   string `json:"checksum"`    // sha256:...
+	Version    string `json:"version,omitempty"` // resolved version at install time
+	InstallDir string `json:"install_dir"`       // relative to project root
+	Entry      string `json:"entry"`             // file name inside install_dir
+	Checksum   string `json:"checksum"`          // sha256:...
 }
 
 // LoadLock reads funny.lock from projectRoot. Missing file returns empty lock.
