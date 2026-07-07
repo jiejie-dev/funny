@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.2.3 (2026-07-07)
+
+### Features
+- **DAP debugger** — `funny dap` Debug Adapter Protocol server over stdio; breakpoints, step/continue, locals and stack scopes via bytecode VM
+- **VS Code extension v2.2.0** — **Start REPL** terminal command, **Debug Funny File** launch config (`funny dap`), terminal debug shortcut
+
 ## v2.2.2 (2026-07-07)
 
 ### Features

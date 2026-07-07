@@ -1,28 +1,42 @@
-# Release Notes — v2.2.2
+# Release Notes — v2.2.3
 
 **Release date:** 2026-07-07
 **Module:** `github.com/jiejie-dev/funny/v2`
 **License:** MIT
-**Binaries:** `funny` (CLI, MCP via `funny mcp`, LSP via `funny lsp`)
+**Binaries:** `funny` (CLI, MCP via `funny mcp`, LSP via `funny lsp`, DAP via `funny dap`)
 
 ---
 
 ## Overview
 
-**v2.2.2** completes the v2.2 spec's *interactive learning environment*: guided tutorials, type exploration, script loading, and package install — all inside `funny repl`.
+**v2.2.3** completes route B of the v2.2 roadmap: VS Code can launch **Funny REPL** in a terminal and debug `.fn` files via **`funny dap`** (Debug Adapter Protocol) with editor breakpoints.
 
 ## Quick start
 
 ```bash
 # Install this release
-go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.2.2
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.2.3
 
-# Guided tutorial
-funny repl --lesson 1
-
-# Interactive REPL
-funny repl
+# VS Code: Run and Debug → "Debug Funny File"
+# Or terminal debug:
+funny debug script.fn -b 10
 ```
+
+## What's new in v2.2.3
+
+### DAP debugger (`funny dap`)
+
+- **Debug Adapter Protocol** — stdio server for VS Code and other DAP clients
+- **Bytecode VM** — same engine as `funny debug`; breakpoints, step, continue
+- **Scopes** — **Locals** and **Stack** variable inspection in the editor
+
+### VS Code extension v2.2.0
+
+- **Funny: Start REPL** — integrated terminal with `funny repl --project <workspace>`
+- **Debug Funny File** — launch configuration using `funny dap`
+- **Funny: Debug Current File (Terminal)** — quick `funny debug -b <line>` session
+
+See `CHANGELOG.md` for the full itemized list.
 
 ## What's new in v2.2.2
 
@@ -198,11 +212,19 @@ exec-only ratio: ~7×
 
 Full pipeline (parse + typecheck + compile + run) remains ~4×; exec-only isolates VM dispatch improvements.
 
-## Known limitations (v2.2.x follow-ups)
+## Known limitations (v2.3 follow-ups)
 
 - JIT compilation (v2.3 roadmap) not started
 - AI benchmark community leaderboard / CI integration not yet published
-- REPL uses tree-walking evaluator (differs from default VM path); no VS Code REPL panel or DAP yet
+- REPL uses tree-walking evaluator (differs from default VM path)
+
+## Upgrading from v2.2.2
+
+No breaking changes. Reinstall the binary and reload the VS Code extension:
+
+```bash
+go install github.com/jiejie-dev/funny/v2/cmd/funny@v2.2.3
+```
 
 ## Upgrading from v2.2.1
 
